@@ -1,5 +1,6 @@
 //james implementation of AST classes to more-or-less match kernan AST
 
+
 import "ast" as ast //Kernan Grace ast types
 type Parameter = ast.Parameter
 type Expression = ast.Expression 
@@ -60,37 +61,11 @@ class methodNode(
     visitor.visitMethod(self) }
 }
 
-class dialectNode(
-  path' : String)
-      at ( source ) -> Parameter {
-  inherit nodeAt( source ) 
-
-  def path : String is public = path'
-
-  method accept[[T]](visitor : ast.Visitor[[T]]) -> T {
-    visitor.visitDialect(self) }
-}
-
-class importNode(
-  path' : String,
-  name' : String)
-      at ( source ) -> Parameter {
-  inherit nodeAt( source ) 
-
-  def path : String is public = path'
-  def name : String is public = name'
-  def typeAnnotation : Expression is public = typeAnnotation'
-
-  method accept[[T]](visitor : ast.Visitor[[T]]) -> T {
-    visitor.visitImport(self) }
-}
-
 class inheritNode(
   request' : Request,
   name' : String)
       at ( source ) -> Parameter {
   inherit nodeAt( source ) 
-
 
   print "I AM BROKEN BEYOND REPAIR"
 
@@ -98,7 +73,7 @@ class inheritNode(
   def name : String is public = name'
 
   method accept[[T]](visitor : ast.Visitor[[T]]) -> T {
-    visitor.visitSignature(self) }
+    visitor.visitInheritance(self) }
 }
 
 
@@ -183,6 +158,22 @@ class objectConstructorNode(
   method accept[[T]](visitor : ast.Visitor[[T]]) -> T {
     visitor.visitObjectConstructor(self) }
 }
+
+
+class moduleNode(
+  moduleDialect' : String,
+  moduelImports' : Dictionary[[String,String]],
+  body' : Sequence[[ObjectStatement]] )
+      at ( source ) -> Parameter {
+  inherit objectConstructorNode(body') at ( source )
+
+  def moduleDialect : String   is public = body'
+  def moduleImports : Dictionary[[String,String]] is public = body'
+    
+  method accept[[T]](visitor : ast.Visitor[[T]]) -> T {
+    visitor.visitModule(self) }
+}
+
 
 class requestNode(
   name' : String,
