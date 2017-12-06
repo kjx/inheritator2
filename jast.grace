@@ -1,6 +1,7 @@
 //james implementation of AST classes to more-or-less match kernan AST
 
-
+//REALLY BIG DESIGN QUESTION - SHOULD WE HAVE A CLASS NODE??
+//answer - yes but it just delegates to internal method and object nodes?
 import "ast" as ast //Kernan Grace ast types
 type Parameter = ast.Parameter
 type Expression = ast.Expression 
@@ -8,6 +9,8 @@ type Signature = ast.Signature
 
 type Sequence = Unknown
 
+
+method debug (s) {print(s)}
 
 class nodeAt( source ) -> Node { 
    method accept[[T]](visitor : ast.Visitor[[T]]) -> T { }
@@ -22,10 +25,10 @@ class signatureNode(name' : String,
   inherit nodeAt( source ) 
 
   def name : String is public = name'
-  def typeParameters : Sequence[[Parameter]] is publc = typeParametrs'
+  def typeParameters : Sequence[[Parameter]] is publc = typeParameters'
   def parameters : Sequence[[Parameter]] is public = parameters'
   def returnType : Expression is public = returnType'
-  def annotations : Sequence[[Expression]] = annotations
+  def annotations : Sequence[[Expression]] = annotations'
 
   method accept[[T]](visitor : ast.Visitor[[T]]) -> T {
     visitor.visitSignature(self) }
@@ -50,12 +53,15 @@ class parameterNode(name' : String,
 class methodNode(
   signature' : Signature,
   body' : Sequence[[Statement]],
-  annotations' : Sequence[[Expression]]) -> Method { 
+  annotations' : Sequence[[Expression]])
+      at( source )  -> Method { 
   inherit nodeAt( source ) 
 
   def signature : Signature is public = signature'
   def body : Sequence[[Statement]] is public = body'
   def annotations : Sequence[[Expression]] is public = annotations'
+
+  debug "METHOD: {signature.name} ({signature}) is {annotations} body {body}"
 
   method accept[[T]](visitor : ast.Visitor[[T]]) -> T {
     visitor.visitMethod(self) }
@@ -67,7 +73,7 @@ class inheritNode(
       at ( source ) -> Parameter {
   inherit nodeAt( source ) 
 
-  print "I AM BROKEN BEYOND REPAIR"
+  print "**I AM BROKEN BEYOND REPAIR**"
 
   def request : Request is public = request'
   def name : String is public = name'
@@ -90,6 +96,7 @@ class declarationNode(
   def annotations : Sequence[[Expression]] is public = annotations'
   def value : Expression is public = value'
 
+  debug "name {name} type {typeAnnotation} is {annotations} = {value}"
   method accept[[T]](visitor : ast.Visitor[[T]]) -> T {
     visitor.visitDeclaration(self) }
 }
@@ -102,7 +109,7 @@ class defDeclarationNode(
       at ( source ) -> Parameter {
   inherit declarationNode(name', typeAnnotation', annotations', value') 
        at( source ) 
-
+  debug "DEF:"
   method accept[[T]](visitor : ast.Visitor[[T]]) -> T {
     visitor.visitDefDeclaration(self) }
 }
@@ -115,7 +122,7 @@ class varDeclarationNode(
       at ( source ) -> Parameter {
   inherit declarationNode(name', typeAnnotation', annotations', value') 
       at( source ) 
-
+  debug "VAR:"
   method accept[[T]](visitor : ast.Visitor[[T]]) -> T {
     visitor.visitVarDeclaration(self) }
 }
@@ -162,13 +169,13 @@ class objectConstructorNode(
 
 class moduleNode(
   moduleDialect' : String,
-  moduelImports' : Dictionary[[String,String]],
+  moduleImports' : Dictionary[[String,String]],
   body' : Sequence[[ObjectStatement]] )
       at ( source ) -> Parameter {
   inherit objectConstructorNode(body') at ( source )
 
   def moduleDialect : String   is public = body'
-  def moduleImports : Dictionary[[String,String]] is public = body'
+  def moduleImports : Dictionary[[String,String]] is public = moduleImports'
     
   method accept[[T]](visitor : ast.Visitor[[T]]) -> T {
     visitor.visitModule(self) }

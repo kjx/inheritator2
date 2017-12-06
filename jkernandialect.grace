@@ -3,11 +3,23 @@ import "combinator-collections" as c
 inherit c.abbreviations
 // import "ast"as kernanAST  // seems this is broken. we define our own types.
 
+//pity the underlying list API doesn't have an accept() method
+method map(f) over(c) {
+  def l = list
+  for (c) do { e -> l.add( f.apply(e) ) }
+  list
+}
+
 
 print "loading jkernandialect"
 
-def visitor = object {
+
+def visitor = object {  //be careful here. someimes need to refer to visitor
     inherit defaultVisitor
+
+    //be extra careful here - again about the use of "visitor"
+    method mapCommon(c) { map { each -> common(each) } over(c) }
+    method common(j) { j.accept(visitor) }
 
     method visitImport(d) {
          print "ERROR visitDialect shouldn't happen"
@@ -17,6 +29,55 @@ def visitor = object {
          print "ERROR visitDialect shouldn't happen"
     }
 
+
+    method visitDeclaration(d) {
+            //print "visitDeclaration {d} name {d.name} annots {d.annotations}"
+            object { 
+               method name { d.name }
+               method typeAnnotation { common (d.typeAnnotation) }
+               method annotations { mapCommon (d.annotations) }
+               method value { common (d.value) }
+            }
+    }
+
+    method visitDefDeclaration(dd) is override {
+            def d = visitDeclaration(dd)
+            jast.defDeclarationNode(d.name, 
+                                    d.typeAnnotation,
+                                    d.annotations,
+                                    d.value) at(0) 
+     }
+
+
+    method visitVarDeclaration(dd) is override {
+            def d = visitDeclaration(dd)
+            jast.varDeclarationNode(d.name, 
+                                    d.typeAnnotation,
+                                    d.annotations,
+                                    d.value) at(0) 
+     }
+
+
+    method visitForDoRequest(fdr) is evil {
+       print "Jesus IWAS EVIL"
+       visitImplicitReceiverRequest(fdr)
+    }
+
+    method visitIfThenRequest(itr) is evil {
+       print "Jesus IFWS EVIL"
+       visitImplicitReceiverRequest(itr)
+       
+    }
+
+    method visitType(t) {
+             //print "skipping type {t}"
+             return 0
+             visitExpression(t)
+             for (t.signatures) do { s ->
+                s.accept(self)
+            }
+    }
+    
     method visitImplicitReceiverRequest(irr) {
         print "visiting irr:"
         for (irr.parts) do { p ->
@@ -44,10 +105,14 @@ def visitor = object {
         print "ERROR! Must give types to everything."
     }
 
-    method visitMethod(m) {
-        for (m.annotations) do { a ->
-            print "Annotation: {a}"
+    method visitMethod(m) {        
+        jast.methodNode( common(m.signature),
+                         mapCommon(m.body),
+                         mapCommon(m.annotations)) at(0) 
         }
+
+    method visitSignature(sig) {
+        jast.signatureNode("hack", list, list, 0, list) at(0)
     }
 
 }
@@ -96,13 +161,6 @@ method defaultVisitor {
 
         method visitInherits(i) {
             i.request.accept(self)
-        }
-
-        method visitDeclaration(d) {
-            d.value.accept(self)
-            for (d.annotations) do { a ->
-                a.accept(self)
-            }
         }
 
         method visitDefDeclaration(dd) {
