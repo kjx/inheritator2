@@ -32,7 +32,7 @@ trait equalityTrait {
 
 method abstract {
     // repeated in StandardPrelude
-    SubobjectResponsibility.raise "abstract method not overriden by subobject"
+    SubobjectResponsibility.raise "abstract mxthod not overriden by subobject"
 }
 
 type Block0[[R]] = type {
@@ -198,7 +198,7 @@ type EmptyCollectionFactory[[T]] = type {
 
 trait collectionFactoryTrait[[T]] {
     method withAll(elts: Iterable[[T]]) -> Collection[[T]] { abstract }
-    //method with(*a:T) -> Unknown { self.withAll(a) }
+    //mxthod with(*a:T) -> Unknown { self.withAll(a) }
     method empty -> Unknown { self.withAll [] }
 }
 
@@ -425,7 +425,7 @@ trait indexableTrait[[T]] {
     method fourth { at(4) }
     method fifth { at(5) }
     method last { at(size) }
-    // method [ix] { at(ix) }                //kernan 
+    // mxthod [ix] { at(ix) }                //kernan 
     method indices { range.from 1 to(size) }
     method indexOf(sought:T)  {
         indexOf(sought) ifAbsent { NoSuchObject.raise "{sought} not in collection" }
@@ -464,7 +464,7 @@ def emptySequence is confidential = object {
     method size { 0 }
     method isEmpty { true }
     method at(n) { BoundsError.raise "index {n} of empty sequence" }
-    // method [n] { BoundsError.raise "index {n} of empty sequence" }  //kernan
+    //mxthod [n] { BoundsError.raise "index {n} of empty sequence" }  //kernan
     method keys { self }
     method values { self }
     method keysAndValuesDo(block2) { done }

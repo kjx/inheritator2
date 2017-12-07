@@ -10,12 +10,15 @@ type Signature = ast.Signature
 type Sequence = Unknown
 
 
-method debug (s) {print(s)}
+method debug(s) {print(s)}
+//method debug(s) { } 
 
 class nodeAt( source ) -> Node { 
+   method asString { "node" }
    method accept[[T]](visitor : ast.Visitor[[T]]) -> T { }
 }
 
+//quetion about this one - it flattens params, relies on name to disambiguate?
 class signatureNode(name' : String,
                     typeParameters' : Sequence[[Paramater]],
                     parameters' : Sequence[[Parameter]],
@@ -23,12 +26,19 @@ class signatureNode(name' : String,
                     annotations' : Sequence[[Expression]])
       at ( source ) -> Signature {
   inherit nodeAt( source ) 
-
+ 
+  
+  // this is kind of ugly
+  // should replace ALL these defs with methods - shorter
   def name : String is public = name'
   def typeParameters : Sequence[[Parameter]] is publc = typeParameters'
   def parameters : Sequence[[Parameter]] is public = parameters'
   def returnType : Expression is public = returnType'
   def annotations : Sequence[[Expression]] = annotations'
+        //not clear this is right - need to think about what annotations go where
+  method debug { print "sig: {name} {parameters} -> {returnType}" }
+
+  method asString { name } 
 
   method accept[[T]](visitor : ast.Visitor[[T]]) -> T {
     visitor.visitSignature(self) }
@@ -45,6 +55,7 @@ class parameterNode(name' : String,
   def typeAnnotation : Expression is public = typeAnnotation'
   def isVariadic : Boolean is public = isVariadic'
 
+  debug "PARAMETER: {name} : {typeAnnotation} Varargs {isVariadic}"
   method accept[[T]](visitor : ast.Visitor[[T]]) -> T {
     visitor.visitParameter(self) }
 }
@@ -61,7 +72,7 @@ class methodNode(
   def body : Sequence[[Statement]] is public = body'
   def annotations : Sequence[[Expression]] is public = annotations'
 
-  debug "METHOD: {signature.name} ({signature}) is {annotations} body {body}"
+  debug "method {signature.name} is {annotations} body {body}"
 
   method accept[[T]](visitor : ast.Visitor[[T]]) -> T {
     visitor.visitMethod(self) }
@@ -146,7 +157,7 @@ class typeDeclarationNode(
 
 class returnNode(
   value' : Expression)
-      at ( source ) -> Parameter {
+      at ( source )  {
   inherit nodeAt( source ) 
 
   def value : Expression is public = value'
@@ -155,6 +166,7 @@ class returnNode(
     visitor.visitReturn(self) }
 }
 
+//partial. needs more to handle inheritance. tomorrow.
 class objectConstructorNode(
   body' : Sequence[[ObjectStatement]])
       at ( source ) -> Parameter {
@@ -210,7 +222,7 @@ class implicitRequestNode(
 }
 
 
-class explicitReceiverRequestNode(
+class explicitRequestNode(
   receiver' : Expression,
   name' : String,
   typeArguments' : Sequence[[Expression]],
@@ -231,6 +243,8 @@ class numberLiteralNode(
       at ( source ) -> Parameter {
   inherit nodeAt( source ) 
 
+  method asString { "Literal: {value}" }
+
   def value : Number is public = value'
 
   method accept[[T]](visitor : ast.Visitor[[T]]) -> T {
@@ -238,7 +252,7 @@ class numberLiteralNode(
 }
 
 class stringLiteralNode(
-  value : String)
+  value' : String)
       at ( source ) -> Parameter {
   inherit nodeAt( source ) 
 
@@ -267,6 +281,8 @@ class interfaceNode(
   inherit nodeAt( source ) 
 
   def signatures : Sequence[[Signature]] is public = signatures'
+
+  debug "interface: {signatures} size: {signatures.size}"
 
   method accept[[T]](visitor : ast.Visitor[[T]]) -> T {
     visitor.visitInterface(self) }

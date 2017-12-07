@@ -4,10 +4,10 @@ inherit c.abbreviations
 // import "ast"as kernanAST  // seems this is broken. we define our own types.
 
 //pity the underlying list API doesn't have an accept() method
-method map(f) over(c) {
+method map(f) over(col) {
   def l = list
-  for (c) do { e -> l.add( f.apply(e) ) }
-  list
+  for (col) do { e -> l.add( f.apply(e) ) }
+  l
 }
 
 
@@ -59,50 +59,79 @@ def visitor = object {  //be careful here. someimes need to refer to visitor
 
 
     method visitForDoRequest(fdr) is evil {
-       print "Jesus IWAS EVIL"
        visitImplicitReceiverRequest(fdr)
     }
 
     method visitIfThenRequest(itr) is evil {
-       print "Jesus IFWS EVIL"
        visitImplicitReceiverRequest(itr)
        
     }
 
-    method visitType(t) {
-             //print "skipping type {t}"
-             return 0
-             visitExpression(t)
-             for (t.signatures) do { s ->
-                s.accept(self)
-            }
+    method visitReturn(r) {
+          jast.returnNode(common(r.value)) at(0)
+    }
+
+
+    method visitType(t) {       
+        jast.interfaceNode(mapCommon(t.signatures)) at(0)
     }
     
     method visitImplicitReceiverRequest(irr) {
-        print "visiting irr:"
-        for (irr.parts) do { p ->
-            print "  {p.name}"
-            for (p.arguments) do { a ->
-                print "    {a}"
+        //cut and pasted from visitSignature
+        //there should be some commonality, should reafactor
+        var name := ""
+        var typeArguments := list
+        var arguments := list
+
+        for (irr.parts) do { part -> 
+            name := name ++ splunge(part.name)
+            if (c.sizeOfVariadicList(part.typeArguments) > 0) then {
+               name := name ++ 
+                  munge(part.typeArguments, "[", "_", ",", "]") }
+            if ((c.sizeOfVariadicList(irr.parts) > 1) || 
+                (c.sizeOfVariadicList(part.typeArguments) > 0)) then {
+               name := name ++ munge(part.arguments, "(", "_", ",", ")") }
+            typeArguments := typeArguments ++ mapCommon(part.typeArguments)
+            arguments := arguments ++ mapCommon(part.arguments)
             }
-        }
+
+        jast.implicitRequestNode(name, typeArguments, arguments) at(0)
     }
+
+    method visitExplicitReceiverRequest(err) { 
+       def irr = visitImplicitReceiverRequest(err) 
+       jast.explicitRequestNode(common(err.receiver),
+                irr.name, irr.typeArguments, irr.arguments) at(0)
+    }
+    
 
     method visitObjectConstructor(e) is override {
-           print "OC: {e}"
-           print "OC body: {e.body}"
-           e.body.do { f ->
-                        print "OCBodyNode: {f}"
-                        f.accept(self)
-                        }
+        jast.objectConstructorNode(mapCommon(e.body)) at(0)
     }
 
+    method visitBlock(b) {
+        jast.blockNode(mapCommon(b.parameters), mapCommon(b.body)) at(0)
+    }
+
+
     method visitStringLiteral(sl) {
-        print "string literal: {sl.value}"
+        jast.stringLiteralNode(sl.value) at(0)
+    }
+
+    method visitNumberLiteral(nl) {
+        jast.numberLiteralNode(nl.value) at(0)
     }
 
     method visitImplicitUnknown(iu) {
-        print "ERROR! Must give types to everything."
+        jast.implicitRequestNode("implicitUnknown", empty, empty) at(0)
+    }
+
+    method visitImplicitDone(id) {
+        jast.implicitRequestNode("implicitDone", empty, empty) at(0)
+    }
+
+    method visitImplicitUninitialised (iu) {
+        jast.implicitRequestNode("implicitUninitialised", empty, empty) at(0)
     }
 
     method visitMethod(m) {        
@@ -111,9 +140,60 @@ def visitor = object {  //be careful here. someimes need to refer to visitor
                          mapCommon(m.annotations)) at(0) 
         }
 
-    method visitSignature(sig) {
-        jast.signatureNode("hack", list, list, 0, list) at(0)
+
+    //return a string of arguments in canonical names
+    method munge( spart, left, mid, sep, right ) {
+        if (c.sizeOfVariadicList(spart) == 0) then { return left ++ right }
+        
+        var result := left
+
+        for (1 .. (c.sizeOfVariadicList(spart) - 1)) do { p ->
+          result := result ++ mid ++ sep 
+        }
+        
+        result ++ mid ++ right
     }
+
+    //return only the name part of a name with parenthesis
+    method splunge( namewithparens ) {
+       var idx := 0
+       for ( namewithparens ) do { c ->
+           if (c == "(")
+              then { return namewithparens.substringFrom(1)to(idx) }  
+           idx := idx + 1
+       }
+       namewithparens
+    }
+
+
+
+    method visitSignature(sig) {
+        var name := ""
+        var typeParameters := list
+        var parameters := list
+
+        for (sig.parts) do { part -> 
+            name := name ++ splunge(part.name)
+            if (c.sizeOfVariadicList(part.typeParameters) > 0) then {
+               name := name ++ 
+                  munge(part.typeParameters, "[", "_", ",", "]") }
+            if ((c.sizeOfVariadicList(sig.parts) > 1) || 
+                (c.sizeOfVariadicList(part.typeParameters) > 0)) then {
+               name := name ++ munge(part.parameters, "(", "_", ",", ")") }
+            typeParameters := typeParameters ++ mapCommon(part.typeParameters)
+            parameters := parameters ++ mapCommon(part.parameters)
+            }
+
+        jast.signatureNode(name, typeParameters, parameters, common(sig.returnType), empty) at(0)
+    }
+
+
+
+
+    method visitParameter(p) {
+           jast.parameterNode(p.name, common(p.typeAnnotation),p.isVariadic) at(0)
+    }
+
 
 }
 
@@ -282,3 +362,4 @@ def kast = object {
           accept(visitor)
      }
 }
+
