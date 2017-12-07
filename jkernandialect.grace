@@ -1,7 +1,9 @@
-import "jast" as jast
+import "jeval" as jm
 import "combinator-collections" as c
 inherit c.abbreviations
 // import "ast"as kernanAST  // seems this is broken. we define our own types.
+
+def jast = jm.jeval
 
 //pity the underlying list API doesn't have an accept() method
 method map(f) over(col) {
