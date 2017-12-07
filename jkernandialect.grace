@@ -4,6 +4,7 @@ inherit c.abbreviations
 // import "ast"as kernanAST  // seems this is broken. we define our own types.
 
 def jast = jm.jeval
+def jeval = jast
 
 //pity the underlying list API doesn't have an accept() method
 method map(f) over(col) {
@@ -74,7 +75,9 @@ def visitor = object {  //be careful here. someimes need to refer to visitor
     }
 
 
-    method visitType(t) {       
+    method visitType(t) {  
+        print "VT: {t.signatures}"
+        for (t.signatures) do { sig -> print(sig)}
         jast.interfaceNode(mapCommon(t.signatures)) at(0)
     }
     
@@ -91,7 +94,7 @@ def visitor = object {  //be careful here. someimes need to refer to visitor
                name := name ++ 
                   munge(part.typeArguments, "[", "_", ",", "]") }
             if ((c.sizeOfVariadicList(irr.parts) > 1) || 
-                (c.sizeOfVariadicList(part.typeArguments) > 0)) then {
+                (c.sizeOfVariadicList(part.arguments) > 0)) then {
                name := name ++ munge(part.arguments, "(", "_", ",", ")") }
             typeArguments := typeArguments ++ mapCommon(part.typeArguments)
             arguments := arguments ++ mapCommon(part.arguments)
@@ -180,7 +183,7 @@ def visitor = object {  //be careful here. someimes need to refer to visitor
                name := name ++ 
                   munge(part.typeParameters, "[", "_", ",", "]") }
             if ((c.sizeOfVariadicList(sig.parts) > 1) || 
-                (c.sizeOfVariadicList(part.typeParameters) > 0)) then {
+                (c.sizeOfVariadicList(part.parameters) > 0)) then {
                name := name ++ munge(part.parameters, "(", "_", ",", ")") }
             typeParameters := typeParameters ++ mapCommon(part.typeParameters)
             parameters := parameters ++ mapCommon(part.parameters)
@@ -347,6 +350,16 @@ method checker(module) {
     print "MODULE IMPORTS: {moduleImports}"
 
     jast.moduleNode( moduleDialect, moduleImports, moduleBody ) at(0) 
+
+    print "EXECUTIONEXECUTIONEXECUTIONEXECUTION"
+
+    def ctxt = jeval.newEmptyContext
+    ctxt.declare("implicitUninitialised") asDef(jm.ngDone)
+    
+    for (moduleBody) do { e ->
+        print (e.eval(ctxt))
+    }
+       
     }
 
 

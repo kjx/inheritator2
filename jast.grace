@@ -10,7 +10,10 @@ class jast {
     type Signature = Unknown
     type Visitor = Unknown
     type Sequence = Unknown
-    
+
+    //REALLY NEED OUR OWN SEQUENCE-
+    //with the visitor
+    //with an eval..    
     
     method debug(s) {print(s)}
     //method debug(s) { } 
@@ -19,7 +22,7 @@ class jast {
        method asString { "node" }
        method accept[[T]](visitor : Visitor[[T]]) -> T { }
     }
-    
+
     //quetion about this one - it flattens params, relies on name to disambiguate?
     class signatureNode(name' : String,
                         typeParameters' : Sequence[[Paramater]],
@@ -38,7 +41,7 @@ class jast {
       def returnType : Expression is public = returnType'
       def annotations : Sequence[[Expression]] = annotations'
             //not clear this is right - need to think about what annotations go where
-      method debug { print "sig: {name} {parameters} -> {returnType}" }
+      debug "sig: {name} {parameters} -> {returnType}" 
     
       method asString { name } 
     
@@ -62,7 +65,7 @@ class jast {
         visitor.visitParameter(self) }
     }
     
-    
+    //should be methodDeclarationNode. or remove "Declaration", "Literal" below
     class methodNode(
       signature' : Signature,
       body' : Sequence[[Statement]],
@@ -140,7 +143,7 @@ class jast {
         visitor.visitVarDeclaration(self) }
     }
     
-    
+    //do we want this? kernan codes as method.    
     class typeDeclarationNode(
       name' : String,
       annotations' : Sequence[[Expression]],
@@ -245,7 +248,7 @@ class jast {
           at ( source ) -> Parameter {
       inherit nodeAt( source ) 
     
-      method asString { "Literal: {value}" }
+      method asString { "Number: {value}" }
     
       def value : Number is public = value'
     
@@ -259,11 +262,14 @@ class jast {
       inherit nodeAt( source ) 
     
       def value : String is public = value'
+
+      method asString { "String: {value}" }
     
       method accept[[T]](visitor : Visitor[[T]]) -> T {
         visitor.visitStringLiteral(self) }
     }
     
+    //Can't blocks have type parameters?  should be able to!
     class blockNode(
       parameters' : Sequence[[Parameter]],
       body' : Sequence[[Statement]])
@@ -284,8 +290,10 @@ class jast {
     
       def signatures : Sequence[[Signature]] is public = signatures'
     
-      debug "interface: {signatures} size: {signatures.size}"
-    
+      method asString {"interface: {signatures} size: {signatures.size}"}
+
+      debug (asString)
+
       method accept[[T]](visitor : Visitor[[T]]) -> T {
         visitor.visitInterface(self) }
     }
