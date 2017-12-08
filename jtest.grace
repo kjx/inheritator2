@@ -25,7 +25,28 @@ foo
 { "a block" }
 { "a block" }
 
+method bar { return "barreturn" }
+bar
+
+method blockescape {
+  def x = { return "blockescapeOK" }
+  def y = { "ping" }
+  def z = { "pong" }
+  y.apply
+  x.apply
+  z.apply
+}
+blockescape
+
+"bubble"
+method bubble(x,y) { (x + x) + y }
+bubble(5,10)
+bubble(20,10)
+"bubble"
+
 { x -> x + x }.apply(22)
+
+{ x -> x + x }.apply(44)
 
 var counter := 0
 def bump = { counter := counter + 2

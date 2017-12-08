@@ -76,8 +76,6 @@ def visitor = object {  //be careful here. someimes need to refer to visitor
 
 
     method visitType(t) {  
-        print "VT: {t.signatures}"
-        for (t.signatures) do { sig -> print(sig)}
         jast.interfaceNode(mapCommon(t.signatures)) at(0)
     }
     
@@ -351,7 +349,7 @@ method checker(module) {
 
     jast.moduleNode( moduleDialect, moduleImports, moduleBody ) at(0) 
 
-    print "EXECUTIONEXECUTIONEXECUTIONEXECUTION"
+    print "EXECUTION EXECUTION EXECUTION EXECUTION"
 
     def ctxt = jeval.newEmptyContext
     ctxt.declare("implicitUninitialised") asDef(jm.ngDone)

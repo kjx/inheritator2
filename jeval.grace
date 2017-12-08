@@ -14,6 +14,8 @@ class jeval {
       alias jVarDeclarationNode(_,_,_,_) at(_) = varDeclarationNode(_,_,_,_) at(_)
       alias jMethodNode(_,_,_) at(_) = methodNode(_,_,_) at(_)
       alias jBlockNode(_,_) at(_) = blockNode(_,_) at(_)
+      alias jReturnNode(_) at(_) = returnNode(_) at (_)
+      alias jObjectConstructorNode(_) at(_) = objectConstructorNode(_) at(_)
 
   class nodeAt( source ) -> Node { 
     inherit jNodeAt(source)
@@ -97,7 +99,7 @@ class jeval {
 
       method eval(ctxt) { 
           ctxt.declare(signature.name) 
-                 asMethod (acceptVarargs(signature.parameters,ctxt,body))
+                 asMethod (acceptVarargs(signature.parameters,ctxt,body,true))
           ngDone          
       }
  
@@ -116,7 +118,7 @@ class jeval {
          def rcvr = receiver.eval( ctxt )
          def types = typeArguments.map { ta -> ta.eval( ctxt ) }
          def args = arguments.map { a -> a.eval( ctxt ) }
-         print "eval explicitRequest {rcvr} {name} {args}"
+         //print "eval explicitRequest {rcvr} {name} {args}"
          def methodBody = rcvr.lookup(name)
          applyVarargs(methodBody,args)
       } 
@@ -133,11 +135,33 @@ class jeval {
       method eval( ctxt ) {
          def types = typeArguments.map { ta -> ta.eval( ctxt ) }
          def args = arguments.map { a -> a.eval( ctxt ) }
-         print "eval implicitRequest {name} {args}"
+         //print "eval implicitRequest {name} {args}"
          def methodBody = ctxt.lookup(name) //not quite it wrt inheritance!
          applyVarargs(methodBody,args)
       } 
   }
+
+  class returnNode(
+      value' : Expression)
+          at ( source )  {
+      inherit jReturnNode( value' ) at( source )
+      
+      method eval( ctxt ) {
+          ctxt.lookup("_returnBlock").apply( value.eval(ctxt) )
+      }
+  }
+
+
+  class objectConstructorNode(
+      body' : Sequence[[ObjectStatement]])
+          at ( source ) -> Parameter {
+      inherit jObjectConstructorNode(body') at(source) 
+              
+      method eval(ctxt) { ngObject(ctxt) }            
+  }
+
+  
+
 
   method newEmptyContext { outer.newEmptyContext }
 }
@@ -161,42 +185,43 @@ method applyVarargs(block,args) {//args are NGOS, aka already evaluated...
 class progn (body) {
    method eval(ctxt) { 
      var rv := ngDone
-     for (body) do { stmt ->
-          rv := stmt.eval(ctxt) 
-          print "progn:{rv}" }
+     for (body) do { stmt -> rv := stmt.eval(ctxt) }
      rv
    }
 }
 
+
 //return a block that evals the body in a subcontext 
 //of ctxt where block args are bound to the params
-method acceptVarargs(params,ctxt,body) {
+method acceptVarargs(params,ctxt,body,addEscape) {
   def p = params.asList
   def prognBody = progn(body)
   match (p.size)
-    case { 0 -> { prognBody.eval(ctxt.subcontext) } } 
+    case { 0 -> { 
+         def subtxt = ctxt.subcontext
+         setupReturnThenRun(prognBody,subtxt,addEscape) } }
     case { 1 -> { p1 -> 
          def subtxt = ctxt.subcontext
          subtxt.declare(p.at(1).name) asDef( p1 ) 
-         prognBody.eval(subtxt) } }
+         setupReturnThenRun(prognBody,subtxt,addEscape) } }
     case { 2 -> { p1, p2 -> 
          def subtxt = ctxt.subcontext
          subtxt.declare(p.at(1).name) asDef( p1 ) 
          subtxt.declare(p.at(2).name) asDef( p2 ) 
-         prognBody.eval(subtxt) } }
+         setupReturnThenRun(prognBody,subtxt,addEscape) } }
     case { 3 -> { p1, p2, p3 -> 
          def subtxt = ctxt.subcontext
          subtxt.declare(p.at(1).name) asDef( p1 ) 
          subtxt.declare(p.at(2).name) asDef( p2 ) 
          subtxt.declare(p.at(3).name) asDef( p3 ) 
-         prognBody.eval(subtxt) } }
+         setupReturnThenRun(prognBody,subtxt,addEscape) } }
     case { 4 -> { p1, p2, p3, p4 -> 
          def subtxt = ctxt.subcontext
          subtxt.declare(p.at(1).name) asDef( p1 ) 
          subtxt.declare(p.at(2).name) asDef( p2 ) 
          subtxt.declare(p.at(3).name) asDef( p3 ) 
          subtxt.declare(p.at(4).name) asDef( p4 ) 
-         prognBody.eval(subtxt) } }
+         setupReturnThenRun(prognBody,subtxt,addEscape) } }
     case { 5 -> { p1, p2, p3, p4, p5 -> 
          def subtxt = ctxt.subcontext
          subtxt.declare(p.at(1).name) asDef( p1 ) 
@@ -204,8 +229,15 @@ method acceptVarargs(params,ctxt,body) {
          subtxt.declare(p.at(3).name) asDef( p3 ) 
          subtxt.declare(p.at(4).name) asDef( p4 ) 
          subtxt.declare(p.at(5).name) asDef( p5 ) 
-         prognBody.eval(subtxt) } }
+         setupReturnThenRun(prognBody,subtxt,addEscape) } }
     case { _ -> print "CANT BE BOTHERED TO ACCEPT MORE VARARGS" }
+}
+
+//auxilliary method of applyVarargs 
+//to set up binding for "return" statements
+method setupReturnThenRun(prognBody,subtxt,addEscape) {
+          if (addEscape) then {subtxt.declare("_returnBlock") asMethod {rv -> return rv} }
+          prognBody.eval(subtxt) 
 }
 
 
@@ -217,7 +249,6 @@ type NGO = Unknown
 //so we can report errors properly!
 //tie every object back to an O/C in the source
 class ngo { 
-  method asString { "<ngo>" }
   def structure = dictionary
 
   //should check for lexical shadowning -- but we don't
@@ -286,7 +317,20 @@ class ngBlock(parameters,ctxt,body) {
      case { 5 -> "apply(_,_,_,_,_)" }
      case { _ -> print "CANT BE BOTHERED TO APPLY MORE VARARGS" }
 
-   declare(name) asMethod (acceptVarargs(parameters,ctxt,body))
+   declare(name) asMethod (acceptVarargs(parameters,ctxt,body,false))
+}
+
+class ngObject(ctxt) {
+  inherit ngo
+  method asString { "ngObject:{structure}" }
+
+  //needs inheritance SHITE
+
+  method lookup( name ) {  //copy & paste
+    if (structure.containsKey(name)) 
+       then { structure.at(name) }
+       else { parent.lookup( name ) }
+  }
 }
 
 class ngDone {

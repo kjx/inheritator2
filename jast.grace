@@ -5,6 +5,8 @@ class jast {
     //REALLY BIG DESIGN QUESTION - SHOULD WE HAVE A CLASS NODE??
     //answer - yes but it just delegates to internal method and object nodes?
     
+    //NOTHER QUETION - SHOULD WE HAVE A "self" NODE? (currently not)
+   
     type Parameter = Unknown
     type Expression = Unknown 
     type Signature = Unknown
