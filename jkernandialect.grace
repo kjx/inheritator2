@@ -353,9 +353,11 @@ method checker(module) {
 
     def ctxt = jeval.newEmptyContext
     ctxt.declare("implicitUninitialised") asDef(jm.ngDone)
+
+    def moduleObject = jm.ngObject(list, ctxt)//hmmm
     
     for (moduleBody) do { e ->
-        print (e.eval(ctxt))
+        print (e.eval(moduleObject))
     }
        
     }

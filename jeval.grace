@@ -21,7 +21,7 @@ class jeval {
     inherit jNodeAt(source)
     method asString { "jNode" }
 
-    //method eval( ctxt ) -> NGO { ngo } 
+    method eval( ctxt ) -> NGO { print "ERROR: can't eval {self}" } 
   }
 
 
@@ -325,6 +325,8 @@ class ngObject(body,parent) {
   method asString { "ngObject:{structure}" }
 
   //needs inheritance SHITE
+
+  declare "self" asDef(self) //does this make sense?
 
   progn(body).eval(self) //whoo! freaky!!
 

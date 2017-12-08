@@ -84,10 +84,11 @@ o1.one
 o1.two
 
 def o2 = object {
-   inherit o1
    method one {"ONE"}
    method two {"TWO"}
+   method three { self.one }
 }
 o2.one
 o2.two
+o2.three
 "DONE DONE DONE DONE DONE DONE DONE"
