@@ -157,7 +157,7 @@ class jeval {
           at ( source ) -> Parameter {
       inherit jObjectConstructorNode(body') at(source) 
               
-      method eval(ctxt) { ngObject(ctxt) }            
+      method eval(ctxt) { ngObject(body,ctxt) }            
   }
 
   
@@ -320,11 +320,13 @@ class ngBlock(parameters,ctxt,body) {
    declare(name) asMethod (acceptVarargs(parameters,ctxt,body,false))
 }
 
-class ngObject(ctxt) {
-  inherit ngo
+class ngObject(body,parent) {
+  inherit lexicalContext(parent)
   method asString { "ngObject:{structure}" }
 
   //needs inheritance SHITE
+
+  progn(body).eval(self) //whoo! freaky!!
 
   method lookup( name ) {  //copy & paste
     if (structure.containsKey(name)) 

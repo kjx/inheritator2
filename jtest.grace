@@ -73,3 +73,21 @@ nextc.apply
 readc.apply
 prevc.apply
 readc.apply
+
+"objects"
+def o1 = object {
+   method one {"one"}
+   method two {"two"}
+}
+"objectsrun"
+o1.one
+o1.two
+
+def o2 = object {
+   inherit o1
+   method one {"ONE"}
+   method two {"TWO"}
+}
+o2.one
+o2.two
+"DONE DONE DONE DONE DONE DONE DONE"
