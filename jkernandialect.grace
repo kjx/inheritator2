@@ -351,10 +351,13 @@ method checker(module) {
 
     print "EXECUTION EXECUTION EXECUTION EXECUTION"
 
+    //technically this is the "dialect" context  
+    //surrounding the module object
     def ctxt = jeval.newEmptyContext
+    ctxt.declare("self") asDef(ctxt)
     ctxt.declare("implicitUninitialised") asDef(jm.ngDone)
 
-    def moduleObject = jm.ngObject(list, ctxt)//hmmm
+    def moduleObject = jm.ngObject(list, ctxt)  //hmmm
     
     for (moduleBody) do { e ->
         print (e.eval(moduleObject))

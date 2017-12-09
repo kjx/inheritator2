@@ -22,6 +22,7 @@ class jeval {
     method asString { "jNode" }
 
     method eval( ctxt ) -> NGO { print "ERROR: can't eval {self}" } 
+    method build( ctxt ) -> NGO { ngBuild } // does the "build" phase of bulding objects.
   }
 
 
@@ -250,6 +251,27 @@ type NGO = Unknown
 //tie every object back to an O/C in the source
 class ngo { 
   def structure = dictionary
+  
+  
+  method declareDef( name) {
+      if (structure.containsKey(name)) 
+      then { print "ERROR: trying to declare {name} more than once" }
+      else { structure.at(name) put (ngUninitialised) }
+  }
+
+  //HERE
+  //STUPID FUCKING RENAMING FUCKS EVERYTHING
+
+  method initializeDef(name) with(value) {
+      if (!structure.containsKey(name))
+      then { print "ERROR: trying to initialise undeclared {name}" }
+
+      else { structure.at(name) put { ngUninitialised } }
+  }
+  
+
+  //I quite like these methods, but am splitting 'em for build vs eval
+  //call "declare" from build; "initialise" from eval
 
   //should check for lexical shadowning -- but we don't
   method declare( name ) asMethod ( lambda ) { 
@@ -301,7 +323,7 @@ class ngInterface( value', ctxt ) {
 }
 
 class ngBlock(parameters,ctxt,body) {
-   inherit ngo
+   inherit lexicalContext(ctxt)
    method asString { "\{a ngBlock\}" }
 
    //just have to manufacture the apply method
@@ -326,7 +348,8 @@ class ngObject(body,parent) {
 
   //needs inheritance SHITE
 
-  declare "self" asDef(self) //does this make sense?
+  declare "outer" asDef( lookup("self" ) ) // we haven't declared self yet so the enclosing self...
+  declare "self" asDef(self) //does this make sense? - seems to
 
   progn(body).eval(self) //whoo! freaky!!
 
@@ -337,9 +360,19 @@ class ngObject(body,parent) {
   }
 }
 
-class ngDone {
+def ngDone is public = object {
    inherit ngo
    method asString { "ngDone"}
+}
+
+def ngBuild is public = object {
+   inherit ngo
+   method asString { "ngBuild"} //result returned from build. always an error.
+}
+
+def ngUninitialised is public = object {
+   inherit ngo
+   method asString { "ngUninitialised" } //also an error if accessed
 }
 
 class newEmptyContext { 
