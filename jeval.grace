@@ -75,7 +75,10 @@ class jeval {
           at( source ) 
 
       method eval(ctxt) { 
-          ctxt.declare(name) asDef(value.eval(ctxt))
+          //ctxt.declare(name) asDef(value.eval(ctxt))
+          def db = ngDefBox
+          ctxt.declare(name) asDefBox(db)
+          db.initialValue:=value.eval(ctxt)
           ngDone          
       }
   }
@@ -90,7 +93,10 @@ class jeval {
           at( source ) 
 
       method eval(ctxt) { 
-          ctxt.declare(name) asVar(value.eval(ctxt))
+          //ctxt.declare(name) asVar(value.eval(ctxt))
+          def vb = ngVarBox
+          ctxt.declare(name) asVarBox(vb)
+          vb.initialValue:=value.eval(ctxt)
           ngDone          
       }
   }
@@ -255,12 +261,19 @@ type NGO = Unknown
 //tie every object back to an O/C in the source
 class ngo { 
   def structure = dictionary
-  
-  
-  method declareDef(    name) {
-      if (structure.containsKey(name)) 
+    
+  method declare(name) asDefBox(ngDefBox) {
+    if (structure.containsKey(name)) 
       then { print "ERROR: trying to declare {name} more than once" }
-      else { structure.at(name) put (ngUninitialised) }
+      else { structure.at(name) put (ngDefBox) }
+  }
+  method declare( name ) asVarBox (ngVarBox) { 
+    if (structure.containsKey(name) || structure.containsKey(name ++ "():=(_)")) 
+      then { print "ERROR: trying to declare {name} more than once" }
+      else { 
+           structure.at(name) put(ngVarBox)
+           structure.at(name ++ "():=(_)") put (ngVarBox)
+           }
   }
 
 
@@ -273,6 +286,7 @@ class ngo {
       then { print "ERROR: trying to declare {name} more than once" }
       else { structure.at(name) put(lambda) }
   }
+
   method declare( name ) asDef ( ngo ) { 
     if (structure.containsKey(name)) 
       then { print "ERROR: trying to declare {name} more than once" }
@@ -388,3 +402,22 @@ class lexicalContext(parent) {
        else { parent.lookup( name ) }
   }
 }
+
+
+class ngDefBox {
+   var boxValue := ngUninitialised
+   method initialValue:= (initialValue) {
+      if (boxValue != ngUninitialised) then { print "ERROR: can't initialise initailsed box" }
+      boxValue := initialValue
+   }
+   method apply { //can be called as if 'twere a block
+      if (boxValue == ngUninitialised) then { print "ERROR: can't access uninitailsed box" }
+      boxValue
+   }
+}
+
+class ngVarBox {
+   inherit ngDefBox
+   method apply(x) {boxValue:= x}
+}
+

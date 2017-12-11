@@ -104,7 +104,12 @@ o3.right
 o3.o4.inner
 // o3.o4.wrong
 
-
+def o5 = object { 
+  o5b
+  method o5b {o5a}
+  method o5a {o5v}
+  def o5v = "o5v"
+}
 
 
 
