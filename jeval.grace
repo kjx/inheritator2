@@ -137,7 +137,7 @@ class jeval {
          def types = typeArguments.map { ta -> ta.eval( ctxt ) }
          def args = arguments.map { a -> a.eval( ctxt ) }
          //print "eval implicitRequest {name} {args}"
-         def methodBody = ctxt.lookup(name) //not quite it wrt inheritance!
+         def methodBody = ctxt.lookupSlot(name) //not quite it wrt inheritance!
          applyVarargs(methodBody,args)
       } 
   }
@@ -353,11 +353,16 @@ class ngObject(body,parent) {
 
   progn(body).eval(self) //whoo! freaky!!
 
+  //lexical lookup (internal / implicit)
   method lookup( name ) {  //copy & paste
     if (structure.containsKey(name)) 
        then { structure.at(name) }
        else { parent.lookup( name ) }
   }
+
+  //lookup only for slots in "self" (external / explicit)
+  method lookupSlot( name ) { structure.at(name) }
+
 }
 
 def ngDone is public = object {
