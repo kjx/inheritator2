@@ -26,6 +26,10 @@ class jeval {
   }
 
 
+
+
+
+
   class stringLiteralNode(
       value' : String)
           at ( source ) -> Parameter {
@@ -120,7 +124,7 @@ class jeval {
          def types = typeArguments.map { ta -> ta.eval( ctxt ) }
          def args = arguments.map { a -> a.eval( ctxt ) }
          //print "eval explicitRequest {rcvr} {name} {args}"
-         def methodBody = rcvr.lookup(name)
+         def methodBody = rcvr.lookupSlot(name)
          applyVarargs(methodBody,args)
       } 
   }
@@ -137,7 +141,7 @@ class jeval {
          def types = typeArguments.map { ta -> ta.eval( ctxt ) }
          def args = arguments.map { a -> a.eval( ctxt ) }
          //print "eval implicitRequest {name} {args}"
-         def methodBody = ctxt.lookupSlot(name) //not quite it wrt inheritance!
+         def methodBody = ctxt.lookup(name) //not quite it wrt inheritance!
          applyVarargs(methodBody,args)
       } 
   }
@@ -253,22 +257,12 @@ class ngo {
   def structure = dictionary
   
   
-  method declareDef( name) {
+  method declareDef(    name) {
       if (structure.containsKey(name)) 
       then { print "ERROR: trying to declare {name} more than once" }
       else { structure.at(name) put (ngUninitialised) }
   }
 
-  //HERE
-  //STUPID FUCKING RENAMING FUCKS EVERYTHING
-
-  method initializeDef(name) with(value) {
-      if (!structure.containsKey(name))
-      then { print "ERROR: trying to initialise undeclared {name}" }
-
-      else { structure.at(name) put { ngUninitialised } }
-  }
-  
 
   //I quite like these methods, but am splitting 'em for build vs eval
   //call "declare" from build; "initialise" from eval
@@ -297,6 +291,9 @@ class ngo {
   }
   
   method lookup( name ) { structure.at(name) }
+
+  //lookup only for slots in "self" (external / explicit)
+  method lookupSlot( name ) { structure.at(name) }
 
   method asString {"ngo:{structure}"}
 }
@@ -359,10 +356,6 @@ class ngObject(body,parent) {
        then { structure.at(name) }
        else { parent.lookup( name ) }
   }
-
-  //lookup only for slots in "self" (external / explicit)
-  method lookupSlot( name ) { structure.at(name) }
-
 }
 
 def ngDone is public = object {

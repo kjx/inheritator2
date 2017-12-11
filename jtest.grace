@@ -93,13 +93,14 @@ o2.two
 o2.three
 
 def o3 = object {
+  method right { "right" } 
   method wrong { "wrong" } 
   def o4 is public = object { 
       method inner { "inner" } 
   }
 }
 
-o3.wrong
+o3.right
 o3.o4.inner
 // o3.o4.wrong
 
