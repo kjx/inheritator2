@@ -76,9 +76,7 @@ class jeval {
 
       method eval(ctxt) { 
           //ctxt.declare(name) asDef(value.eval(ctxt))
-          def db = ngDefBox
-          ctxt.declare(name) asDefBox(db)
-          db.initialValue:=value.eval(ctxt)
+          ctxt.declare(name) asDefInit(value)
           ngDone          
       }
   }
@@ -94,9 +92,7 @@ class jeval {
 
       method eval(ctxt) { 
           //ctxt.declare(name) asVar(value.eval(ctxt))
-          def vb = ngVarBox
-          ctxt.declare(name) asVarBox(vb)
-          vb.initialValue:=value.eval(ctxt)
+          ctxt.declare(name) asVarInit(value)
           ngDone          
       }
   }
@@ -261,19 +257,21 @@ type NGO = Unknown
 //tie every object back to an O/C in the source
 class ngo { 
   def structure = dictionary
-    
-  method declare(name) asDefBox(ngDefBox) {
+     
+  method declare(name) asDefInit(expr) {
     if (structure.containsKey(name)) 
       then { print "ERROR: trying to declare {name} more than once" }
-      else { structure.at(name) put (ngDefBox) }
+      else { def box = ngDefBox
+             box.initialValue:= expr.eval(self)
+             structure.at(name) put (box) } 
   }
-  method declare( name ) asVarBox (ngVarBox) { 
+  method declare( name ) asVarInit (expr) { 
     if (structure.containsKey(name) || structure.containsKey(name ++ "():=(_)")) 
       then { print "ERROR: trying to declare {name} more than once" }
-      else { 
-           structure.at(name) put(ngVarBox)
-           structure.at(name ++ "():=(_)") put (ngVarBox)
-           }
+      else { def box = ngVarBox
+             box.initialValue:= expr.eval(self)
+             structure.at(name) put (box) 
+             structure.at(name ++ "():=(_)") put (box) }
   }
 
 
