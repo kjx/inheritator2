@@ -21,7 +21,7 @@ class jast {
     method debug(s) { } 
     
     class nodeAt( source ) -> Node { 
-       method asString { "node" }
+       //method asString { "node" }
        method accept[[T]](visitor : Visitor[[T]]) -> T { }
     }
 
