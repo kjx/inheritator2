@@ -419,13 +419,13 @@ class ngObject(body,parent) {
 
   print "building"
   for (body) do { e ->
-     print "build {e}"
+     // print "build {e}"
      e.build(self)
   }
 
   print "initialising"       
   for (initialisers) do { e ->
-     print "eval {e}"
+     // print "eval {e}"
      e.eval(self)
   }
 

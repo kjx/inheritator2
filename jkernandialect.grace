@@ -14,7 +14,7 @@ method map(f) over(col) {
 }
 
 
-print "loading jkernandialect"
+//print "loading jkernandialect"
 
 
 def visitor = object {  //be careful here. someimes need to refer to visitor
@@ -356,6 +356,8 @@ method checker(module) {
     def ctxt = jeval.newEmptyContext
     ctxt.declare("self") asDef(ctxt)
     ctxt.declare("implicitUninitialised") asDef(jm.ngDone)
+    ctxt.declare("print(_)") asMethod { p -> print(p) }
+
 
     //def moduleObject = jm.ngObject(list, ctxt)  //hmmm
     

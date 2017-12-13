@@ -1,59 +1,60 @@
 dialect "jkernandialect"
 
-"one"
-2
-2 + 2
-type {
+print "one"
+print 2
+print (2 + 2)
+print (type {
   foo
   bar
   baz(x,y)
-}
+})
 def x = 2
-"here"
-x
-"there"
-2 + x
-x + x
+print "here"
+print (x)
+print"there"
+print (2 + x)
+print (x + x)
 def y = "hello"
-y
+print (y)
 var z := "oneone"
-z
+print (z)
 z := 22
-z
+print (z)
 method foo {"foomethod" }
-foo
-{ "a block" }
-{ "a block" }
+print (foo)
+print { "a block" }
+print { "a block" }
 
 method bar { return "barreturn" }
-bar
+print (bar)
 
 method blockescape {
   def x = { return "blockescapeOK" }
   def y = { "ping" }
   def z = { "pong" }
-  y.apply
-  x.apply
-  z.apply
+  print (y.apply)
+  print (x.apply)
+  print (z.apply)
 }
-blockescape
+print (blockescape)
 
-"bubble"
+print "bubble"
 method bubble(x,y) { (x + x) + y }
-bubble(5,10)
-bubble(20,10)
-"bubble"
+print (bubble(5,10))
+print (bubble(20,10))
+print "bubble"
 
-{ x -> x + x }.apply(22)
+print ({ x -> x + x }.apply(22))
 
-{ x -> x + x }.apply(44)
+print ({ x -> x + x }.apply(44))
 
 var counter := 0
-def bump = { counter := counter + 2
+def bump = { print "BUMP!"
+             counter := counter + 2
              counter }
-bump.apply
-bump.apply
-bump.apply      
+print (bump.apply)
+print (bump.apply)
+print (bump.apply)
 
 var readc
 var nextc
@@ -66,31 +67,31 @@ var prevc
   prevc := {counter2 := counter2 + 5}
 }.apply
 
-readc.apply
-nextc.apply
-readc.apply
-nextc.apply
-readc.apply
-prevc.apply
-readc.apply
+print (readc.apply)
+print (nextc.apply)
+print (readc.apply)
+print (nextc.apply)
+print (readc.apply)
+print (prevc.apply)
+print (readc.apply)
 
 "objects"
 def o1 = object {
    method one {"one"}
    method two {"two"}
 }
-"objectsrun"
-o1.one
-o1.two
+print "objectsrun"
+print (o1.one)
+print (o1.two)
 
 def o2 = object {
    method one {"ONE"}
    method two {"TWO"}
    method three { self.one }
 }
-o2.one
-o2.two
-o2.three
+print (o2.one)
+print (o2.two)
+print (o2.three)
 
 def o3 = object {
   method right { "right" } 
@@ -100,31 +101,32 @@ def o3 = object {
   }
 }
 
-o3.right
-o3.o4.inner
+print (o3.right)
+print (o3.o4.inner)
 // o3.o4.wrong
 
 def o8 = object {
    def b = a
    method a {"a"}
 }
-o8.a
+print (o8.a)
 
 
 def o9 = object {
    method a {b}
    def b = "a"
 }
-o9.a
+print (o9.a)
 
 def o5 = object { 
-  o5b
+  //o5b
   method o5b {o5a}
   method o5a {o5v}
   def o5v = "o5v"
+  print(o5b)
 }
 
 
 
-"DONE DONE DONE DONE DONE DONE DONE"
+print "DONE DONE DONE DONE DONE DONE DONE"
 

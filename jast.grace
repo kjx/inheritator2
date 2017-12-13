@@ -17,8 +17,8 @@ class jast {
     //with the visitor
     //with an eval..    
     
-    method debug(s) {print(s)}
-    //method debug(s) { } 
+    //method debug(s) {print(s)}
+    method debug(s) { } 
     
     class nodeAt( source ) -> Node { 
        method asString { "node" }
