@@ -357,11 +357,14 @@ method checker(module) {
     ctxt.declare("self") asDef(ctxt)
     ctxt.declare("implicitUninitialised") asDef(jm.ngDone)
 
-    def moduleObject = jm.ngObject(list, ctxt)  //hmmm
+    //def moduleObject = jm.ngObject(list, ctxt)  //hmmm
     
-    for (moduleBody) do { e ->
-        print (e.eval(moduleObject))
-    }
+    //for (moduleBody) do { e ->
+    //    print (e.eval(moduleObject))
+    //}
+
+
+    def moduleObject = jm.ngObject(moduleBody, ctxt)  //hmmm
        
     }
 

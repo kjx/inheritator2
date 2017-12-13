@@ -21,8 +21,14 @@ class jeval {
     inherit jNodeAt(source)
     method asString { "jNode" }
 
+    //build called by "Two phase" Contexts, e.g. object constuctors
+    //build itself arranges that "eval" will eventually be called
+    //for declrations, eval will be called on the initialiser, 
+    //not on the declaration.
+    //for one-phase contexts, eval can be called on the declaration
+    //without build, and eval should just do the lot.
+    method build ( ctxt ) -> NGO { ctxt.addInitialiser( self ) } 
     method eval( ctxt ) -> NGO { print "ERROR: can't eval {self}" } 
-    method build( ctxt ) -> NGO { ngBuild } // does the "build" phase of bulding objects.
   }
 
 
@@ -74,6 +80,7 @@ class jeval {
       inherit jDefDeclarationNode(name', typeAnnotation', annotations', value') 
           at( source ) 
 
+      method build(ctxt) { eval(ctxt) }
       method eval(ctxt) { 
           //ctxt.declare(name) asDef(value.eval(ctxt))
           ctxt.declare(name) asDefInit(value)
@@ -90,6 +97,7 @@ class jeval {
       inherit jVarDeclarationNode(name', typeAnnotation', annotations', value') 
           at( source ) 
 
+      method build(ctxt) { eval(ctxt) }
       method eval(ctxt) { 
           //ctxt.declare(name) asVar(value.eval(ctxt))
           ctxt.declare(name) asVarInit(value)
@@ -104,6 +112,7 @@ class jeval {
           at( source )  -> Method { 
       inherit jMethodNode(signature', body', annotations') at(source)
 
+      method build(ctxt) { eval(ctxt) }
       method eval(ctxt) { 
           ctxt.declare(signature.name) 
                  asMethod (acceptVarargs(signature.parameters,ctxt,body,true))
@@ -186,6 +195,8 @@ method applyVarargs(block,args) {//args are NGOS, aka already evaluated...
     case { _ -> print "CANT BE BOTHERED TO APPLY MORE VARARGS" }
 }
 
+//PSEUDO-NODES:
+
 //understands eval and uses it to run the statements in a body
 //body is a sequnce of statements
 //should actually replace use of sequence - should be visitable etc.
@@ -195,8 +206,30 @@ class progn (body) {
      for (body) do { stmt -> rv := stmt.eval(ctxt) }
      rv
    }
+   method build(ctxt) { 
+     var rv := ngDone
+     for (body) do { stmt -> rv := stmt.build(ctxt) }
+     rv
+   }
+
 }
 
+
+//these two only live in the initialiser list
+//actally, at this point, everything in the initialiser list is one of these..
+//run some expression in a fixed context
+class run(expr) inContext(ctxt) {
+     method eval(_) { print "run {expr} inContext {ctxt}"
+                      expr.eval(ctxt) }      
+     method build(_) { print "ERROR: run(_)inContext(_) should only be called in eval not build" }
+}
+
+//initialise a box in some context
+class initialise(box) to(expr) inContext(ctxt) {
+   method eval(_) { print "initialise {box} inContext {ctxt}"
+                    box.initialValue:= expr.eval(ctxt) }
+   method build(_) { print "ERROR: initialise(_)to(_)inContext(_) should only be called in eval not build" }
+}
 
 //return a block that evals the body in a subcontext 
 //of ctxt where block args are bound to the params
@@ -275,9 +308,9 @@ class ngo {
   }
 
 
-  //I quite like these methods, but am splitting 'em for build vs eval
+  //I quite like these methods, but am splitting 'em for build vs eval 
   //call "declare" from build; "initialise" from eval
-
+   
   //should check for lexical shadowning -- but we don't
   method declare( name ) asMethod ( lambda ) { 
     if (structure.containsKey(name)) 
@@ -356,11 +389,46 @@ class ngObject(body,parent) {
   method asString { "ngObject:{structure}" }
 
   //needs inheritance SHITE
+  def initialisers : Sequence[[Node]] = list 
+  method addInitialiser(i) {initialisers.add(run(i)inContext(self))}
 
   declare "outer" asDef( lookup("self" ) ) // we haven't declared self yet so the enclosing self...
   declare "self" asDef(self) //does this make sense? - seems to
 
-  progn(body).eval(self) //whoo! freaky!!
+  method declare(name) asDefInit(expr) {
+    if (structure.containsKey(name)) 
+      then { print "ERROR: trying to declare {name} more than once" }
+      else { def box = ngDefBox
+             structure.at(name) put(box) 
+             initialisers.add(initialise(box) to(expr) inContext(self)) }
+  }
+  method declare(name) asVarInit(expr) {
+    if (structure.containsKey(name)) 
+      then { print "ERROR: trying to declare {name} more than once" }
+      else { def box = ngVarBox
+             structure.at(name) put(box)             
+             structure.at(name ++ "():=(_)") put(box)
+             initialisers.add(initialise(box) to(expr) inContext(self)) }
+  }
+
+
+  //progn(body).eval(self) //whoo! freaky!!
+  
+  //progn(body).build(self) //whoo! freakIER!!
+  //progn(initialisers).eval(self) //whoo! even Freakier!!
+
+  print "building"
+  for (body) do { e ->
+     print "build {e}"
+     e.build(self)
+  }
+
+  print "initialising"       
+  for (initialisers) do { e ->
+     print "eval {e}"
+     e.eval(self)
+  }
+
 
   //lexical lookup (internal / implicit)
   method lookup( name ) {  //copy & paste
