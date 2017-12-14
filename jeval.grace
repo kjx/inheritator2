@@ -3,8 +3,8 @@ import "combinator-collections" as c
 inherit c.abbreviations
 
 
-//method jdebug(s) {print(s)}
-method jdebug(s) { } 
+//method jdebug(block) {block.apply}
+method jdebug(block) { } 
 
 method safeFuckingMap(f)over(col) {
    def rv = list
@@ -143,7 +143,7 @@ class jeval {
           at( source ) 
          
       method eval( ctxt ) {
-         jdebug "eval explicitRequest {name}"
+         jdebug { print "eval explicitRequest {name}" }
          satan := satan + 1
          if (satan == 2) then { 1 / 0 }
          def rcvr = receiver.eval( ctxt )
@@ -151,11 +151,11 @@ class jeval {
          def types = safeFuckingMap { ta -> ta.eval( ctxt ) } over(typeArguments)
          //def args = arguments.map { a -> a.eval( ctxt ) }
          def args = safeFuckingMap { a -> a.eval( ctxt ) } over(arguments)       
-         jdebug "call explicitRequest {rcvr} {name} {args}"
+         jdebug { print "call explicitRequest {rcvr} {name} {args}" }
          def methodBody = rcvr.lookupSlot(name)
-         jdebug "cal2 explicitRequest {rcvr} {name} {args} {methodBody}"
+         jdebug { print "cal2 explicitRequest {rcvr} {name} {args} {methodBody}" }
          def rv = applyVarargs(methodBody,args)
-         jdebug "done explicitRequest {rcvr} {name} {args} {rv}"
+         jdebug { print "done explicitRequest {rcvr} {name} {args} {rv}" }
          rv
       } 
   }
@@ -170,20 +170,20 @@ class jeval {
          
 
       method eval( ctxt ) {
-         jdebug "eval implicitRequest {name} {ctxt}"
+         jdebug { print "eval implicitRequest {name} {ctxt}" }
          //def types = typeArguments.map { ta -> ta.eval( ctxt ) }
          def types = safeFuckingMap { ta -> ta.eval( ctxt ) } over(typeArguments)
          //def args = arguments.map { a -> a.eval( ctxt ) }
          def args = safeFuckingMap { a -> a.eval( ctxt ) } over(arguments)       
-         jdebug "call implicitRequest {name} {args}"
+         jdebug { print "call implicitRequest {name} {args}" }
          def methodBody = ctxt.lookup(name) //not quite it wrt inheritance!
-         jdebug "bing"
-         jdebug "bong {name}"
-         jdebug "bang {args}"
-         jdebug "zap {methodBody}"
-         jdebug "cal2 implicitRequest {name} {args} {methodBody}"
+         jdebug { print "bing" }
+         jdebug { print "bong {name}" }
+         jdebug { print "bang {args}" }
+         jdebug { print "zap {methodBody}" }
+         jdebug { print "cal2 implicitRequest {name} {args} {methodBody}" }
          def rv = applyVarargs(methodBody,args)
-         jdebug "done implicitRequest {name} {args} {rv}"      
+         jdebug { print "done implicitRequest {name} {args} {rv}"       }
          rv
       } 
   }
@@ -233,13 +233,13 @@ method applyVarargs(block,args) {//args are NGOS, aka already evaluated...
 //should actually replace use of sequence - should be visitable etc.
 class progn (body) {
    method eval(ctxt) { 
-     jdebug "eval progn {self}"
+     jdebug { print "eval progn {self}" }
      var rv := ngDone
      for (body) do { stmt -> rv := stmt.eval(ctxt) }
      rv
    }
    method build(ctxt) {
-     jdebug "build progn {self}" 
+     jdebug { print "build progn {self}"  }
      var rv := ngDone
      for (body) do { stmt -> rv := stmt.build(ctxt) }
      rv
@@ -252,16 +252,16 @@ class progn (body) {
 //actally, at this point, everything in the initialiser list is one of these..
 //run some expression in a fixed context
 class run(expr) inContext(ctxt) {
-     method eval(_) { jdebug "runn {expr} inContext {ctxt}"
+     method eval(_) { jdebug { print "runn {expr} inContext {ctxt}" }
                       def rv = expr.eval(ctxt)
-                      jdebug "done {expr} inContext {ctxt}"
+                      jdebug { print "done {expr} inContext {ctxt}" }
                       }      
      method build(_) { print "ERROR: run(_)inContext(_) should only be called in eval not build" }
 }
 
 //initialise a box in some context
 class initialise(box) to(expr) inContext(ctxt) {
-   method eval(_) { jdebug "initialise {box} inContext {ctxt}"
+   method eval(_) { jdebug { print "initialise {box} inContext {ctxt}" }
                     box.initialValue:= expr.eval(ctxt) }
    method build(_) { print "ERROR: initialise(_)to(_)inContext(_) should only be called in eval not build" }
 }
@@ -311,7 +311,7 @@ method acceptVarargs(params,ctxt,body,addEscape) {
 //auxilliary method of applyVarargs 
 //to set up binding for "return" statements
 method setupReturnThenRun(prognBody,subtxt,addEscape) {
-          jdebug "setupReturn {prognBody} {subtxt} {addEscape}"        
+          jdebug { print "setupReturn {prognBody} {subtxt} {addEscape}"         }
           if (addEscape) then {subtxt.declare("_returnBlock") asMethod {rv -> return rv} }
           prognBody.eval(subtxt) 
 }
@@ -355,13 +355,13 @@ class ngo {
   }
 
   method declare( name ) asDef ( ngo ) { 
-    jdebug "declare {name} asDef {ngo}"
+    jdebug { print "declare {name} asDef {ngo}" }
     if (structure.containsKey(name)) 
       then { print "ERROR: trying to declare {name} more than once" }
       else { structure.at(name) put { ngo } }
   }
   method declare( name ) asVar ( ngo ) { 
-    jdebug "declare {name} asVar {ngo}"
+    jdebug { print "declare {name} asVar {ngo}" }
     if (structure.containsKey(name) || structure.containsKey(name ++ "():=(_)")) 
       then { print "ERROR: trying to declare {name} more than once" }
       else { 
@@ -374,17 +374,17 @@ class ngo {
   }
   
   method lookup( name ) {
-         jdebug "lookup ngo {name}"
+         jdebug { print "lookup ngo {name}" }
          def rv =  structure.at(name) 
-         jdebug "lookup ngo {name} returning {rv}"
+         jdebug { print "lookup ngo {name} returning {rv}" }
          rv
          }
 
   //lookup only for slots in "self" (external / explicit)
   method lookupSlot( name ) { 
-         jdebug "lookupSlot ngo {name}"       
+         jdebug { print "lookupSlot ngo {name}"        }
          def rv = structure.at(name) 
-         jdebug "lookupSlot ngo {name} returning {rv}"
+         jdebug { print "lookupSlot ngo {name} returning {rv}" }
          rv
          }
 
@@ -465,26 +465,26 @@ class ngObject(body,parent) {
   //progn(body).build(self) //whoo! freakIER!!
   //progn(initialisers).eval(self) //whoo! even Freakier!!
 
-  jdebug "building"
+  jdebug { print "building" }
   for (body) do { e ->
-     jdebug "build {e}"
+     jdebug { print "build {e}" }
      e.build(self)
   }
 
-  jdebug "initialising"       
+  jdebug { print "initialising"        }
   for (initialisers) do { e ->
-     jdebug "eval {e}"
+     jdebug { print "eval {e}" }
      e.eval(self)
   }
 
 
   //lexical lookup (internal / implicit)
   method lookup( name ) {  //copy & paste
-    jdebug "lookup nuObject {name}"
+    jdebug { print "lookup nuObject {name}" }
     def rv = (if (structure.containsKey(name)) 
        then { structure.at(name) }
        else { parent.lookup( name ) })
-    jdebug "lookup nuObject {name} {rv}"
+    jdebug { print "lookup nuObject {name} {rv}" }
     rv
   }
 }
@@ -514,11 +514,11 @@ class lexicalContext(parent) {
   inherit newEmptyContext 
 
   method lookup( name ) { 
-    jdebug "lookup lexicLContext {name}"
+    jdebug { print "lookup lexicLContext {name}" }
     def rv = (if (structure.containsKey(name)) 
        then { structure.at(name) }
        else { parent.lookup( name ) })
-    jdebug "lookup lexicalContext {name} {rv}"
+    jdebug { "lookup lexicalContext {name} {rv}" }
     rv
 
     //     if (structure.containsKey(name)) 

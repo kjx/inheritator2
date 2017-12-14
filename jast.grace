@@ -17,8 +17,8 @@ class jast {
     //with the visitor
     //with an eval..    
     
-    //method debug(s) {print(s)}
-    method debug(s) { } 
+    //method debug(b) {b.apply}
+    method debug(b) { } 
     
     class nodeAt( source ) -> Node { 
        //method asString { "node" }
@@ -43,7 +43,7 @@ class jast {
       def returnType : Expression is public = returnType'
       def annotations : Sequence[[Expression]] = annotations'
             //not clear this is right - need to think about what annotations go where
-      debug "sig: {name} {parameters} -> {returnType}" 
+      debug { print "sig: {name} {parameters} -> {returnType}" }
     
       method asString { name } 
     
@@ -62,7 +62,7 @@ class jast {
       def typeAnnotation : Expression is public = typeAnnotation'
       def isVariadic : Boolean is public = isVariadic'
     
-      debug "PARAMETER: {name} : {typeAnnotation} Varargs {isVariadic}"
+      debug { print "PARAMETER: {name} : {typeAnnotation} Varargs {isVariadic}"}
       method accept[[T]](visitor : Visitor[[T]]) -> T {
         visitor.visitParameter(self) }
     }
@@ -79,7 +79,7 @@ class jast {
       def body : Sequence[[Statement]] is public = body'
       def annotations : Sequence[[Expression]] is public = annotations'
     
-      debug "method {signature.name} is {annotations} body {body}"
+      debug { print "method {signature.name} is {annotations} body {body}"}
     
       method accept[[T]](visitor : Visitor[[T]]) -> T {
         visitor.visitMethod(self) }
@@ -114,7 +114,7 @@ class jast {
       def annotations : Sequence[[Expression]] is public = annotations'
       def value : Expression is public = value'
     
-      debug "name {name} type {typeAnnotation} is {annotations} = {value}"
+      debug { print "name {name} type {typeAnnotation} is {annotations} = {value}"}
       method accept[[T]](visitor : Visitor[[T]]) -> T {
         visitor.visitDeclaration(self) }
     }
@@ -127,7 +127,7 @@ class jast {
           at ( source ) -> Parameter {
       inherit declarationNode(name', typeAnnotation', annotations', value') 
            at( source ) 
-      debug "DEF:"
+      debug { print "DEF:"}
       method accept[[T]](visitor : Visitor[[T]]) -> T {
         visitor.visitDefDeclaration(self) }
     }
@@ -140,7 +140,7 @@ class jast {
           at ( source ) -> Parameter {
       inherit declarationNode(name', typeAnnotation', annotations', value') 
           at( source ) 
-      debug "VAR:"
+      debug { print "VAR:"}
       method accept[[T]](visitor : Visitor[[T]]) -> T {
         visitor.visitVarDeclaration(self) }
     }
@@ -294,7 +294,7 @@ class jast {
     
       method asString {"interface: {signatures} size: {signatures.size}"}
 
-      debug (asString)
+      debug { print (asString)}
 
       method accept[[T]](visitor : Visitor[[T]]) -> T {
         visitor.visitInterface(self) }
