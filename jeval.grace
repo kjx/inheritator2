@@ -12,8 +12,6 @@ method safeFuckingMap(f)over(col) {
    rv
 }
 
-var satan := -1000000
-
 class jeval {
   inherit jm.jast
       alias jNodeAt(_) = nodeAt(_)
@@ -144,8 +142,6 @@ class jeval {
          
       method eval( ctxt ) {
          jdebug { print "eval explicitRequest {name}" }
-         satan := satan + 1
-         if (satan == 2) then { 1 / 0 }
          def rcvr = receiver.eval( ctxt )
          //def types = typeArguments.map { ta -> ta.eval( ctxt ) }
          def types = safeFuckingMap { ta -> ta.eval( ctxt ) } over(typeArguments)
