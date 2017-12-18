@@ -86,18 +86,20 @@ class jast {
     }
     
     class inheritNode(
+      kind' : String,
       request' : Request,
-      name' : String)
+      excludes' : List[[String]],
+      aliases' : List[[ List[[Unknown]] ]])
           at ( source ) -> Parameter {
       inherit nodeAt( source ) 
     
-      print "**I AM BROKEN BEYOND REPAIR**"
-    
+      def kind : String is public = kind'
       def request : Request is public = request'
-      def name : String is public = name'
-    
+      def excludes : List[[String]] is public = excludes'
+      def aliases : List[[ List[[Unknown]] ]] is public = aliases'
+              
       method accept[[T]](visitor : Visitor[[T]]) -> T {
-        visitor.visitInheritance(self) }
+        visitor.visitInherit(self) }
     }
     
     
@@ -178,7 +180,7 @@ class jast {
       body' : Sequence[[ObjectStatement]])
           at ( source ) -> Parameter {
       inherit nodeAt( source ) 
-    
+
       def body : Sequence[[ObjectStatement]]   is public = body'
       
       method accept[[T]](visitor : Visitor[[T]]) -> T {

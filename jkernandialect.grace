@@ -1,6 +1,8 @@
 import "jeval" as jm
 import "combinator-collections" as c
 inherit c.abbreviations
+//import "platform/KernanCompiler" as k 
+
 // import "ast"as kernanAST  // seems this is broken. we define our own types.
 
 def jast = jm.jeval
@@ -24,6 +26,9 @@ def visitor = object {  //be careful here. someimes need to refer to visitor
     method mapCommon(c) { map { each -> common(each) } over(c) }
     method common(j) { j.accept(visitor) }
 
+
+    //could concievably convert these back again like inherits nodes
+    //see what looks simpler overall
     method visitImport(d) {
          print "ERROR visitDialect shouldn't happen"
     }
@@ -31,6 +36,21 @@ def visitor = object {  //be careful here. someimes need to refer to visitor
     method visitDialect(d) {
          print "ERROR visitDialect shouldn't happen"
     }
+
+
+    method visitInherits(i) {
+
+        def doAlias = { a -> 
+           def al = c.list.withAll( a )
+           list(al.at(1), al.at(2), mapCommon(al.at(3)) )
+        }
+
+        jast.inheritNode(i.kind,
+                common(i.request),
+                c.list.withAll(i.excludes),
+                map (doAlias) over (i.aliases) ) at(0)
+    }
+
 
 
     method visitDeclaration(d) {
@@ -383,6 +403,12 @@ def kast = object {
   type Dialect = {
           path
           accept(visitor)
+     }
+  type Inherit = { 
+     name
+     request
+     excludes
+     inherits
      }
 }
 

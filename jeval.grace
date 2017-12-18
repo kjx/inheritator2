@@ -26,6 +26,7 @@ class jeval {
       alias jBlockNode(_,_) at(_) = blockNode(_,_) at(_)
       alias jReturnNode(_) at(_) = returnNode(_) at (_)
       alias jObjectConstructorNode(_) at(_) = objectConstructorNode(_) at(_)
+      alias jInheritNode(_,_,_,_) at(_) = inheritNode(_,_,_,_) at(_)
 
   class nodeAt( source ) -> Node { 
     inherit jNodeAt(source)
@@ -37,7 +38,7 @@ class jeval {
     //not on the declaration.
     //for one-phase contexts, eval can be called on the declaration
     //without build, and eval should just do the lot.
-    method build ( ctxt ) -> NGO { ctxt.addInitialiser( self ) } 
+    method build( ctxt ) -> NGO { ctxt.addInitialiser( self ) } 
     method eval( ctxt ) -> NGO { print "ERROR: can't eval {self}" } 
   }
 
@@ -199,11 +200,31 @@ class jeval {
       body' : Sequence[[ObjectStatement]])
           at ( source ) -> Parameter {
       inherit jObjectConstructorNode(body') at(source) 
-              
+
       method eval(ctxt) { ngObject(body,ctxt) }            
   }
 
-  
+  class inheritNode(
+      kind' : String,
+      request' : Request,
+      excludes' : List[[String]],
+      aliases' : List[[ List[[Unknown]] ]])
+          at ( source ) -> Parameter {
+      inherit jInheritNode(kind', request', excludes', aliases') at ( source )
+
+      //don'tcha just love double dispatch! 
+      method build(ctxt) { 
+          match (kind) 
+            case { "inherit" -> ctxt.addInheritParent(self) }
+            case { "use" -> ctxt.addUseParent(self) }
+            case { _ -> print "ERROR: NOT COBOL!" }
+      }
+
+      method eval(_) { print "ERROR: CAINT EVAL inheritNode" }
+      
+  }  
+
+
 
 
   method newEmptyContext { outer.newEmptyContext }
@@ -261,6 +282,18 @@ class initialise(box) to(expr) inContext(ctxt) {
                     box.initialValue:= expr.eval(ctxt) }
    method build(_) { print "ERROR: initialise(_)to(_)inContext(_) should only be called in eval not build" }
 }
+
+//inherit from some expr 
+class inheritFrom(expr) inContext(ctxt) { //dunno if this needs context or not...
+     method parent {expr}
+     print "inheritFrom {expr} inContext {ctxt}"
+     method eval(_) { jdebug { print "inhr {expr} inContext {ctxt}" }
+                      //def rv = expr.eval(ctxt)
+                      jdebug { print "done {expr} inContext {ctxt}" }
+                      }      
+     method build(_) { print "ERROR: run(_)inContext(_) should only be called in eval not build" }
+}
+
 
 //return a block that evals the body in a subcontext 
 //of ctxt where block args are bound to the params
@@ -432,9 +465,13 @@ class ngObject(body,parent) {
   inherit lexicalContext(parent)
   method asString { "ngObject:{structure}" }
 
-  //needs inheritance SHITE
   def initialisers : Sequence[[Node]] = list 
   method addInitialiser(i) {initialisers.add(run(i)inContext(self))}
+
+  def inheritParents :  Sequence[[Node]] = list 
+  method addInheritParent(p) {inheritParents.add(inheritFrom(p)inContext(self))}
+  def useParents :  Sequence[[Node]] = list 
+  method addUseParent(p) {useParents.add(inheritFrom(p)inContext(self))}
 
   declare "outer" asDef( lookup("self" ) ) // we haven't declared self yet so the enclosing self...
   declare "self" asDef(self) //does this make sense? - seems to
@@ -461,13 +498,24 @@ class ngObject(body,parent) {
   //progn(body).build(self) //whoo! freakIER!!
   //progn(initialisers).eval(self) //whoo! even Freakier!!
 
+
   jdebug { print "building" }
   for (body) do { e ->
      jdebug { print "build {e}" }
      e.build(self)
   }
 
-  jdebug { print "initialising"        }
+  for (inheritParents) do {  pp ->
+    def p = pp.parent
+    print "inherit {p.kind} {p.request} {p.excludes} {p.aliases}"
+  }
+
+  for (useParents) do {  pp ->
+    def p = pp.parent
+    print "inherit {p.kind} {p.request} {p.excludes} {p.aliases}"
+  }
+
+  jdebug { print "initialising" }
   for (initialisers) do { e ->
      jdebug { print "eval {e}" }
      e.eval(self)
