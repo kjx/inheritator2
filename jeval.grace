@@ -354,7 +354,7 @@ type NGO = Unknown
 //so we can report errors properly!
 //tie every object back to an O/C in the source
 class ngo { 
-  def structure = dictionary
+  def structure is public = dictionary //evil evil making this public
      
   method declare(name) asDefInit(expr) {
     if (structure.containsKey(name)) 
@@ -461,11 +461,27 @@ class ngBlock(parameters,ctxt,body) {
    declare(name) asMethod (acceptVarargs(parameters,ctxt,body,false))
 }
 
+
+//COMPLETE FUCKING EVIL GLOBAL VARIABLE
+var bottomMost := true  //should eventually be determined by creatio argument
+//COMPLETE FUCKING EVIL GLOBAL VARIABLE
+
 class ngObject(body,parent) {
   inherit lexicalContext(parent)
-  method asString { "ngObject:{structure}" }
+  method asString { "ngObject:({status}) {structure}" }
 
-  def initialisers : Sequence[[Node]] = list 
+  var status is readable := "embryo"
+  
+  //COMPLETE FUCKING EVIL GLOBAL VARIABLE
+  //var bottomMost := true  //should eventually be determined by creatio argument
+  def amIbottomMost = bottomMost //EVIL EVIL EVIL
+  //COMPLETE FUCKING EVIL GLOBAL VARIABLE
+  //DOES THE wrong thing, will catch ALL O/Cs... oh fuck.
+
+  print "ngObject {self} {amIbottomMost}"
+
+
+  def initialisers : Sequence[[Node]] is public = list 
   method addInitialiser(i) {initialisers.add(run(i)inContext(self))}
 
   def inheritParents :  Sequence[[Node]] = list 
@@ -475,6 +491,20 @@ class ngObject(body,parent) {
 
   declare "outer" asDef( lookup("self" ) ) // we haven't declared self yet so the enclosing self...
   declare "self" asDef(self) //does this make sense? - seems to
+
+  jdebug { print "collecting inheritance shite" }
+  for (body) do { e ->
+    match (e) 
+       case { _ : InheritNode -> 
+          print "whee parent" 
+          match (e.kind) 
+            case { "inherit" -> addInheritParent(e) }
+            case { "use" -> addUseParent(e) }
+            case { _ -> print "ERROR: NOT COBOL!" }
+      }
+      case { _ -> print "sme other thing" }
+  }
+
 
   method declare(name) asDefInit(expr) {
     if (structure.containsKey(name)) 
@@ -498,29 +528,70 @@ class ngObject(body,parent) {
   //progn(body).build(self) //whoo! freakIER!!
   //progn(initialisers).eval(self) //whoo! even Freakier!!
 
+  jdebug { print "building parents" }
 
-  jdebug { print "building" }
+  bottomMost := false
+
+  for (inheritParents) do {  pp ->
+    def p = pp.parent
+    print "inherit {p.kind} {p.request} {p.excludes} {p.aliases}"
+    //need to *evaluate* the parent's request but with creatio argument set
+    //in the enclosing context so it knows its not the bottom
+    //get back an object w/ struture and initaliers - status should be "built"
+    //add ALL its initialiers into our initialisers list
+    //process its struture via exclude & inherit; add the stuff in here
+    //for multiple parents, resolve clashes...
+
+    def stupidParentalPartObject = p.request.eval(parent) //relying on global variable
+    if (stupidParentalPartObject.status != "built") 
+       then { print "ERROR: FUCK FUCK FUCKETY FUCK FUCK FUCK {stupidParentalPartObject.status}" }
+    initialisers.addAll(stupidParentalPartObject.initialisers)
+    stupidParentalPartObject.structure.keysAndValuesDo { k, v -> structure.at(k) put(v) }
+
+  }
+  
+  for (useParents) do {  pp ->
+    def p = pp.parent
+    print "inherit {p.kind} {p.request} {p.excludes} {p.aliases}"
+
+    def stupidParentalPartObject = p.request.eval(parent) //relying on global variable
+    if (stupidParentalPartObject.status != "built") 
+       then { print "ERROR: FUCK FUCK FUCKETY FUCK FUCK FUCK {stupidParentalPartObject.status}" }
+    initialisers.addAll(stupidParentalPartObject.initialisers)
+    stupidParentalPartObject.structure.keysAndValuesDo { k, v -> structure.at(k) put(v) }
+  }
+
+
+  //should there be some other structure here?
+  //things just replace shit via the map
+  //
+  jdebug { print "building local" }
   for (body) do { e ->
      jdebug { print "build {e}" }
      e.build(self)
   }
 
-  for (inheritParents) do {  pp ->
-    def p = pp.parent
-    print "inherit {p.kind} {p.request} {p.excludes} {p.aliases}"
-  }
+  status := "built"
 
-  for (useParents) do {  pp ->
-    def p = pp.parent
-    print "inherit {p.kind} {p.request} {p.excludes} {p.aliases}"
-  }
+  //if I'm NOT Bottommost then I quit here.
+  //structure is complete, but don't run any initialisers.
 
+
+  bottomMost := amIbottomMost //not sure why...
+     //this goes here, assuming initialisers shoudl never be inherited. or something!
+
+  if (!amIbottomMost) then { 
+     return self // status still built not cooked!
+  }
+  
   jdebug { print "initialising" }
   for (initialisers) do { e ->
      jdebug { print "eval {e}" }
      e.eval(self)
   }
 
+  status := "cooked" //i.e. OK to go! 
+  bottomMost := amIbottomMost //not sure why...
 
   //lexical lookup (internal / implicit)
   method lookup( name ) {  //copy & paste
@@ -589,3 +660,8 @@ class ngVarBox {
    method apply(x) {boxValue:= x}
 }
 
+type InheritNode = {
+  request
+  aliases
+  excludes
+}
