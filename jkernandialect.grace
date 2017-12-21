@@ -374,10 +374,11 @@ method checker(module) {
     //technically this is the "dialect" context  
     //surrounding the module object
     def ctxt = jeval.newEmptyContext
+    //should I move these into newEmptyContext?
     ctxt.declare("self") asDef(ctxt)
     ctxt.declare("implicitUninitialised") asDef(jm.ngDone)
-    ctxt.declare("print(_)") asMethod { p -> print(p) }
-
+    ctxt.declare("print(_)") asMethod { p, creatio -> print(p) }
+    ctxt.declare("_creatio") asMethod(false)
 
     //def moduleObject = jm.ngObject(list, ctxt)  //hmmm
     

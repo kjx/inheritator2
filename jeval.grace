@@ -127,9 +127,8 @@ class jeval {
       method eval(ctxt) { 
           ctxt.declare(signature.name) 
                  asMethod (acceptVarargs(signature.parameters,ctxt,body,true))
-          ngDone          
+          ngDone
       }
- 
   }
   
   class explicitRequestNode(
@@ -148,10 +147,11 @@ class jeval {
          def types = safeFuckingMap { ta -> ta.eval( ctxt ) } over(typeArguments)
          //def args = arguments.map { a -> a.eval( ctxt ) }
          def args = safeFuckingMap { a -> a.eval( ctxt ) } over(arguments)       
+         def creatio = ctxt.lookup("_creatio")
          jdebug { print "call explicitRequest {rcvr} {name} {args}" }
          def methodBody = rcvr.lookupSlot(name)
          jdebug { print "cal2 explicitRequest {rcvr} {name} {args} {methodBody}" }
-         def rv = applyVarargs(methodBody,args)
+         def rv = applyVarargs(methodBody,args,creatio)
          jdebug { print "done explicitRequest {rcvr} {name} {args} {rv}" }
          rv
       } 
@@ -172,14 +172,9 @@ class jeval {
          def types = safeFuckingMap { ta -> ta.eval( ctxt ) } over(typeArguments)
          //def args = arguments.map { a -> a.eval( ctxt ) }
          def args = safeFuckingMap { a -> a.eval( ctxt ) } over(arguments)       
-         jdebug { print "call implicitRequest {name} {args}" }
+         def creatio = ctxt.lookup("_creatio")
          def methodBody = ctxt.lookup(name) //not quite it wrt inheritance!
-         jdebug { print "bing" }
-         jdebug { print "bong {name}" }
-         jdebug { print "bang {args}" }
-         jdebug { print "zap {methodBody}" }
-         jdebug { print "cal2 implicitRequest {name} {args} {methodBody}" }
-         def rv = applyVarargs(methodBody,args)
+         def rv = applyVarargs(methodBody,args,creatio)
          jdebug { print "done implicitRequest {name} {args} {rv}"       }
          rv
       } 
@@ -191,7 +186,10 @@ class jeval {
       inherit jReturnNode( value' ) at( source )
       
       method eval( ctxt ) {
-          ctxt.lookup("_returnBlock").apply( value.eval(ctxt) )
+          def returnCreatio = ctxt.lookup("_returnCreatio")
+          def subtxt = ctxt.subtxt
+          subtxt.declare("_creatio") asMethod( returnCreatio ) 
+          ctxt.lookup("_returnBlock").apply( value.eval(subtxt) )
       }
   }
 
@@ -231,15 +229,15 @@ class jeval {
 }
 
 //apply the block to the LIST of arguments.
-method applyVarargs(block,args) {//args are NGOS, aka already evaluated...
+method applyVarargs(block,args,creatio) {//args are NGOS, aka already evaluated...
   def a = args.asList
   match (args.size)
-    case { 0 -> block.apply }
-    case { 1 -> block.apply(a.at(1)) }
-    case { 2 -> block.apply(a.at(1),a.at(2)) }
-    case { 3 -> block.apply(a.at(1),a.at(2),a.at(3)) }
-    case { 4 -> block.apply(a.at(1),a.at(2),a.at(3),a.at(4)) }
-    case { 5 -> block.apply(a.at(1),a.at(2),a.at(3),a.at(4),a.at(5)) }
+    case { 0 -> block.apply(creatio) }
+    case { 1 -> block.apply(a.at(1),creatio) }
+    case { 2 -> block.apply(a.at(1),a.at(2),creatio) }
+    case { 3 -> block.apply(a.at(1),a.at(2),a.at(3),creatio) }
+    case { 4 -> block.apply(a.at(1),a.at(2),a.at(3),a.at(4),creatio) }
+    case { 5 -> block.apply(a.at(1),a.at(2),a.at(3),a.at(4),a.at(5),creatio) }
     case { _ -> print "CANT BE BOTHERED TO APPLY MORE VARARGS" }
 }
 
@@ -249,6 +247,7 @@ method applyVarargs(block,args) {//args are NGOS, aka already evaluated...
 //body is a sequnce of statements
 //should actually replace use of sequence - should be visitable etc.
 class progn (body) {
+   print "NEED TO FIX CREATIO FOR ALL EXCEPT LAST"
    method eval(ctxt) { 
      jdebug { print "eval progn {self}" }
      var rv := ngDone
@@ -284,6 +283,7 @@ class initialise(box) to(expr) inContext(ctxt) {
 }
 
 //inherit from some expr 
+//lives only in inheritParents and useParents lists
 class inheritFrom(expr) inContext(ctxt) { //dunno if this needs context or not...
      method parent {expr}
      print "inheritFrom {expr} inContext {ctxt}"
@@ -301,38 +301,44 @@ method acceptVarargs(params,ctxt,body,addEscape) {
   def p = params.asList
   def prognBody = progn(body)
   match (p.size)
-    case { 0 -> { 
+    case { 0 -> { creatio -> 
          def subtxt = ctxt.subcontext
+         subtxt.declare("_creatio") asMethod( creatio ) 
          setupReturnThenRun(prognBody,subtxt,addEscape) } }
-    case { 1 -> { p1 -> 
+    case { 1 -> { p1, creatio -> 
          def subtxt = ctxt.subcontext
          subtxt.declare(p.at(1).name) asDef( p1 ) 
+         subtxt.declare("_creatio") asMethod( creatio ) 
          setupReturnThenRun(prognBody,subtxt,addEscape) } }
-    case { 2 -> { p1, p2 -> 
+    case { 2 -> { p1, p2, creatio -> 
          def subtxt = ctxt.subcontext
          subtxt.declare(p.at(1).name) asDef( p1 ) 
          subtxt.declare(p.at(2).name) asDef( p2 ) 
+         subtxt.declare("_creatio") asMethod( creatio ) 
          setupReturnThenRun(prognBody,subtxt,addEscape) } }
-    case { 3 -> { p1, p2, p3 -> 
+    case { 3 -> { p1, p2, p3, creatio -> 
          def subtxt = ctxt.subcontext
          subtxt.declare(p.at(1).name) asDef( p1 ) 
          subtxt.declare(p.at(2).name) asDef( p2 ) 
          subtxt.declare(p.at(3).name) asDef( p3 ) 
+         subtxt.declare("_creatio") asMethod( creatio ) 
          setupReturnThenRun(prognBody,subtxt,addEscape) } }
-    case { 4 -> { p1, p2, p3, p4 -> 
+    case { 4 -> { p1, p2, p3, p4, creatio -> 
          def subtxt = ctxt.subcontext
          subtxt.declare(p.at(1).name) asDef( p1 ) 
          subtxt.declare(p.at(2).name) asDef( p2 ) 
          subtxt.declare(p.at(3).name) asDef( p3 ) 
          subtxt.declare(p.at(4).name) asDef( p4 ) 
+         subtxt.declare("_creatio") asMethod( creatio ) 
          setupReturnThenRun(prognBody,subtxt,addEscape) } }
-    case { 5 -> { p1, p2, p3, p4, p5 -> 
+    case { 5 -> { p1, p2, p3, p4, p5, creatio -> 
          def subtxt = ctxt.subcontext
          subtxt.declare(p.at(1).name) asDef( p1 ) 
          subtxt.declare(p.at(2).name) asDef( p2 ) 
          subtxt.declare(p.at(3).name) asDef( p3 ) 
          subtxt.declare(p.at(4).name) asDef( p4 ) 
          subtxt.declare(p.at(5).name) asDef( p5 ) 
+         subtxt.declare("_creatio") asMethod( creatio ) 
          setupReturnThenRun(prognBody,subtxt,addEscape) } }
     case { _ -> print "CANT BE BOTHERED TO ACCEPT MORE VARARGS" }
 }
@@ -341,7 +347,9 @@ method acceptVarargs(params,ctxt,body,addEscape) {
 //to set up binding for "return" statements
 method setupReturnThenRun(prognBody,subtxt,addEscape) {
           jdebug { print "setupReturn {prognBody} {subtxt} {addEscape}"         }
-          if (addEscape) then {subtxt.declare("_returnBlock") asMethod {rv -> return rv} }
+          if (addEscape) then {
+              subtxt.declare("_returnBlock") asMethod {rv -> return rv} 
+              subtxt.declare("_returnCreatio") asMethod (subtxt.lookup("_creatio")) }
           prognBody.eval(subtxt) 
 }
 
@@ -387,7 +395,7 @@ class ngo {
     jdebug { print "declare {name} asDef {ngo}" }
     if (structure.containsKey(name)) 
       then { print "ERROR: trying to declare {name} more than once" }
-      else { structure.at(name) put { ngo } }
+      else { structure.at(name) put { creatio -> ngo } }
   }
   method declare( name ) asVar ( ngo ) { 
     jdebug { print "declare {name} asVar {ngo}" }
@@ -395,10 +403,10 @@ class ngo {
       then { print "ERROR: trying to declare {name} more than once" }
       else { 
            var closedVariable := ngo
-           structure.at(name) put { closedVariable } 
+           structure.at(name) put { creatio -> closedVariable } 
            structure.at(name ++ "():=(_)") 
-              put { v -> closedVariable:= v
-                         ngDone } 
+              put { v, creatio -> closedVariable:= v
+                                  ngDone } 
            }
   }
   
@@ -425,7 +433,7 @@ class ngNumber( value' ) {
    method value {value'}
    method asString { "ngNumber: {value}"}
 
-   declare "+(_)" asMethod { other ->  ngNumber(value + other.value) } 
+   declare "+(_)" asMethod { other, creatio ->  ngNumber(value + other.value) } 
 }
 
 class ngString( value' ) {
@@ -463,24 +471,24 @@ class ngBlock(parameters,ctxt,body) {
 
 
 //COMPLETE FUCKING EVIL GLOBAL VARIABLE
-var bottomMost := true  //should eventually be determined by creatio argument
+//var bottomMost := true  //should eventually be determined by creatio argument
 //COMPLETE FUCKING EVIL GLOBAL VARIABLE
 
-class ngObject(body,parent) {
-  inherit lexicalContext(parent)
+class ngObject(body,ctxt) {
+  inherit lexicalContext(ctxt)
   method asString { "ngObject:({status}) {structure}" }
 
   var status is readable := "embryo"
   
   //COMPLETE FUCKING EVIL GLOBAL VARIABLE
   //var bottomMost := true  //should eventually be determined by creatio argument
-  def amIbottomMost = bottomMost //EVIL EVIL EVIL
-  //COMPLETE FUCKING EVIL GLOBAL VARIABLE
-  //DOES THE wrong thing, will catch ALL O/Cs... oh fuck.
 
-  print "ngObject {self} {amIbottomMost}"
+  //not completely evil variabe. if creatio is FALSE I'm not inherited - i.e. I'm bottommost
+  //otherwise, expect creatio to be the ID of the (bottommost) object being created. I think.
+  def bottomMost = false == ctxt.lookup("_creatio")
 
-
+  print "ngObject bottomMost {bottomMost} creatio {ctxt.lookup("_creatio")}"
+  
   def initialisers : Sequence[[Node]] is public = list 
   method addInitialiser(i) {initialisers.add(run(i)inContext(self))}
 
@@ -530,7 +538,11 @@ class ngObject(body,parent) {
 
   jdebug { print "building parents" }
 
-  bottomMost := false
+  var inheritanceRequestContext := ctxt //inherits clauses evalled in surrounding context
+  if (bottomMost) then { 
+     inheritanceRequestContext := ctxt.subcontext
+     inheritanceRequestContext.declare("_creatio") asMethod(self)  //inherited constructors wont be bottom
+  }
 
   for (inheritParents) do {  pp ->
     def p = pp.parent
@@ -542,19 +554,19 @@ class ngObject(body,parent) {
     //process its struture via exclude & inherit; add the stuff in here
     //for multiple parents, resolve clashes...
 
-    def stupidParentalPartObject = p.request.eval(parent) //relying on global variable
+    def stupidParentalPartObject = p.request.eval(inheritanceRequestContext) 
     if (stupidParentalPartObject.status != "built") 
        then { print "ERROR: FUCK FUCK FUCKETY FUCK FUCK FUCK {stupidParentalPartObject.status}" }
     initialisers.addAll(stupidParentalPartObject.initialisers)
     stupidParentalPartObject.structure.keysAndValuesDo { k, v -> structure.at(k) put(v) }
-
   }
   
+  //COPPY AND PASTE: SHOULD ABSTRACT OUT
   for (useParents) do {  pp ->
     def p = pp.parent
     print "inherit {p.kind} {p.request} {p.excludes} {p.aliases}"
 
-    def stupidParentalPartObject = p.request.eval(parent) //relying on global variable
+    def stupidParentalPartObject = p.request.eval(inheritanceRequestContext) //relying on global variable
     if (stupidParentalPartObject.status != "built") 
        then { print "ERROR: FUCK FUCK FUCKETY FUCK FUCK FUCK {stupidParentalPartObject.status}" }
     initialisers.addAll(stupidParentalPartObject.initialisers)
@@ -575,12 +587,8 @@ class ngObject(body,parent) {
 
   //if I'm NOT Bottommost then I quit here.
   //structure is complete, but don't run any initialisers.
-
-
-  bottomMost := amIbottomMost //not sure why...
-     //this goes here, assuming initialisers shoudl never be inherited. or something!
-
-  if (!amIbottomMost) then { 
+  //ALL initialisers get run only by the bottomMost constructor
+  if (!bottomMost) then { 
      return self // status still built not cooked!
   }
   
@@ -591,14 +599,13 @@ class ngObject(body,parent) {
   }
 
   status := "cooked" //i.e. OK to go! 
-  bottomMost := amIbottomMost //not sure why...
 
   //lexical lookup (internal / implicit)
   method lookup( name ) {  //copy & paste
     jdebug { print "lookup nuObject {name}" }
     def rv = (if (structure.containsKey(name)) 
        then { structure.at(name) }
-       else { parent.lookup( name ) })
+       else { ctxt.lookup( name ) })
     jdebug { print "lookup nuObject {name} {rv}" }
     rv
   }
@@ -625,23 +632,27 @@ class newEmptyContext {
   method subcontext {lexicalContext(self)}
 } 
 
-class lexicalContext(parent) {
+class lexicalContext(ctxt) {
   inherit newEmptyContext 
 
   method lookup( name ) { 
     jdebug { print "lookup lexicLContext {name}" }
     def rv = (if (structure.containsKey(name)) 
        then { structure.at(name) }
-       else { parent.lookup( name ) })
+       else { ctxt.lookup( name ) })
     jdebug { "lookup lexicalContext {name} {rv}" }
     rv
 
     //     if (structure.containsKey(name)) 
     //        then { structure.at(name) }
-    //        else { parent.lookup( name ) }
+    //        else { ctxt.lookup( name ) }
   }
-}
 
+
+
+
+
+}
 
 class ngDefBox {
    var boxValue := ngUninitialised
@@ -649,7 +660,7 @@ class ngDefBox {
       if (boxValue != ngUninitialised) then { print "ERROR: can't initialise initailsed box" }
       boxValue := initialValue
    }
-   method apply { //can be called as if 'twere a block
+   method apply(creatio) { //can be called as if 'twere a block
       if (boxValue == ngUninitialised) then { print "ERROR: can't access uninitailsed box" }
       boxValue
    }
@@ -657,7 +668,7 @@ class ngDefBox {
 
 class ngVarBox {
    inherit ngDefBox
-   method apply(x) {boxValue:= x}
+   method apply(x,creatio) {boxValue:= x}
 }
 
 type InheritNode = {
