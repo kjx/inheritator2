@@ -2,6 +2,15 @@ import "jast" as jm
 import "combinator-collections" as c
 inherit c.abbreviations
 
+//TODO alias, excludes & for clashes
+//TODO completely change invocation protocol take an array of args, self, creatio, caller?, rather than using blocks. blocks only for primitives. everything passed explicitly. 
+//TODO move lookup protocol into objects (from request nodes?)
+//TODO dynamic typechecks on argumenets - and results
+//TODO exceptions
+//TODO annotations (incl abstract?)
+//TODO privacy
+//TODO refactor AST, redesign class names, add progn/sequence properly visitable
+
 
 //method jdebug(block) {block.apply}
 method jdebug(block) { } 
@@ -10,6 +19,14 @@ method safeFuckingMap(f)over(col) {
    def rv = list
    for (col) do { each -> rv.add(f.apply(each)) }
    rv
+}
+method for(col) doWithLast(block2) {
+   def size = col.size
+   var counter := 1
+   for (col) do { e -> 
+     block2.apply(e, counter == size)
+     counter := counter + 1 
+   }
 }
 
 class jeval {
@@ -38,8 +55,8 @@ class jeval {
     //not on the declaration.
     //for one-phase contexts, eval can be called on the declaration
     //without build, and eval should just do the lot.
-    method build( ctxt ) -> NGO { ctxt.addInitialiser( self ) } 
-    method eval( ctxt ) -> NGO { print "ERROR: can't eval {self}" } 
+    method build(ctxt) -> NGO { ctxt.addInitialiser( self ) } 
+    method eval(ctxt) -> NGO { print "ERROR: can't eval {self}" } 
   }
 
 
@@ -52,7 +69,7 @@ class jeval {
           at ( source ) -> Parameter {
       inherit jStringLiteralNode( value' ) at( source ) 
       
-      method eval( ctxt ) { ngString( value ) } 
+      method eval(ctxt) { ngString( value ) } 
   }
 
   class numberLiteralNode(
@@ -60,7 +77,7 @@ class jeval {
           at ( source ) -> Parameter {
       inherit jNumberLiteralNode( value' ) at( source ) 
       
-      method eval( ctxt ) { ngNumber( value ) } 
+      method eval(ctxt) { ngNumber( value ) } 
   }
 
 
@@ -140,13 +157,13 @@ class jeval {
       inherit jExplicitRequestNode(receiver', name', typeArguments', arguments')
           at( source ) 
          
-      method eval( ctxt ) {
+      method eval(ctxt) {
          jdebug { print "eval explicitRequest {name}" }
-         def rcvr = receiver.eval( ctxt )
-         //def types = typeArguments.map { ta -> ta.eval( ctxt ) }
-         def types = safeFuckingMap { ta -> ta.eval( ctxt ) } over(typeArguments)
-         //def args = arguments.map { a -> a.eval( ctxt ) }
-         def args = safeFuckingMap { a -> a.eval( ctxt ) } over(arguments)       
+         def rcvr = receiver.eval(ctxt)
+         //def types = typeArguments.map { ta -> ta.eval(ctxt) }
+         def types = safeFuckingMap { ta -> ta.eval(ctxt) } over(typeArguments)
+         //def args = arguments.map { a -> a.eval(ctxt) }
+         def args = safeFuckingMap { a -> a.eval(ctxt) } over(arguments)       
          def creatio = ctxt.lookup("_creatio")
          jdebug { print "call explicitRequest {rcvr} {name} {args}" }
          def methodBody = rcvr.lookupSlot(name)
@@ -166,12 +183,12 @@ class jeval {
           at( source ) 
          
 
-      method eval( ctxt ) {
+      method eval(ctxt) {
          jdebug { print "eval implicitRequest {name} {ctxt}" }
-         //def types = typeArguments.map { ta -> ta.eval( ctxt ) }
-         def types = safeFuckingMap { ta -> ta.eval( ctxt ) } over(typeArguments)
-         //def args = arguments.map { a -> a.eval( ctxt ) }
-         def args = safeFuckingMap { a -> a.eval( ctxt ) } over(arguments)       
+         //def types = typeArguments.map { ta -> ta.eval(ctxt) }
+         def types = safeFuckingMap { ta -> ta.eval(ctxt) } over(typeArguments)
+         //def args = arguments.map { a -> a.eval(ctxt) }
+         def args = safeFuckingMap { a -> a.eval(ctxt) } over(arguments)       
          def creatio = ctxt.lookup("_creatio")
          def methodBody = ctxt.lookup(name) //not quite it wrt inheritance!
          def rv = applyVarargs(methodBody,args,creatio)
@@ -185,14 +202,13 @@ class jeval {
           at ( source )  {
       inherit jReturnNode( value' ) at( source )
       
-      method eval( ctxt ) {
+      method eval(ctxt) {
           def returnCreatio = ctxt.lookup("_returnCreatio")
-          def subtxt = ctxt.subtxt
+          def subtxt = ctxt.subcontext
           subtxt.declare("_creatio") asMethod( returnCreatio ) 
           ctxt.lookup("_returnBlock").apply( value.eval(subtxt) )
       }
-  }
-
+ }
 
   class objectConstructorNode(
       body' : Sequence[[ObjectStatement]])
@@ -212,6 +228,7 @@ class jeval {
 
       //don'tcha just love double dispatch! 
       method build(ctxt) { 
+
           match (kind) 
             case { "inherit" -> ctxt.addInheritParent(self) }
             case { "use" -> ctxt.addUseParent(self) }
@@ -238,7 +255,7 @@ method applyVarargs(block,args,creatio) {//args are NGOS, aka already evaluated.
     case { 3 -> block.apply(a.at(1),a.at(2),a.at(3),creatio) }
     case { 4 -> block.apply(a.at(1),a.at(2),a.at(3),a.at(4),creatio) }
     case { 5 -> block.apply(a.at(1),a.at(2),a.at(3),a.at(4),a.at(5),creatio) }
-    case { _ -> print "CANT BE BOTHERED TO APPLY MORE VARARGS" }
+    case { _ -> print "ERROR: CANT BE BOTHERED TO APPLY MORE VARARGS" }
 }
 
 //PSEUDO-NODES:
@@ -246,23 +263,44 @@ method applyVarargs(block,args,creatio) {//args are NGOS, aka already evaluated.
 //understands eval and uses it to run the statements in a body
 //body is a sequnce of statements
 //should actually replace use of sequence - should be visitable etc.
+
+
+// HERE - IF creatio is false, then just pass it in to each
+// If Creation is true, make a subcontext with creatio = false, 
+//    use the new one for each stmt until the last
+//    then use the original one...
+
 class progn (body) {
-   print "NEED TO FIX CREATIO FOR ALL EXCEPT LAST"
    method eval(ctxt) { 
      jdebug { print "eval progn {self}" }
+     var bodyContext
+     if (false == ctxt.lookup("_creatio")) then {
+        bodyContext := ctxt
+     } else { 
+        bodyContext := ctxt.subcontext
+        bodyContext.declare("_creatio") asMethod(false) 
+     }
      var rv := ngDone
-     for (body) do { stmt -> rv := stmt.eval(ctxt) }
+     for (body) doWithLast { 
+       stmt, last -> rv := stmt.eval( if (!last) then {bodyContext} else {ctxt} ) }
      rv
    }
    method build(ctxt) {
-     jdebug { print "build progn {self}"  }
+     jdebug { print "build progn {self}" }
+     var bodyContext
+     if (false == ctxt.lookup("_creatio")) then {
+        bodyContext := ctxt
+     } else { 
+        bodyContext := ctxt.subcontext
+        bodyContext.declare("_creatio") asMethod(false) 
+     }
      var rv := ngDone
-     for (body) do { stmt -> rv := stmt.build(ctxt) }
+     for (body) doWithLast {
+        stmt, last -> rv := stmt.build( if (!last) then {bodyContext} else {ctxt} ) }
      rv
    }
 
 }
-
 
 //these two only live in the initialiser list
 //actally, at this point, everything in the initialiser list is one of these..
@@ -286,7 +324,7 @@ class initialise(box) to(expr) inContext(ctxt) {
 //lives only in inheritParents and useParents lists
 class inheritFrom(expr) inContext(ctxt) { //dunno if this needs context or not...
      method parent {expr}
-     print "inheritFrom {expr} inContext {ctxt}"
+     jdebug { print "inheritFrom {expr} inContext {ctxt}" }
      method eval(_) { jdebug { print "inhr {expr} inContext {ctxt}" }
                       //def rv = expr.eval(ctxt)
                       jdebug { print "done {expr} inContext {ctxt}" }
@@ -340,7 +378,7 @@ method acceptVarargs(params,ctxt,body,addEscape) {
          subtxt.declare(p.at(5).name) asDef( p5 ) 
          subtxt.declare("_creatio") asMethod( creatio ) 
          setupReturnThenRun(prognBody,subtxt,addEscape) } }
-    case { _ -> print "CANT BE BOTHERED TO ACCEPT MORE VARARGS" }
+    case { _ -> print "ERROR: CANT BE BOTHERED TO ACCEPT MORE VARARGS" }
 }
 
 //auxilliary method of applyVarargs 
@@ -371,7 +409,7 @@ class ngo {
              box.initialValue:= expr.eval(self)
              structure.at(name) put (box) } 
   }
-  method declare( name ) asVarInit (expr) { 
+  method declare(name) asVarInit (expr) { 
     if (structure.containsKey(name) || structure.containsKey(name ++ "():=(_)")) 
       then { print "ERROR: trying to declare {name} more than once" }
       else { def box = ngVarBox
@@ -385,19 +423,19 @@ class ngo {
   //call "declare" from build; "initialise" from eval
    
   //should check for lexical shadowning -- but we don't
-  method declare( name ) asMethod ( lambda ) { 
+  method declare(name) asMethod ( lambda ) { 
     if (structure.containsKey(name)) 
       then { print "ERROR: trying to declare {name} more than once" }
       else { structure.at(name) put(lambda) }
   }
 
-  method declare( name ) asDef ( ngo ) { 
+  method declare(name) asDef ( ngo ) { 
     jdebug { print "declare {name} asDef {ngo}" }
     if (structure.containsKey(name)) 
       then { print "ERROR: trying to declare {name} more than once" }
       else { structure.at(name) put { creatio -> ngo } }
   }
-  method declare( name ) asVar ( ngo ) { 
+  method declare(name) asVar ( ngo ) { 
     jdebug { print "declare {name} asVar {ngo}" }
     if (structure.containsKey(name) || structure.containsKey(name ++ "():=(_)")) 
       then { print "ERROR: trying to declare {name} more than once" }
@@ -410,7 +448,7 @@ class ngo {
            }
   }
   
-  method lookup( name ) {
+  method lookup(name){
          jdebug { print "lookup ngo {name}" }
          def rv =  structure.at(name) 
          jdebug { print "lookup ngo {name} returning {rv}" }
@@ -418,7 +456,7 @@ class ngo {
          }
 
   //lookup only for slots in "self" (external / explicit)
-  method lookupSlot( name ) { 
+  method lookupSlot(name){ 
          jdebug { print "lookupSlot ngo {name}"        }
          def rv = structure.at(name) 
          jdebug { print "lookupSlot ngo {name} returning {rv}" }
@@ -464,7 +502,7 @@ class ngBlock(parameters,ctxt,body) {
      case { 3 -> "apply(_,_,_)" }
      case { 4 -> "apply(_,_,_,_)" }
      case { 5 -> "apply(_,_,_,_,_)" }
-     case { _ -> print "CANT BE BOTHERED TO APPLY MORE VARARGS" }
+     case { _ -> print "ERROR: CANT BE BOTHERED TO APPLY MORE VARARGS" }
 
    declare(name) asMethod (acceptVarargs(parameters,ctxt,body,false))
 }
@@ -487,7 +525,7 @@ class ngObject(body,ctxt) {
   //otherwise, expect creatio to be the ID of the (bottommost) object being created. I think.
   def bottomMost = false == ctxt.lookup("_creatio")
 
-  print "ngObject bottomMost {bottomMost} creatio {ctxt.lookup("_creatio")}"
+  jdebug { print "ngObject bottomMost {bottomMost} creatio {ctxt.lookup("_creatio")}" }
   
   def initialisers : Sequence[[Node]] is public = list 
   method addInitialiser(i) {initialisers.add(run(i)inContext(self))}
@@ -504,13 +542,12 @@ class ngObject(body,ctxt) {
   for (body) do { e ->
     match (e) 
        case { _ : InheritNode -> 
-          print "whee parent" 
           match (e.kind) 
             case { "inherit" -> addInheritParent(e) }
             case { "use" -> addUseParent(e) }
             case { _ -> print "ERROR: NOT COBOL!" }
       }
-      case { _ -> print "sme other thing" }
+      case { _ ->  }
   }
 
 
@@ -546,7 +583,7 @@ class ngObject(body,ctxt) {
 
   for (inheritParents) do {  pp ->
     def p = pp.parent
-    print "inherit {p.kind} {p.request} {p.excludes} {p.aliases}"
+    jdebug { print "inherit {p.kind} {p.request} {p.excludes} {p.aliases}" }
     //need to *evaluate* the parent's request but with creatio argument set
     //in the enclosing context so it knows its not the bottom
     //get back an object w/ struture and initaliers - status should be "built"
@@ -564,7 +601,7 @@ class ngObject(body,ctxt) {
   //COPPY AND PASTE: SHOULD ABSTRACT OUT
   for (useParents) do {  pp ->
     def p = pp.parent
-    print "inherit {p.kind} {p.request} {p.excludes} {p.aliases}"
+    jdebug { print "inherit {p.kind} {p.request} {p.excludes} {p.aliases}" }
 
     def stupidParentalPartObject = p.request.eval(inheritanceRequestContext) //relying on global variable
     if (stupidParentalPartObject.status != "built") 
@@ -601,11 +638,11 @@ class ngObject(body,ctxt) {
   status := "cooked" //i.e. OK to go! 
 
   //lexical lookup (internal / implicit)
-  method lookup( name ) {  //copy & paste
+  method lookup(name){  //copy & paste
     jdebug { print "lookup nuObject {name}" }
     def rv = (if (structure.containsKey(name)) 
        then { structure.at(name) }
-       else { ctxt.lookup( name ) })
+       else { ctxt.lookup(name)})
     jdebug { print "lookup nuObject {name} {rv}" }
     rv
   }
@@ -635,17 +672,17 @@ class newEmptyContext {
 class lexicalContext(ctxt) {
   inherit newEmptyContext 
 
-  method lookup( name ) { 
+  method lookup(name){ 
     jdebug { print "lookup lexicLContext {name}" }
     def rv = (if (structure.containsKey(name)) 
        then { structure.at(name) }
-       else { ctxt.lookup( name ) })
+       else { ctxt.lookup(name)})
     jdebug { "lookup lexicalContext {name} {rv}" }
     rv
 
     //     if (structure.containsKey(name)) 
     //        then { structure.at(name) }
-    //        else { ctxt.lookup( name ) }
+    //        else { ctxt.lookup(name)}
   }
 
 

@@ -1,0 +1,102 @@
+MODULE DIALECT: jkernandialect
+MODULE SIZE   : 65
+MODULE IMPORTS: dict⟬⟭
+EXECUTION EXECUTION EXECUTION EXECUTION
+ngString: one
+ngNumber: 2
+ngNumber: 4
+ngInterface: interface: [foo, bar, baz(_,_)] size: 3
+ngString: here
+ngNumber: 2
+ngString: there
+ngNumber: 4
+ngNumber: 4
+ngString: hello
+ngString: oneone
+ngNumber: 22
+ngString: foomethod
+{a ngBlock}
+{a ngBlock}
+ngString: barreturn
+ngString: ping
+ngString: blockescapeOK
+ngString: bubble
+ngNumber: 20
+ngNumber: 50
+ngString: bubble
+ngNumber: 44
+ngNumber: 88
+ngString: BUMP!
+ngNumber: 2
+ngString: BUMP!
+ngNumber: 4
+ngString: BUMP!
+ngNumber: 6
+ngNumber: 0
+Done[-]
+ngNumber: 10
+Done[-]
+ngNumber: 20
+Done[-]
+ngNumber: 25
+ngString: objectsrun
+ngString: one
+ngString: two
+ngString: ONE
+ngString: TWO
+ngString: ONE
+ngString: right
+ngString: inner
+ngString: a
+ngString: a
+ngString: o5v
+ngString: DONE DONE DONE DONE DONE DONE DONE
+one
+2
+4
+GraceType[Anonymous]
+here
+2
+there
+4
+4
+hello
+oneone
+22
+foomethod
+Block[{ "a block" }]
+Block[{ "a block" }]
+barreturn
+ping
+blockescapeOK
+bubble
+20
+50
+bubble
+44
+88
+BUMP!
+2
+BUMP!
+4
+BUMP!
+6
+0
+Done[-]
+10
+Done[-]
+20
+Done[-]
+25
+objectsrun
+one
+two
+ONE
+TWO
+ONE
+right
+inner
+a
+a
+o5v
+DONE DONE DONE DONE DONE DONE DONE
