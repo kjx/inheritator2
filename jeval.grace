@@ -2,7 +2,8 @@ import "jast" as jm
 import "combinator-collections" as c
 inherit c.abbreviations
 
-//TODO alias, excludes & for clashes
+//TODO alias, excludes & abstract & strucure clashes
+//TODO building methods (switch methods to build/eval like objects; blocks too I guess)
 //TODO completely change invocation protocol take an array of args, self, creatio, caller?, rather than using blocks. blocks only for primitives. everything passed explicitly. 
 //TODO move lookup protocol into objects (from request nodes?)
 //TODO dynamic typechecks on argumenets - and results
@@ -14,6 +15,12 @@ inherit c.abbreviations
 
 //method jdebug(block) {block.apply}
 method jdebug(block) { } 
+
+def interpreterError is public  = Exception.refine "interpreterError"
+
+method error (string) { 
+    interpreterError.raise(string)
+}
 
 method safeFuckingMap(f)over(col) {
    def rv = list
@@ -56,7 +63,7 @@ class jeval {
     //for one-phase contexts, eval can be called on the declaration
     //without build, and eval should just do the lot.
     method build(ctxt) -> NGO { ctxt.addInitialiser( self ) } 
-    method eval(ctxt) -> NGO { print "ERROR: can't eval {self}" } 
+    method eval(ctxt) -> NGO { error "can't eval {self}" } 
   }
 
 
@@ -165,10 +172,13 @@ class jeval {
          //def args = arguments.map { a -> a.eval(ctxt) }
          def args = safeFuckingMap { a -> a.eval(ctxt) } over(arguments)       
          def creatio = ctxt.lookup("_creatio")
+         ///def modes = ctxt.modes
          jdebug { print "call explicitRequest {rcvr} {name} {args}" }
          def methodBody = rcvr.lookupSlot(name)
          jdebug { print "cal2 explicitRequest {rcvr} {name} {args} {methodBody}" }
          def rv = applyVarargs(methodBody,args,creatio)
+         ///def rv = methodBody.invoke(rcvr) args(args) typeArgs(types) modes(modes)
+         ///or even just def rv = rcvr.externalRequest(name) args(args) typeArgs(types) modes(modes)
          jdebug { print "done explicitRequest {rcvr} {name} {args} {rv}" }
          rv
       } 
@@ -232,10 +242,10 @@ class jeval {
           match (kind) 
             case { "inherit" -> ctxt.addInheritParent(self) }
             case { "use" -> ctxt.addUseParent(self) }
-            case { _ -> print "ERROR: NOT COBOL!" }
+            case { _ -> error "NOT COBOL!" }
       }
 
-      method eval(_) { print "ERROR: CAINT EVAL inheritNode" }
+      method eval(_) { error "CAINT EVAL inheritNode" }
       
   }  
 
@@ -255,7 +265,7 @@ method applyVarargs(block,args,creatio) {//args are NGOS, aka already evaluated.
     case { 3 -> block.apply(a.at(1),a.at(2),a.at(3),creatio) }
     case { 4 -> block.apply(a.at(1),a.at(2),a.at(3),a.at(4),creatio) }
     case { 5 -> block.apply(a.at(1),a.at(2),a.at(3),a.at(4),a.at(5),creatio) }
-    case { _ -> print "ERROR: CANT BE BOTHERED TO APPLY MORE VARARGS" }
+    case { _ -> error "CANT BE BOTHERED TO APPLY MORE VARARGS" }
 }
 
 //PSEUDO-NODES:
@@ -310,14 +320,14 @@ class run(expr) inContext(ctxt) {
                       def rv = expr.eval(ctxt)
                       jdebug { print "done {expr} inContext {ctxt}" }
                       }      
-     method build(_) { print "ERROR: run(_)inContext(_) should only be called in eval not build" }
+     method build(_) { error "run(_)inContext(_) should only be called in eval not build" }
 }
 
 //initialise a box in some context
 class initialise(box) to(expr) inContext(ctxt) {
    method eval(_) { jdebug { print "initialise {box} inContext {ctxt}" }
                     box.initialValue:= expr.eval(ctxt) }
-   method build(_) { print "ERROR: initialise(_)to(_)inContext(_) should only be called in eval not build" }
+   method build(_) { error "initialise(_)to(_)inContext(_) should only be called in eval not build" }
 }
 
 //inherit from some expr 
@@ -329,7 +339,7 @@ class inheritFrom(expr) inContext(ctxt) { //dunno if this needs context or not..
                       //def rv = expr.eval(ctxt)
                       jdebug { print "done {expr} inContext {ctxt}" }
                       }      
-     method build(_) { print "ERROR: run(_)inContext(_) should only be called in eval not build" }
+     method build(_) { error "run(_)inContext(_) should only be called in eval not build" }
 }
 
 
@@ -378,7 +388,7 @@ method acceptVarargs(params,ctxt,body,addEscape) {
          subtxt.declare(p.at(5).name) asDef( p5 ) 
          subtxt.declare("_creatio") asMethod( creatio ) 
          setupReturnThenRun(prognBody,subtxt,addEscape) } }
-    case { _ -> print "ERROR: CANT BE BOTHERED TO ACCEPT MORE VARARGS" }
+    case { _ -> error "CANT BE BOTHERED TO ACCEPT MORE VARARGS" }
 }
 
 //auxilliary method of applyVarargs 
@@ -404,14 +414,14 @@ class ngo {
      
   method declare(name) asDefInit(expr) {
     if (structure.containsKey(name)) 
-      then { print "ERROR: trying to declare {name} more than once" }
+      then { error "trying to declare {name} more than once" }
       else { def box = ngDefBox
              box.initialValue:= expr.eval(self)
              structure.at(name) put (box) } 
   }
   method declare(name) asVarInit (expr) { 
     if (structure.containsKey(name) || structure.containsKey(name ++ "():=(_)")) 
-      then { print "ERROR: trying to declare {name} more than once" }
+      then { error "trying to declare {name} more than once" }
       else { def box = ngVarBox
              box.initialValue:= expr.eval(self)
              structure.at(name) put (box) 
@@ -425,20 +435,20 @@ class ngo {
   //should check for lexical shadowning -- but we don't
   method declare(name) asMethod ( lambda ) { 
     if (structure.containsKey(name)) 
-      then { print "ERROR: trying to declare {name} more than once" }
+      then { error "trying to declare {name} more than once" }
       else { structure.at(name) put(lambda) }
   }
 
   method declare(name) asDef ( ngo ) { 
     jdebug { print "declare {name} asDef {ngo}" }
     if (structure.containsKey(name)) 
-      then { print "ERROR: trying to declare {name} more than once" }
+      then { error "trying to declare {name} more than once" }
       else { structure.at(name) put { creatio -> ngo } }
   }
   method declare(name) asVar ( ngo ) { 
     jdebug { print "declare {name} asVar {ngo}" }
     if (structure.containsKey(name) || structure.containsKey(name ++ "():=(_)")) 
-      then { print "ERROR: trying to declare {name} more than once" }
+      then { error "trying to declare {name} more than once" }
       else { 
            var closedVariable := ngo
            structure.at(name) put { creatio -> closedVariable } 
@@ -502,7 +512,7 @@ class ngBlock(parameters,ctxt,body) {
      case { 3 -> "apply(_,_,_)" }
      case { 4 -> "apply(_,_,_,_)" }
      case { 5 -> "apply(_,_,_,_,_)" }
-     case { _ -> print "ERROR: CANT BE BOTHERED TO APPLY MORE VARARGS" }
+     case { _ -> error "CANT BE BOTHERED TO APPLY MORE VARARGS" }
 
    declare(name) asMethod (acceptVarargs(parameters,ctxt,body,false))
 }
@@ -545,7 +555,7 @@ class ngObject(body,ctxt) {
           match (e.kind) 
             case { "inherit" -> addInheritParent(e) }
             case { "use" -> addUseParent(e) }
-            case { _ -> print "ERROR: NOT COBOL!" }
+            case { _ -> error "NOT COBOL!" }
       }
       case { _ ->  }
   }
@@ -553,14 +563,14 @@ class ngObject(body,ctxt) {
 
   method declare(name) asDefInit(expr) {
     if (structure.containsKey(name)) 
-      then { print "ERROR: trying to declare {name} more than once" }
+      then { error "trying to declare {name} more than once" }
       else { def box = ngDefBox
              structure.at(name) put(box) 
              initialisers.add(initialise(box) to(expr) inContext(self)) }
   }
   method declare(name) asVarInit(expr) {
     if (structure.containsKey(name)) 
-      then { print "ERROR: trying to declare {name} more than once" }
+      then { error "trying to declare {name} more than once" }
       else { def box = ngVarBox
              structure.at(name) put(box)             
              structure.at(name ++ "():=(_)") put(box)
@@ -593,7 +603,7 @@ class ngObject(body,ctxt) {
 
     def stupidParentalPartObject = p.request.eval(inheritanceRequestContext) 
     if (stupidParentalPartObject.status != "built") 
-       then { print "ERROR: FUCK FUCK FUCKETY FUCK FUCK FUCK {stupidParentalPartObject.status}" }
+       then { error "FUCK FUCK FUCKETY FUCK FUCK FUCK {stupidParentalPartObject.status}" }
     initialisers.addAll(stupidParentalPartObject.initialisers)
     stupidParentalPartObject.structure.keysAndValuesDo { k, v -> structure.at(k) put(v) }
   }
@@ -605,7 +615,7 @@ class ngObject(body,ctxt) {
 
     def stupidParentalPartObject = p.request.eval(inheritanceRequestContext) //relying on global variable
     if (stupidParentalPartObject.status != "built") 
-       then { print "ERROR: FUCK FUCK FUCKETY FUCK FUCK FUCK {stupidParentalPartObject.status}" }
+       then { error "FUCK FUCK FUCKETY FUCK FUCK FUCK {stupidParentalPartObject.status}" }
     initialisers.addAll(stupidParentalPartObject.initialisers)
     stupidParentalPartObject.structure.keysAndValuesDo { k, v -> structure.at(k) put(v) }
   }
@@ -691,22 +701,52 @@ class lexicalContext(ctxt) {
 
 }
 
+type Invokeable = { 
+    invoke(this: NGO) args(args: Sequence[[NGO]]) typeArgs(typeArgs: Sequence[[NGO]]) modes(modes)-> NGO
+}
+
+
 class ngDefBox {
    var boxValue := ngUninitialised
    method initialValue:= (initialValue) {
-      if (boxValue != ngUninitialised) then { print "ERROR: can't initialise initailsed box" }
+      if (boxValue != ngUninitialised) then { error "can't initialise initailsed box" }
       boxValue := initialValue
    }
    method apply(creatio) { //can be called as if 'twere a block
-      if (boxValue == ngUninitialised) then { print "ERROR: can't access uninitailsed box" }
+      if (boxValue == ngUninitialised) then { error "can't access uninitailsed box" }
+      boxValue
+   }
+   method invoke(this) args(args) types(typeArgs) modes(_) {
+      assert {args.size == 0}
+      if (boxValue == ngUninitialised) then { error "can't access uninitailsed box" }
       boxValue
    }
 }
 
 class ngVarBox {
    inherit ngDefBox
+     alias defInvoke(_)args(_)types(_)modes(_) = invoke(_)args(_)types(_)modes(_)
    method apply(x,creatio) {boxValue:= x}
+   method invoke(this) args(args) types(typeArgs) modes(modes) {
+     if (args.size == 1) then {boxValue:= args.at(1)}
+     defInvoke(this) args(args) types(typeArgs)
+   }
 }
+
+//an invokeable method...
+class ngMethod(methodNode) {
+   method invoke(this) args(args) types(typeArgs) modes(modes) {
+     error "CRASHY WASHY"
+   }
+}
+
+//old style lambda; takes creatio plus rest. Or something.
+class ngMethodLambda(lambda) {
+   method invoke(this) args(args) types(typeArgs) modes(modes) {
+     applyVarargs(lambda,args,modes.at("_creatio"))
+   }
+}
+
 
 type InheritNode = {
   request
