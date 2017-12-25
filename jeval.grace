@@ -5,11 +5,12 @@ inherit c.abbreviations
 
 //TODO alias, excludes & abstract & strucure clashes
 //TODO building methods (switch methods to build/eval like objects; blocks too I guess)
-//TODO completely change invocation protocol take an array of args, self, creatio, caller?, rather than using blocks. blocks only for primitives. everything passed explicitly. 
 //TODO types! 
 //TODO block matching
-//TODO move lookup protocol into objects (from request nodes?)
+//TODO move lookup protocol into objects (from request nodes?)???
 //TODO dynamic typechecks on argumenets - and results
+//TODO add Kernan primitives for argument access and parsing to execution tree
+//TODO   and then convert away from dialect checker to work explicitly
 //TODO exceptions
 //TODO annotations (incl abstract?)
 //TODO privacy
@@ -254,7 +255,7 @@ class jeval {
       kind' : String,
       request' : Request,
       excludes' : List[[String]],
-      aliases' : List[[ List[[Unknown]] ]])
+      aliases' : Dictionary[[String,String ]])
           at ( source ) -> Parameter {
       inherit jInheritNode(kind', request', excludes', aliases') at ( source )
 
@@ -637,7 +638,12 @@ class ngObject(body,ctxt) {
     if (stupidParentalPartObject.status != "built") 
        then { error "FUCK FUCK FUCKETY FUCK FUCK FUCK {stupidParentalPartObject.status}" }
     initialisers.addAll(stupidParentalPartObject.initialisers)
-    stupidParentalPartObject.structure.keysAndValuesDo { k, v -> structure.at(k) put(v) }
+    //stupidParentalPartObject.structure.keysAndValuesDo { k, v -> structure.at(k) put(v) }
+    stupidParentalPartObject.structure.keysAndValuesDo 
+      { k, v -> if (!p.excludes.contains(k)) then {structure.at(k) put(v) } }
+    p.aliases.keysAndValuesDo 
+      { k, v -> structure.at(k) put(stupidParentalPartObject.structure.at(v)) }
+
   }
   
   //COPPY AND PASTE: SHOULD ABSTRACT OUT
@@ -649,7 +655,10 @@ class ngObject(body,ctxt) {
     if (stupidParentalPartObject.status != "built") 
        then { error "FUCK FUCK FUCKETY FUCK FUCK FUCK {stupidParentalPartObject.status}" }
     initialisers.addAll(stupidParentalPartObject.initialisers)
-    stupidParentalPartObject.structure.keysAndValuesDo { k, v -> structure.at(k) put(v) }
+    stupidParentalPartObject.structure.keysAndValuesDo 
+      { k, v -> if (!p.excludes.contains(k)) then {structure.at(k) put(v) } }
+    p.aliases.keysAndValuesDo 
+      { k, v -> structure.at(k) put(stupidParentalPartObject.structure.at(v)) }
   }
 
 
