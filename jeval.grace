@@ -2,9 +2,12 @@ import "jast" as jm
 import "combinator-collections" as c
 inherit c.abbreviations
 
+
 //TODO alias, excludes & abstract & strucure clashes
 //TODO building methods (switch methods to build/eval like objects; blocks too I guess)
 //TODO completely change invocation protocol take an array of args, self, creatio, caller?, rather than using blocks. blocks only for primitives. everything passed explicitly. 
+//TODO types! 
+//TODO block matching
 //TODO move lookup protocol into objects (from request nodes?)
 //TODO dynamic typechecks on argumenets - and results
 //TODO exceptions
@@ -22,11 +25,17 @@ method error (string) {
     interpreterError.raise(string)
 }
 
+method assert (block) {
+    if (!block.apply) then {error "Assertion failed: {block}"}
+}
+
 method safeFuckingMap(f)over(col) {
    def rv = list
    for (col) do { each -> rv.add(f.apply(each)) }
    rv
 }
+
+//should probably switch to keysAndValuesDo, last is key == size
 method for(col) doWithLast(block2) {
    def size = col.size
    var counter := 1
@@ -35,6 +44,10 @@ method for(col) doWithLast(block2) {
      counter := counter + 1 
    }
 }
+
+def CREATIO = "_creatio"
+def RETURNBLOCK = "_returnBlock"
+def RETURNCREATIO = "_returnCreatio"
 
 class jeval {
   inherit jm.jast
@@ -102,7 +115,7 @@ class jeval {
           at ( source ) -> Parameter {
       inherit jBlockNode( parameters', body' ) at( source ) 
       
-      method eval(ctxt) { ngBlock(parameters,ctxt,body) }
+      method eval(ctxt) { ngBlock(self,ctxt) }
   }
 
 
@@ -147,10 +160,17 @@ class jeval {
           at( source )  -> Method { 
       inherit jMethodNode(signature', body', annotations') at(source)
 
-      method build(ctxt) { eval(ctxt) }
+      method build(ctxt) { 
+          ctxt.addLocalSlot(signature.name) 
+                 asMethod (ngMethod(self) inContext(ctxt))
+          ngDone
+      }      
       method eval(ctxt) { 
+          //ctxt.declare(signature.name) 
+          //       asMethod (acceptVarargs(signature.parameters,ctxt,body,true))
+          error "shouldn't happen??"
           ctxt.declare(signature.name) 
-                 asMethod (acceptVarargs(signature.parameters,ctxt,body,true))
+                 asMethod (ngMethod(self) inContext(ctxt))
           ngDone
       }
   }
@@ -165,20 +185,20 @@ class jeval {
           at( source ) 
          
       method eval(ctxt) {
+         ///print "eval explicitRequest {name}"
          jdebug { print "eval explicitRequest {name}" }
          def rcvr = receiver.eval(ctxt)
          //def types = typeArguments.map { ta -> ta.eval(ctxt) }
          def types = safeFuckingMap { ta -> ta.eval(ctxt) } over(typeArguments)
          //def args = arguments.map { a -> a.eval(ctxt) }
          def args = safeFuckingMap { a -> a.eval(ctxt) } over(arguments)       
-         def creatio = ctxt.lookup("_creatio")
-         ///def modes = ctxt.modes
+         def creatio = ctxt.lookup(CREATIO)
          jdebug { print "call explicitRequest {rcvr} {name} {args}" }
          def methodBody = rcvr.lookupSlot(name)
          jdebug { print "cal2 explicitRequest {rcvr} {name} {args} {methodBody}" }
-         def rv = applyVarargs(methodBody,args,creatio)
-         ///def rv = methodBody.invoke(rcvr) args(args) typeArgs(types) modes(modes)
-         ///or even just def rv = rcvr.externalRequest(name) args(args) typeArgs(types) modes(modes)
+         ///def rv = applyVarargs(methodBody,args,creatio)
+         def rv = methodBody.invoke(rcvr) args(args) types(types) creatio(creatio)
+         //??def rv = rcvr.externalRequest(name) args(args) typeArgs(types) creatio(creatio)
          jdebug { print "done explicitRequest {rcvr} {name} {args} {rv}" }
          rv
       } 
@@ -194,14 +214,16 @@ class jeval {
          
 
       method eval(ctxt) {
+         ///print "eval implicitRequest {name}" 
          jdebug { print "eval implicitRequest {name} {ctxt}" }
          //def types = typeArguments.map { ta -> ta.eval(ctxt) }
          def types = safeFuckingMap { ta -> ta.eval(ctxt) } over(typeArguments)
          //def args = arguments.map { a -> a.eval(ctxt) }
          def args = safeFuckingMap { a -> a.eval(ctxt) } over(arguments)       
-         def creatio = ctxt.lookup("_creatio")
+         def creatio = ctxt.lookup(CREATIO)
          def methodBody = ctxt.lookup(name) //not quite it wrt inheritance!
-         def rv = applyVarargs(methodBody,args,creatio)
+         //def rv = applyVarargs(methodBody,args,creatio)
+         def rv = methodBody.invoke(ctxt) args(args) types(types) creatio(creatio)
          jdebug { print "done implicitRequest {name} {args} {rv}"       }
          rv
       } 
@@ -213,10 +235,10 @@ class jeval {
       inherit jReturnNode( value' ) at( source )
       
       method eval(ctxt) {
-          def returnCreatio = ctxt.lookup("_returnCreatio")
+          def returnCreatio = ctxt.lookup(RETURNCREATIO)
           def subtxt = ctxt.subcontext
-          subtxt.declare("_creatio") asMethod( returnCreatio ) 
-          ctxt.lookup("_returnBlock").apply( value.eval(subtxt) )
+          subtxt.declare(CREATIO) asMethod( returnCreatio ) 
+          ctxt.lookup(RETURNBLOCK).apply( value.eval(subtxt) )
       }
  }
 
@@ -238,7 +260,7 @@ class jeval {
 
       //don'tcha just love double dispatch! 
       method build(ctxt) { 
-
+          
           match (kind) 
             case { "inherit" -> ctxt.addInheritParent(self) }
             case { "use" -> ctxt.addUseParent(self) }
@@ -284,11 +306,11 @@ class progn (body) {
    method eval(ctxt) { 
      jdebug { print "eval progn {self}" }
      var bodyContext
-     if (false == ctxt.lookup("_creatio")) then {
+     if (false == ctxt.lookup(CREATIO)) then {
         bodyContext := ctxt
      } else { 
         bodyContext := ctxt.subcontext
-        bodyContext.declare("_creatio") asMethod(false) 
+        bodyContext.declare(CREATIO) asMethod(false) 
      }
      var rv := ngDone
      for (body) doWithLast { 
@@ -298,11 +320,11 @@ class progn (body) {
    method build(ctxt) {
      jdebug { print "build progn {self}" }
      var bodyContext
-     if (false == ctxt.lookup("_creatio")) then {
+     if (false == ctxt.lookup(CREATIO)) then {
         bodyContext := ctxt
      } else { 
         bodyContext := ctxt.subcontext
-        bodyContext.declare("_creatio") asMethod(false) 
+        bodyContext.declare(CREATIO) asMethod(false) 
      }
      var rv := ngDone
      for (body) doWithLast {
@@ -351,25 +373,25 @@ method acceptVarargs(params,ctxt,body,addEscape) {
   match (p.size)
     case { 0 -> { creatio -> 
          def subtxt = ctxt.subcontext
-         subtxt.declare("_creatio") asMethod( creatio ) 
+         subtxt.declare(CREATIO) asMethod( creatio ) 
          setupReturnThenRun(prognBody,subtxt,addEscape) } }
     case { 1 -> { p1, creatio -> 
          def subtxt = ctxt.subcontext
          subtxt.declare(p.at(1).name) asDef( p1 ) 
-         subtxt.declare("_creatio") asMethod( creatio ) 
+         subtxt.declare(CREATIO) asMethod( creatio ) 
          setupReturnThenRun(prognBody,subtxt,addEscape) } }
     case { 2 -> { p1, p2, creatio -> 
          def subtxt = ctxt.subcontext
          subtxt.declare(p.at(1).name) asDef( p1 ) 
          subtxt.declare(p.at(2).name) asDef( p2 ) 
-         subtxt.declare("_creatio") asMethod( creatio ) 
+         subtxt.declare(CREATIO) asMethod( creatio ) 
          setupReturnThenRun(prognBody,subtxt,addEscape) } }
     case { 3 -> { p1, p2, p3, creatio -> 
          def subtxt = ctxt.subcontext
          subtxt.declare(p.at(1).name) asDef( p1 ) 
          subtxt.declare(p.at(2).name) asDef( p2 ) 
          subtxt.declare(p.at(3).name) asDef( p3 ) 
-         subtxt.declare("_creatio") asMethod( creatio ) 
+         subtxt.declare(CREATIO) asMethod( creatio ) 
          setupReturnThenRun(prognBody,subtxt,addEscape) } }
     case { 4 -> { p1, p2, p3, p4, creatio -> 
          def subtxt = ctxt.subcontext
@@ -377,7 +399,7 @@ method acceptVarargs(params,ctxt,body,addEscape) {
          subtxt.declare(p.at(2).name) asDef( p2 ) 
          subtxt.declare(p.at(3).name) asDef( p3 ) 
          subtxt.declare(p.at(4).name) asDef( p4 ) 
-         subtxt.declare("_creatio") asMethod( creatio ) 
+         subtxt.declare(CREATIO) asMethod( creatio ) 
          setupReturnThenRun(prognBody,subtxt,addEscape) } }
     case { 5 -> { p1, p2, p3, p4, p5, creatio -> 
          def subtxt = ctxt.subcontext
@@ -386,7 +408,7 @@ method acceptVarargs(params,ctxt,body,addEscape) {
          subtxt.declare(p.at(3).name) asDef( p3 ) 
          subtxt.declare(p.at(4).name) asDef( p4 ) 
          subtxt.declare(p.at(5).name) asDef( p5 ) 
-         subtxt.declare("_creatio") asMethod( creatio ) 
+         subtxt.declare(CREATIO) asMethod( creatio ) 
          setupReturnThenRun(prognBody,subtxt,addEscape) } }
     case { _ -> error "CANT BE BOTHERED TO ACCEPT MORE VARARGS" }
 }
@@ -396,8 +418,8 @@ method acceptVarargs(params,ctxt,body,addEscape) {
 method setupReturnThenRun(prognBody,subtxt,addEscape) {
           jdebug { print "setupReturn {prognBody} {subtxt} {addEscape}"         }
           if (addEscape) then {
-              subtxt.declare("_returnBlock") asMethod {rv -> return rv} 
-              subtxt.declare("_returnCreatio") asMethod (subtxt.lookup("_creatio")) }
+              subtxt.declare(RETURNBLOCK) asMethod {rv -> return rv} 
+              subtxt.declare(RETURNCREATIO) asMethod (subtxt.lookup(CREATIO)) }
           prognBody.eval(subtxt) 
 }
 
@@ -406,10 +428,15 @@ method setupReturnThenRun(prognBody,subtxt,addEscape) {
 type NGO = Unknown
 
 
+//for debugging
+var ngoCounter := 0
+
 //all these NGOs should also have an "at(source)" annotation
 //so we can report errors properly!
 //tie every object back to an O/C in the source
 class ngo { 
+  def dbgCounter is readable = ngoCounter
+  ngoCounter:= ngoCounter + 1
   def structure is public = dictionary //evil evil making this public
      
   method declare(name) asDefInit(expr) {
@@ -443,18 +470,17 @@ class ngo {
     jdebug { print "declare {name} asDef {ngo}" }
     if (structure.containsKey(name)) 
       then { error "trying to declare {name} more than once" }
-      else { structure.at(name) put { creatio -> ngo } }
+      ///else { structure.at(name) put { creatio -> ngo } }
+      else { structure.at(name) put (ngMethodLambda { creatio -> ngo } ) }
   }
   method declare(name) asVar ( ngo ) { 
     jdebug { print "declare {name} asVar {ngo}" }
     if (structure.containsKey(name) || structure.containsKey(name ++ "():=(_)")) 
       then { error "trying to declare {name} more than once" }
-      else { 
-           var closedVariable := ngo
-           structure.at(name) put { creatio -> closedVariable } 
-           structure.at(name ++ "():=(_)") 
-              put { v, creatio -> closedVariable:= v
-                                  ngDone } 
+      else { def box = ngVarBox
+             ngVarBox.initialValue:= ngo
+             structure.at(name) put(box)             
+             structure.at(name ++ "():=(_)") put(box)
            }
   }
   
@@ -473,7 +499,7 @@ class ngo {
          rv
          }
 
-  method asString {"ngo:{structure}"}
+  method asString {"ngo#{dbgCounter}: {structure}"}
 }
 
 class ngNumber( value' ) {
@@ -481,7 +507,9 @@ class ngNumber( value' ) {
    method value {value'}
    method asString { "ngNumber: {value}"}
 
-   declare "+(_)" asMethod { other, creatio ->  ngNumber(value + other.value) } 
+   declare "+(_)" asMethod( ngMethodLambda { other, creatio ->  
+                  def rv = ngNumber(value' + other.value)
+                  rv } )
 }
 
 class ngString( value' ) {
@@ -497,14 +525,14 @@ class ngInterface( value', ctxt ) {
    method asString { "ngInterface: {value}"}
 }
 
-class ngBlock(parameters,ctxt,body) {
+class ngBlock(blockNode,ctxt) {
    inherit lexicalContext(ctxt)
    method asString { "\{a ngBlock\}" }
 
    //just have to manufacture the apply method
    //could just make all 5.. 10... 20..
   
-   def p = parameters.asList
+   def p = blockNode.parameters.asList
    def name = match (p.size)
      case { 0 -> "apply" }
      case { 1 -> "apply(_)" }
@@ -514,7 +542,7 @@ class ngBlock(parameters,ctxt,body) {
      case { 5 -> "apply(_,_,_,_,_)" }
      case { _ -> error "CANT BE BOTHERED TO APPLY MORE VARARGS" }
 
-   declare(name) asMethod (acceptVarargs(parameters,ctxt,body,false))
+   declare(name) asMethod (ngBlockMethod(blockNode) inContext(ctxt))
 }
 
 
@@ -524,7 +552,8 @@ class ngBlock(parameters,ctxt,body) {
 
 class ngObject(body,ctxt) {
   inherit lexicalContext(ctxt)
-  method asString { "ngObject:({status}) {structure}" }
+
+  method asString { "ngObject#{dbgCounter}:({status}) {structure}" }
 
   var status is readable := "embryo"
   
@@ -533,33 +562,36 @@ class ngObject(body,ctxt) {
 
   //not completely evil variabe. if creatio is FALSE I'm not inherited - i.e. I'm bottommost
   //otherwise, expect creatio to be the ID of the (bottommost) object being created. I think.
-  def bottomMost = false == ctxt.lookup("_creatio")
+  def bottomMost = false == ctxt.lookup(CREATIO)
 
-  jdebug { print "ngObject bottomMost {bottomMost} creatio {ctxt.lookup("_creatio")}" }
+  jdebug { print "{asString} bottomMost {bottomMost} creatio {ctxt.lookup(CREATIO)}" }
   
   def initialisers : Sequence[[Node]] is public = list 
   method addInitialiser(i) {initialisers.add(run(i)inContext(self))}
-
   def inheritParents :  Sequence[[Node]] = list 
   method addInheritParent(p) {inheritParents.add(inheritFrom(p)inContext(self))}
   def useParents :  Sequence[[Node]] = list 
   method addUseParent(p) {useParents.add(inheritFrom(p)inContext(self))}
+  def localSlots :  Dictionary[[String,Method]] = dictionary
+  method addLocalSlot(n) asMethod(m) {localSlots.at(n) put(m)}  //should check for duplicates???
 
   declare "outer" asDef( lookup("self" ) ) // we haven't declared self yet so the enclosing self...
   declare "self" asDef(self) //does this make sense? - seems to
 
-  jdebug { print "collecting inheritance shite" }
-  for (body) do { e ->
-    match (e) 
-       case { _ : InheritNode -> 
-          match (e.kind) 
-            case { "inherit" -> addInheritParent(e) }
-            case { "use" -> addUseParent(e) }
-            case { _ -> error "NOT COBOL!" }
-      }
-      case { _ ->  }
-  }
 
+  for (body) do { e -> e.build(self) }
+
+  //jdebug { print "collecting inheritance shite" }
+  //for (body) do { e ->
+  //  match (e) 
+  //     case { _ : InheritNode -> 
+  //        match (e.kind) 
+  //          case { "inherit" -> addInheritParent(e) }
+  //          case { "use" -> addUseParent(e) }
+  //          case { _ -> error "NOT COBOL!" }
+  //    }
+  //    case { _ ->  }
+  //}
 
   method declare(name) asDefInit(expr) {
     if (structure.containsKey(name)) 
@@ -588,7 +620,7 @@ class ngObject(body,ctxt) {
   var inheritanceRequestContext := ctxt //inherits clauses evalled in surrounding context
   if (bottomMost) then { 
      inheritanceRequestContext := ctxt.subcontext
-     inheritanceRequestContext.declare("_creatio") asMethod(self)  //inherited constructors wont be bottom
+     inheritanceRequestContext.declare(CREATIO) asMethod(self)  //inherited constructors wont be bottom
   }
 
   for (inheritParents) do {  pp ->
@@ -625,10 +657,7 @@ class ngObject(body,ctxt) {
   //things just replace shit via the map
   //
   jdebug { print "building local" }
-  for (body) do { e ->
-     jdebug { print "build {e}" }
-     e.build(self)
-  }
+  localSlots.keysAndValuesDo { k, v -> structure.at(k) put(v) } //WRONG but first approximation
 
   status := "built"
 
@@ -650,6 +679,7 @@ class ngObject(body,ctxt) {
   //lexical lookup (internal / implicit)
   method lookup(name){  //copy & paste
     jdebug { print "lookup nuObject {name}" }
+    // if (status != "cooked") then { error "CAIN'T lookup {name} in {self}" }
     def rv = (if (structure.containsKey(name)) 
        then { structure.at(name) }
        else { ctxt.lookup(name)})
@@ -671,6 +701,11 @@ def ngBuild is public = object {
 def ngUninitialised is public = object {
    inherit ngo
    method asString { "ngUninitialised" } //also an error if accessed
+}
+
+def ngImplicitUnknown is public = object {
+   inherit ngo
+   method asString { "ngImplicitUnknown" } //also an error if accessed
 }
 
 class newEmptyContext { 
@@ -702,7 +737,7 @@ class lexicalContext(ctxt) {
 }
 
 type Invokeable = { 
-    invoke(this: NGO) args(args: Sequence[[NGO]]) typeArgs(typeArgs: Sequence[[NGO]]) modes(modes)-> NGO
+    invoke(this: NGO) args(args: Sequence[[NGO]]) types(typeArgs: Sequence[[NGO]]) creatio(creatio)-> NGO
 }
 
 
@@ -712,38 +747,66 @@ class ngDefBox {
       if (boxValue != ngUninitialised) then { error "can't initialise initailsed box" }
       boxValue := initialValue
    }
-   method apply(creatio) { //can be called as if 'twere a block
+   method Xapply(creatio) { //can be called as if 'twere a block
       if (boxValue == ngUninitialised) then { error "can't access uninitailsed box" }
       boxValue
    }
-   method invoke(this) args(args) types(typeArgs) modes(_) {
+   method invoke(this) args(args) types(typeArgs) creatio(_) {
       assert {args.size == 0}
       if (boxValue == ngUninitialised) then { error "can't access uninitailsed box" }
       boxValue
    }
+   method asString {"ngDefBox: {boxValue}"}
+
 }
 
 class ngVarBox {
    inherit ngDefBox
-     alias defInvoke(_)args(_)types(_)modes(_) = invoke(_)args(_)types(_)modes(_)
-   method apply(x,creatio) {boxValue:= x}
-   method invoke(this) args(args) types(typeArgs) modes(modes) {
-     if (args.size == 1) then {boxValue:= args.at(1)}
-     defInvoke(this) args(args) types(typeArgs)
+     alias defInvoke(_)args(_)types(_)creatio(_) = invoke(_)args(_)types(_)creatio(_)
+   method asString {"ngVarBox: {boxValue}"}
+   method Xapply(x,creatio) {boxValue:= x}
+   method invoke(this) args(args) types(typeArgs) creatio(creatio) {
+     if (args.size == 1) 
+        then {boxValue:= args.at(1)}
+        else {defInvoke(this) args(args) types(typeArgs) creatio(creatio)}
    }
 }
 
-//an invokeable method...
-class ngMethod(methodNode) {
-   method invoke(this) args(args) types(typeArgs) modes(modes) {
-     error "CRASHY WASHY"
+//an invokeable method..
+class ngMethod(methodNode) inContext(ctxt) {
+   method invoke(this) args(args) types(typeArgs) creatio(creatio) {
+     ///print "invoke method invokable {methodNode.signature.name}"
+     def params = methodNode.signature.parameters.asList
+     def prognBody = progn(methodNode.body)
+     def subtxt = ctxt.subcontext
+     if (args.size != params.size) then {error "arg mismatch"}
+     for (params.indices) do { i -> subtxt.declare(params.at(i).name) asDef(args.at(i)) }
+     subtxt.declare(CREATIO) asMethod(creatio) 
+     subtxt.declare(RETURNBLOCK) asMethod {rv -> return rv} 
+     subtxt.declare(RETURNCREATIO) asMethod (creatio) 
+     prognBody.eval(subtxt)
    }
 }
+
+class ngBlockMethod(blockNode) inContext(ctxt) {
+   method invoke(this) args(args) types(typeArgs) creatio(creatio) {
+     ///print "invoke block invokable {blockNode.parameters}"
+     def params = blockNode.parameters.asList
+     def prognBody = progn(blockNode.body)
+     def subtxt = ctxt.subcontext
+     if (args.size != params.size) then {error "arg mismatch"}
+     for (params.indices) do { i -> subtxt.declare(params.at(i).name) asDef(args.at(i)) }
+     subtxt.declare(CREATIO) asMethod(creatio) 
+     prognBody.eval(subtxt)
+   }
+}
+
+
 
 //old style lambda; takes creatio plus rest. Or something.
 class ngMethodLambda(lambda) {
-   method invoke(this) args(args) types(typeArgs) modes(modes) {
-     applyVarargs(lambda,args,modes.at("_creatio"))
+   method invoke(this) args(args) types(typeArgs) creatio(creatio) {
+     applyVarargs(lambda,args,creatio)
    }
 }
 

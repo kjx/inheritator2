@@ -20,10 +20,10 @@ ngString: foomethod
 ngString: barreturn
 ngString: ping
 ngString: blockescapeOK
-ngString: bubble
+ngString: bubble1
 ngNumber: 20
 ngNumber: 50
-ngString: bubble
+ngString: bubble2
 ngNumber: 44
 ngNumber: 88
 ngString: BUMP!
@@ -69,10 +69,10 @@ Block[{ "a block" }]
 barreturn
 ping
 blockescapeOK
-bubble
+bubble1
 20
 50
-bubble
+bubble2
 44
 88
 BUMP!

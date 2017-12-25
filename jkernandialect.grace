@@ -376,8 +376,8 @@ method checker(module) {
     def ctxt = jeval.newEmptyContext
     //should I move these into newEmptyContext?
     ctxt.declare("self") asDef(ctxt)
-    ctxt.declare("implicitUninitialised") asDef(jm.ngDone)
-    ctxt.declare("print(_)") asMethod { p, creatio -> print(p) }
+    ctxt.declare("implicitUninitialised") asDef(jm.ngUninitialised)
+    ctxt.declare("print(_)") asMethod (jm.ngMethodLambda{ p, creatio -> print(p) })
     ctxt.declare("_creatio") asMethod(false)
 
     //def moduleObject = jm.ngObject(list, ctxt)  //hmmm

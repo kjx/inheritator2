@@ -38,11 +38,11 @@ method blockescape {
 }
 print (blockescape)
 
-print "bubble"
+print "bubble1"
 method bubble(x,y) { (x + x) + y }
 print (bubble(5,10))
 print (bubble(20,10))
-print "bubble"
+print "bubble2"
 
 print ({ x -> x + x }.apply(22))
 
