@@ -3,7 +3,10 @@ import "combinator-collections" as c
 inherit c.abbreviations
 
 
-//TODO alias, excludes & abstract & strucure clashes
+//DONE alias, excludes & abstract & strucure clashes
+//TODO annotations (incl abstract?)
+//TODO privacy
+//TODO privacy and annotations thru inheritance
 //TODO building methods (switch methods to build/eval like objects; blocks too I guess)
 //TODO types! 
 //TODO block matching
@@ -12,8 +15,6 @@ inherit c.abbreviations
 //TODO add Kernan primitives for argument access and parsing to execution tree
 //TODO   and then convert away from dialect checker to work explicitly
 //TODO exceptions
-//TODO annotations (incl abstract?)
-//TODO privacy
 //TODO refactor AST, redesign class names, add progn/sequence properly visitable
 
 
@@ -563,7 +564,7 @@ class ngObject(body,ctxt) {
 
   //not completely evil variabe. if creatio is FALSE I'm not inherited - i.e. I'm bottommost
   //otherwise, expect creatio to be the ID of the (bottommost) object being created. I think.
-  def bottomMost = false == ctxt.lookup(CREATIO)
+  def bottomMost = (false == ctxt.lookup(CREATIO))
 
   jdebug { print "{asString} bottomMost {bottomMost} creatio {ctxt.lookup(CREATIO)}" }
   
@@ -643,7 +644,8 @@ class ngObject(body,ctxt) {
       { k, v -> if (!p.excludes.contains(k)) then {structure.at(k) put(v) } }
     p.aliases.keysAndValuesDo 
       { k, v -> structure.at(k) put(stupidParentalPartObject.structure.at(v)) }
-
+    //all these need to deal correctly with overriding, and multiple defns. they dont.
+    //and non-excluded messages...
   }
   
   //COPPY AND PASTE: SHOULD ABSTRACT OUT
@@ -659,6 +661,8 @@ class ngObject(body,ctxt) {
       { k, v -> if (!p.excludes.contains(k)) then {structure.at(k) put(v) } }
     p.aliases.keysAndValuesDo 
       { k, v -> structure.at(k) put(stupidParentalPartObject.structure.at(v)) }
+    //all these need to deal correctly with overriding, and multiple defns. they dont.
+    //and non-excluded messages...
   }
 
 

@@ -1,5 +1,5 @@
 MODULE DIALECT: jkernandialect
-MODULE SIZE   : 65
+MODULE SIZE   : 76
 MODULE IMPORTS: dict⟬⟭
 EXECUTION EXECUTION EXECUTION EXECUTION
 ngString: one
@@ -50,7 +50,13 @@ ngString: inner
 ngString: a
 ngString: a
 ngString: o5v
-ngString: DONE DONE DONE DONE DONE DONE DONE
+ngString: A
+ngString: B
+ngString: TA
+ngString: SB
+ngString: C
+ngString: A
+ngString: DONE DONE DONE DONE DONE DONE DONE DONE DONE DONE DONE 
 one
 2
 4
@@ -99,4 +105,10 @@ inner
 a
 a
 o5v
-DONE DONE DONE DONE DONE DONE DONE
+A
+B
+TA
+SB
+C
+A
+DONE DONE DONE DONE DONE DONE DONE DONE DONE DONE DONE 
