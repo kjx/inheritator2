@@ -3,6 +3,7 @@ import "combinator-collections" as c
 inherit c.abbreviations
 
 
+//TODO top of dialect - do things continue on to the enclosing scope of the **dialect**
 //DONE alias, excludes & abstract & strucure clashes
 //TODO annotations (incl abstract?)
 //TODO privacy
@@ -16,10 +17,10 @@ inherit c.abbreviations
 //TODO   and then convert away from dialect checker to work explicitly
 //TODO exceptions
 //TODO refactor AST, redesign class names, add progn/sequence properly visitable
+//TODO correct canonical names of of assignment methods/requests (wash your dog first)
 
-
-//method jdebug(block) {block.apply}
-method jdebug(block) { } 
+method jdebug(block) {block.apply}
+//method jdebug(block) { } 
 
 def interpreterError is public  = Exception.refine "interpreterError"
 
@@ -50,6 +51,24 @@ method for(col) doWithLast(block2) {
 def CREATIO = "_creatio"
 def RETURNBLOCK = "_returnBlock"
 def RETURNCREATIO = "_returnCreatio"
+
+
+
+//this trait defines shorthand accessors for the annotations slot.
+trait annotationsTrait { 
+  method annotationNames is confidential { abstract } 
+  method isConfidential { annotationNames.contains "confidential" }
+  method isPublic       { ! isConfidential }
+  method isAbstract     { annotationNames.contains "abstract" }
+  method isConcrete     { ! isAbstract }
+  method isReadable     { isPublic || annotationNames.contains "readable" }
+  method isWriteable    { isPublic || annotationNames.contains "writeable" }
+  method isFinal        { annotationNames.contains "final" }
+  method isOverrides    { annotationNames.contains "overrides" }
+  //method isComplete     { annotationNames.contains "complete" }
+}
+
+
 
 class jeval {
   inherit jm.jast
@@ -512,12 +531,21 @@ class ngNumber( value' ) {
    declare "+(_)" asMethod( ngMethodLambda { other, creatio ->  
                   def rv = ngNumber(value' + other.value)
                   rv } )
+
+   declare "asString" asMethod( ngMethodLambda { creatio ->  
+                  def rv = ngString(value'.asString)
+                  rv } )
 }
 
 class ngString( value' ) {
    inherit ngo
    method value {value'}
    method asString { "ngString: {value}"}
+
+   declare "++(_)" asMethod( ngMethodLambda { other, creatio ->  
+                  def rv = ngString(value' ++ other.value)
+                  rv } )
+
 }
 
 class ngInterface( value', ctxt ) {   
@@ -575,7 +603,10 @@ class ngObject(body,ctxt) {
   def useParents :  Sequence[[Node]] = list 
   method addUseParent(p) {useParents.add(inheritFrom(p)inContext(self))}
   def localSlots :  Dictionary[[String,Method]] = dictionary
-  method addLocalSlot(n) asMethod(m) {localSlots.at(n) put(m)}  //should check for duplicates???
+  method addLocalSlot(name) asMethod(m) {  //is this "addMethod" name right?
+    if (localSlots.containsKey(name))
+      then { error "trying to declare {name} more than once" }
+      else { localSlots.at(name) put(m)} }
 
   declare "outer" asDef( lookup("self" ) ) // we haven't declared self yet so the enclosing self...
   declare "self" asDef(self) //does this make sense? - seems to
@@ -595,21 +626,39 @@ class ngObject(body,ctxt) {
   //    case { _ ->  }
   //}
 
+  //   method declare(name) asDefInit(expr) {
+  //     if (structure.containsKey(name)) 
+  //       then { error "trying to declare {name} more than once" }
+  //       else { def box = ngDefBox
+  //              structure.at(name) put(box) 
+  //              initialisers.add(initialise(box) to(expr) inContext(self)) }
+  //   }
+  //   method declare(name) asVarInit(expr) {
+  //     def setterName = name ++ "():=(_)"
+  //     if (structure.containsKey(name) || structure.containsKey(setterName)) 
+  //       then { error "trying to declare {name} or {name}:= more than once" }
+  //       else { def box = ngVarBox
+  //              print "about to delare {name} asVar in {self}"
+  //              structure.at(name) put(box)             
+  //              structure.at(setterName) put(box)
+  //              initialisers.add(initialise(box) to(expr) inContext(self)) }
+  //   }
+
   method declare(name) asDefInit(expr) {
-    if (structure.containsKey(name)) 
-      then { error "trying to declare {name} more than once" }
-      else { def box = ngDefBox
-             structure.at(name) put(box) 
-             initialisers.add(initialise(box) to(expr) inContext(self)) }
+    def box = ngDefBox
+    addLocalSlot(name) asMethod(box) 
+    initialisers.add(initialise(box) to(expr) inContext(self))
   }
   method declare(name) asVarInit(expr) {
-    if (structure.containsKey(name)) 
-      then { error "trying to declare {name} more than once" }
-      else { def box = ngVarBox
-             structure.at(name) put(box)             
-             structure.at(name ++ "():=(_)") put(box)
-             initialisers.add(initialise(box) to(expr) inContext(self)) }
+    def setterName = name ++ "():=(_)"
+    def box = ngVarBox
+    addLocalSlot(name) asMethod(box) 
+    addLocalSlot(setterName) asMethod(box) 
+    initialisers.add(initialise(box) to(expr) inContext(self)) 
   }
+
+
+
 
 
   //progn(body).eval(self) //whoo! freaky!!
