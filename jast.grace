@@ -134,7 +134,7 @@ class jast {
           at ( source ) -> Parameter {
       inherit declarationNode(name', typeAnnotation', annotations', value') 
            at( source ) 
-      debug { print "DEF:"}
+      debug { print "DEF: {name} type {typeAnnotation} is {annotations} = {value}"}
       method accept[[T]](visitor : Visitor[[T]]) -> T {
         visitor.visitDefDeclaration(self) }
     }
@@ -147,7 +147,7 @@ class jast {
           at ( source ) -> Parameter {
       inherit declarationNode(name', typeAnnotation', annotations', value') 
           at( source ) 
-      debug { print "VAR:"}
+      debug { print "VAR: {name} type {typeAnnotation} is {annotations} = {value}"}
       method accept[[T]](visitor : Visitor[[T]]) -> T {
         visitor.visitVarDeclaration(self) }
     }
