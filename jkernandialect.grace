@@ -388,6 +388,8 @@ method checker(module) {
 
 
     def moduleObject = jm.ngObject(moduleBody, ctxt)  //hmmm
+
+    print "DONE DONE DONE DONE"
        
     }
 
