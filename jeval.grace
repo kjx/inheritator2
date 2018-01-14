@@ -19,18 +19,22 @@ use common.exports
 //-- rather you lookup (inheritance only?) the method in whole object of which the part is part, so the defn you found may be overridden. 
 //- 
 
+//TODO * process the other annotations
+//TODO * finish connecting up annotations to defs and vars
 //TODO annotations (incl abstract?)
 //TODO privacy
 //TODO privacy and annotations thru inheritance
 //TODO add extra argument to Invokeable>>invoke()blah()blah()...
 //   to code for internal vs external request?
-//TODO methods etc KNOW if they're confidential (vars readable/writeable)
-//TODO Invokablesx  have copyReadable/copyWriteable/copyConfidential/copyPUblic methods
+//TODO methods etc KNOW if they're confidential (vars readable/writable)
+//TODO Invokablesx  have copyReadable/copyWritable/copyConfidential/copyPUblic methods
 //    to handle annotations on alias statementts?
 //TODO use a wrapper to make things confidential?
 //TODO building methods (switch methods to build/eval like objects; blocks too I guess)
 
+
 //TODO top of dialect - do things continue on to the enclosing scope of the **dialect**
+//TODO make a ngdialect object, and set up the standard dialect e.g. with print and annotations and stuff
 
 //TODO types! 
 //TODO block matching
@@ -41,6 +45,10 @@ use common.exports
 //TODO exceptions
 //TODO refactor AST, redesign class names, add progn/sequence properly visitable
 //TODO correct canonical names of of assignment methods/requests (wash your dog first)
+
+//BADIDEA - operator :=.    if assignment method isn't found, but accessor method *is*, then run as operator:= on the result of the accessor...
+//BADIDEA this comes straight from "boxy grace"
+//next step is magic operation ^ or ("proxy" or something) --- if you have an object with it (and you don't imeplement a request???) you delegate by calling ^ and then re-running the method on that??
 
 //method jdebug(block) {block.apply}
 method jdebug(block) { } 
@@ -132,6 +140,8 @@ class jeval {
       method build(ctxt) { eval(ctxt) }
       method eval(ctxt) { 
           //ctxt.declare(name) asDef(value.eval(ctxt))
+          def annots = safeFuckingMap { a -> a.eval(ctxt) } over(annotations)
+          def isPublic = common.processAnnotations(annots,false)
           ctxt.declare(name) asDefInit(value)
           ng.ngDone          
       }
@@ -149,6 +159,8 @@ class jeval {
       method build(ctxt) { eval(ctxt) }
       method eval(ctxt) { 
           //ctxt.declare(name) asVar(value.eval(ctxt))
+          def annots = safeFuckingMap { a -> a.eval(ctxt) } over(annotations)
+          def privacy = common.processAnnotations(annots,false)
           ctxt.declare(name) asVarInit(value)
           ng.ngDone          
       }
@@ -162,8 +174,10 @@ class jeval {
       inherit jMethodNode(signature', body', annotations') at(source)
 
       method build(ctxt) { 
+          def annots = safeFuckingMap { a -> a.eval(ctxt) } over(annotations)
+          def isPublic = common.processAnnotations(annots,true)
           ctxt.addLocalSlot(signature.name) 
-                 asMethod (ng.ngMethod(self) inContext(ctxt))
+                 asMethod (ng.ngMethod(self) inContext(ctxt) isPublic(isPublic))
           ng.ngDone
       }      
       method eval(ctxt) { 
@@ -171,7 +185,7 @@ class jeval {
           //       asMethod (acceptVarargs(signature.parameters,ctxt,body,true))
           error "shouldn't happen??"
           ctxt.declare(signature.name) 
-                 asMethod (ng.ngMethod(self) inContext(ctxt))
+                 asMethod (ng.ngMethod(self) inContext(ctxt) isPublic(isPublic))
           ng.ngDone
       }
   }

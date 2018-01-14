@@ -1,5 +1,10 @@
 //james implementation of AST classes to more-or-less match kernan AST
 
+//TODO method (or should they be attribute?) nodes should keep track of the ind of thing they came from --- method, class, type... 
+//TODO redesign the UI with gaps in parameters (low priority) 
+//TODO use a StatementSequence instand of a plan sequence
+//TODO we should offer up (i.e. be parameterise by) a sequence too
+
 class jast {    
     
     //REALLY BIG DESIGN QUESTION - SHOULD WE HAVE A CLASS NODE??

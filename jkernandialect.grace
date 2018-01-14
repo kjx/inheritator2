@@ -379,6 +379,16 @@ method checker(module) {
     //should I move these into newEmptyContext?
     ctxt.declare("self") asDef(ctxt)
     ctxt.declare("implicitUninitialised") asDef(ng.ngUninitialised)
+
+    ctxt.declare("confidential") asDef(ng.ngBuiltinAnnotation("confidential"))
+    ctxt.declare("public") asDef(ng.ngBuiltinAnnotation("public"))
+    ctxt.declare("abstract") asDef(ng.ngBuiltinAnnotation("abstract"))
+    ctxt.declare("concrete") asDef(ng.ngBuiltinAnnotation("concrete"))
+    ctxt.declare("readable") asDef(ng.ngBuiltinAnnotation("readable"))
+    ctxt.declare("writable") asDef(ng.ngBuiltinAnnotation("writable"))
+    ctxt.declare("final") asDef(ng.ngBuiltinAnnotation("final"))
+    ctxt.declare("overrides") asDef(ng.ngBuiltinAnnotation("overrides"))
+
     ctxt.declare("print(_)") asMethod (ng.ngMethodLambda{ p, creatio -> print(p) })
     ctxt.declare("_creatio") asMethod(false)
 

@@ -8,14 +8,7 @@ use errors.exports
 
 class exports {
    //I really shouldnt' make everything a class family, should I?
-
-
-
-
-
-
-
-
+   //at least I should explore traits
 
   //apply the block to the LIST of arguments.
   //currently this mthod is only used for "old style" varargs
@@ -492,8 +485,15 @@ class exports {
 
   def ngImplicitUnknown is public = object {
      inherit ngo
-     method asString { "ngImplicitUnknown" } //also an error if accessed
+     method asString { "ngImplicitUnknown" } 
   }
+
+  class ngBuiltinAnnotation(description' : String) {
+     inherit ngo
+     method asString { "ngBuiltimAnnotation(\"{description}\")" } 
+     method description { description' }
+  }
+
 
   class newEmptyContext { 
     inherit ngo
@@ -540,7 +540,7 @@ class exports {
      }
      method invoke(this) args(args) types(typeArgs) creatio(_) {
         assert {args.size == 0}
-        if (boxValue == ngUninitialised) then { error "can't access uninitailsed box" }
+        if (ngUninitialised == boxValue) then { error "can't access uninitailsed box" }
         boxValue
      }
      method asString {"ngDefBox: {boxValue}"}
@@ -560,7 +560,7 @@ class exports {
   }
 
   //an invokeable method..
-  class ngMethod(methodNode) inContext(ctxt) {
+  class ngMethod(methodNode) inContext(ctxt) isPublic(public) {
      method invoke(this) args(args) types(typeArgs) creatio(creatio) {
        ///print "invoke method invokable {methodNode.signature.name}"
        def params = methodNode.signature.parameters.asList
