@@ -2,8 +2,10 @@ import "jeval" as jm
 import "combinator-collections" as c
 inherit c.abbreviations
 //import "platform/KernanCompiler" as k 
-
 // import "ast"as kernanAST  // seems this is broken. we define our own types.
+
+import "jruntime" as runtime
+def ng = runtime.exports
 
 def jast = jm.jeval
 def jeval = jast
@@ -376,18 +378,18 @@ method checker(module) {
     def ctxt = jeval.newEmptyContext
     //should I move these into newEmptyContext?
     ctxt.declare("self") asDef(ctxt)
-    ctxt.declare("implicitUninitialised") asDef(jm.ngUninitialised)
-    ctxt.declare("print(_)") asMethod (jm.ngMethodLambda{ p, creatio -> print(p) })
+    ctxt.declare("implicitUninitialised") asDef(ng.ngUninitialised)
+    ctxt.declare("print(_)") asMethod (ng.ngMethodLambda{ p, creatio -> print(p) })
     ctxt.declare("_creatio") asMethod(false)
 
-    //def moduleObject = jm.ngObject(list, ctxt)  //hmmm
+    //def moduleObject = ng.ngObject(list, ctxt)  //hmmm
     
     //for (moduleBody) do { e ->
     //    print (e.eval(moduleObject))
     //}
 
 
-    def moduleObject = jm.ngObject(moduleBody, ctxt)  //hmmm
+    def moduleObject = ng.ngObject(moduleBody, ctxt)  //hmmm
 
     print "DONE DONE DONE DONE"
        
