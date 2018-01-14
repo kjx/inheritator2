@@ -30,11 +30,24 @@ the input file "normally".  So, every program currently runs twice.
 - jast.grace - common AST a class family
 
 - jeval.grace - extends common AST via family inheritance to provide
-  the key `eval` method that embodies the interpreter. Currently also
-  includes runtime model (that should probably be in another module).
+  the key `eval` method that embodies the interpreter.
+
+- jruntime.grace - runtime model (aka "Object Memory")
+
+- jcommon.grace - common definitions: Constants, helper methods
+     - import then use `exports` 
+
+- jerrors.grace - errors, exceptions, assertions etc.
+     - import then use `exports` 
 
 - jkernandialect.grace - wedge that runs as a Kernan dialect, builds
   the common AST and calls the interpreter.
+
+- combinator-collections.grace - a port of an old version of the
+  collections library to Kernan. Includes a hack for a "post-lineup"
+  collection interface, so e.g. `list` creates an empty list,
+  `list(_)`, `list(_,_)` create one and two element lists etc.
+     - import then use `abbreviations`
 
 ## Other files
 
@@ -42,11 +55,6 @@ the input file "normally".  So, every program currently runs twice.
     should always run to completion
 - EXP-jtest.txt expected output for jtest.grace
 
-
-- combinator-collections.grace - a port of an old version of the
-  collections library to Kernan. Includes a hack for a "post-lineup"
-  collection interface, so e.g. `list` creates an empty list,
-  `list(_)`, `list(_,_)` create one and two element lists etc.
 
 
 
