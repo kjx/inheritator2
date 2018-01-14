@@ -2,13 +2,30 @@ import "jast" as jm
 import "combinator-collections" as c
 inherit c.abbreviations
 
+//DONE alias, excludes & abstract & strucure clashes (hmm)
 
-//TODO top of dialect - do things continue on to the enclosing scope of the **dialect**
-//DONE alias, excludes & abstract & strucure clashes
+//TODO - object constructors need to keep separate parts. This seems unavoidable... - or perhaps it is but ONLY if we "resolve implicit requests" (up or out?) before the fun really starts. This means:
+//- part objects should store the creatio as representing the "whole" of which they are part
+//- "lexical"/ implicit lookup looks up the part object in the lexical content
+//-- (not the "whole" object that will have stuff introduced in subclasses)
+//-- (for Grace, unless we go up then out?, must also resolve to super-parts)
+//- if a method is found in a part object, you don't use the declaration there;
+//-- rather you lookup (inheritance only?) the method in whole object of which the part is part, so the defn you found may be overridden. 
+//- 
+
 //TODO annotations (incl abstract?)
 //TODO privacy
 //TODO privacy and annotations thru inheritance
+//TODO add extra argument to Invokeable>>invoke()blah()blah()...
+//   to code for internal vs external request?
+//TODO methods etc KNOW if they're confidential (vars readable/writeable)
+//TODO Invokablesx  have copyReadable/copyWriteable/copyConfidential/copyPUblic methods
+//    to handle annotations on alias statementts?
+//TODO use a wrapper to make things confidential?
 //TODO building methods (switch methods to build/eval like objects; blocks too I guess)
+
+//TODO top of dialect - do things continue on to the enclosing scope of the **dialect**
+
 //TODO types! 
 //TODO block matching
 //TODO move lookup protocol into objects (from request nodes?)???
@@ -19,8 +36,8 @@ inherit c.abbreviations
 //TODO refactor AST, redesign class names, add progn/sequence properly visitable
 //TODO correct canonical names of of assignment methods/requests (wash your dog first)
 
-method jdebug(block) {block.apply}
-//method jdebug(block) { } 
+//method jdebug(block) {block.apply}
+method jdebug(block) { } 
 
 def interpreterError is public  = Exception.refine "interpreterError"
 
