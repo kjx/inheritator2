@@ -23,40 +23,53 @@ class exports {
   def CREATIO = "_creatio"
   def RETURNBLOCK = "_returnBlock"
   def RETURNCREATIO = "_returnCreatio"
+}
+
+trait annotationsTrait(properties) { 
+     method isPublic { properties.isPublic }
+     method isOverride { properties.isOverride }
+     method isAbstract { properties.isAbstract }
+}
+
+trait noAnnotations {
+     method isPublic { false }
+     method isOverride { false }
+     method isAbstract { false }
+}
 
 
-  
-  trait annotationsTrait { 
-    //this trait defines shorthand accessors for the annotations slot.
-    method annotationNames is confidential { abstract } 
-    method isConfidential { annotationNames.contains "confidential" }
-    method isPublic       { ! isConfidential }
-    method isAbstract     { annotationNames.contains "abstract" }
-    method isConcrete     { ! isAbstract }
-    method isReadable     { isPublic || annotationNames.contains "readable" }
-    method isWritable     { isPublic || annotationNames.contains "writable" }
-    method isFinal        { annotationNames.contains "final" }
-    method isOverrides    { annotationNames.contains "overrides" }
-  }
-
-
+trait publicAnnotations {
+     method isPublic { true }
+     method isOverride { false }
+     method isAbstract { false }
 }
 
 method processAnnotations(annots,publicByDefault) { 
    def encapsulation = default(publicByDefault) named "encapsulation" 
+   def over = default(false) named "override"
+   def abst = default(false) named "abstract"
    for (annots) do { ann -> 
       match (ann.description) 
          case { "confidential" -> encapsulation <- false } 
          case { "public" -> encapsulation <- true } 
-         case { d -> error "unknown method annotation {d}" } // should be error
+         case { "override" -> over <- true } 
+         case { "abstract" -> abst <- true } 
+         case { d -> error "unknown method annotation {d}" }
    }
-   ^ encapsulation
+   object { 
+     def isPublic is public = ^ encapsulation
+     def isOverride is public = ^ over
+     def isAbstract is public = ^ abst
+   }
 }
 
-method processVarAnotations(annots) { 
+method processVarAnnotations(annots) { //COPY and PASTE
    def read = default(false) named "readable" 
    def writ = default(false) named "writable" 
-   for (annots) do { ann -> 
+   def over = default(false) named "override"   
+   def abst = default(false) named "abstract"
+
+   for (annots) do { ann ->    
       match (ann.description) 
          case { "confidential" -> 
               read <- false 
@@ -66,12 +79,22 @@ method processVarAnotations(annots) {
               writ <- true }
          case { "readable" -> read <- true } 
          case { "writable" -> writ <- true } 
-         case { d -> error "unknown method annotation {d}" } // should be error
+         case { "override" -> over <- true } 
+         case { "abstract" -> abst <- true } 
+         case { d -> error "unknown method annotation {d}" }
    }
-   object { 
-        method isReadable { read }
-        method isWritable { writ }
-        }
+   return object { 
+     def getter is public = object { 
+       def isOverride is public = ^ over
+       def isAbstract is public = ^ abst
+       def isPublic is public = ^ read
+     }
+     def setter is public = object { 
+       def isOverride is public = ^ over
+       def isAbstract is public = ^ abst
+       def isPublic is public = ^ writ
+     }
+   }
 }
 
 method default (initialValue) { default(initialValue) name ""}

@@ -8,7 +8,7 @@ def ng = runtime.exports
 import "jcommon" as common
 use common.exports
 
-//DONE alias, excludes & abstract & strucure clashes (hmm)
+//TODO - inheritance, structure clashes, et.
 
 //TODO - object constructors need to keep separate parts. This seems unavoidable... - or perhaps it is but ONLY if we "resolve implicit requests" (up or out?) before the fun really starts. This means:
 //- part objects should store the creatio as representing the "whole" of which they are part
@@ -19,18 +19,16 @@ use common.exports
 //-- rather you lookup (inheritance only?) the method in whole object of which the part is part, so the defn you found may be overridden. 
 //- 
 
-//TODO * process the other annotations
-//TODO * finish connecting up annotations to defs and vars
-//TODO annotations (incl abstract?)
-//TODO privacy
-//TODO privacy and annotations thru inheritance
+//TODO building methods (switch methods to build/eval like objects; blocks too I guess)
+
+//TODO alias clauses change privacy?
 //TODO add extra argument to Invokeable>>invoke()blah()blah()...
 //   to code for internal vs external request?
-//TODO methods etc KNOW if they're confidential (vars readable/writable)
 //TODO Invokablesx  have copyReadable/copyWritable/copyConfidential/copyPUblic methods
 //    to handle annotations on alias statementts?
 //TODO use a wrapper to make things confidential?
-//TODO building methods (switch methods to build/eval like objects; blocks too I guess)
+
+
 
 
 //TODO top of dialect - do things continue on to the enclosing scope of the **dialect**
@@ -53,6 +51,7 @@ use common.exports
 //method jdebug(block) {block.apply}
 method jdebug(block) { } 
 
+method DEBUG(block) {block.apply}
 
 
 
@@ -141,8 +140,8 @@ class jeval {
       method eval(ctxt) { 
           //ctxt.declare(name) asDef(value.eval(ctxt))
           def annots = safeFuckingMap { a -> a.eval(ctxt) } over(annotations)
-          def isPublic = common.processAnnotations(annots,false)
-          ctxt.declare(name) asDefInit(value)
+          def properties = common.processAnnotations(annots,false)
+          ctxt.declare(name) asDefInit(value) properties(properties)
           ng.ngDone          
       }
   }
@@ -160,8 +159,8 @@ class jeval {
       method eval(ctxt) { 
           //ctxt.declare(name) asVar(value.eval(ctxt))
           def annots = safeFuckingMap { a -> a.eval(ctxt) } over(annotations)
-          def privacy = common.processAnnotations(annots,false)
-          ctxt.declare(name) asVarInit(value)
+          def varProperties = common.processVarAnnotations(annots)
+          ctxt.declare(name) asVarInit(value) properties(varProperties)
           ng.ngDone          
       }
   }
@@ -175,9 +174,9 @@ class jeval {
 
       method build(ctxt) { 
           def annots = safeFuckingMap { a -> a.eval(ctxt) } over(annotations)
-          def isPublic = common.processAnnotations(annots,true)
+          def properties = common.processAnnotations(annots,true)
           ctxt.addLocalSlot(signature.name) 
-                 asMethod (ng.ngMethod(self) inContext(ctxt) isPublic(isPublic))
+                 asMethod (ng.ngMethod(self) inContext(ctxt) properties(properties))
           ng.ngDone
       }      
       method eval(ctxt) { 
@@ -185,7 +184,7 @@ class jeval {
           //       asMethod (acceptVarargs(signature.parameters,ctxt,body,true))
           error "shouldn't happen??"
           ctxt.declare(signature.name) 
-                 asMethod (ng.ngMethod(self) inContext(ctxt) isPublic(isPublic))
+                 asMethod (ng.ngMethod(self) inContext(ctxt) properties(properties))
           ng.ngDone
       }
   }
@@ -211,6 +210,7 @@ class jeval {
          jdebug { print "call explicitRequest {rcvr} {name} {args}" }
          def methodBody = rcvr.lookupSlot(name)
          jdebug { print "cal2 explicitRequest {rcvr} {name} {args} {methodBody}" }
+         if (!methodBody.isPublic) then {error "External request for confidential attribute {name}"}
          ///def rv = applyVarargs(methodBody,args,creatio)
          def rv = methodBody.invoke(rcvr) args(args) types(types) creatio(creatio)
          //??def rv = rcvr.externalRequest(name) args(args) typeArgs(types) creatio(creatio)

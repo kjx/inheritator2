@@ -178,20 +178,20 @@ class exports {
     ngoCounter:= ngoCounter + 1
     def structure is public = dictionary //evil evil making this public
 
-    method declare(name) asDefInit(expr) {
+    method declare(name) asDefInit(expr) properties(properties) {
       if (structure.containsKey(name)) 
         then { error "trying to declare {name} more than once" }
-        else { def box = ngDefBox
+        else { def box = ngDefBox(name) properties(properties)
                box.initialValue:= expr.eval(self)
                structure.at(name) put (box) } 
     }
-    method declare(name) asVarInit (expr) { 
+    method declare(name) asVarInit (expr) properties(properties) { 
       if (structure.containsKey(name) || structure.containsKey(name ++ "():=(_)")) 
         then { error "trying to declare {name} more than once" }
-        else { def box = ngVarBox
+        else { def box = ngVarBox(name) properties(properties)
                box.initialValue:= expr.eval(self)
                structure.at(name) put (box) 
-               structure.at(name ++ "():=(_)") put (box) }
+               structure.at(name ++ "():=(_)") put (box.setter) }
     }
 
 
@@ -216,10 +216,10 @@ class exports {
       jdebug { print "declare {name} asVar {ngo}" }
       if (structure.containsKey(name) || structure.containsKey(name ++ "():=(_)")) 
         then { error "trying to declare {name} more than once" }
-        else { def box = ngVarBox
+        else { def box = ngVarBox(name) properties(common.noAnnotations)
                ngVarBox.initialValue:= ngo
                structure.at(name) put(box)             
-               structure.at(name ++ "():=(_)") put(box)
+               structure.at(name ++ "():=(_)") put(box.setter)
              }
     }
 
@@ -329,49 +329,18 @@ class exports {
     declare "outer" asDef( lookup("self" ) ) // we haven't declared self yet so the enclosing self...
     declare "self" asDef(self) //does this make sense? - seems to
 
-
     for (body) do { e -> e.build(self) }
 
-    //jdebug { print "collecting inheritance shite" }
-    //for (body) do { e ->
-    //  match (e) 
-    //     case { _ : InheritNode -> 
-    //        match (e.kind) 
-    //          case { "inherit" -> addInheritParent(e) }
-    //          case { "use" -> addUseParent(e) }
-    //          case { _ -> error "NOT COBOL!" }
-    //    }
-    //    case { _ ->  }
-    //}
-
-    //   method declare(name) asDefInit(expr) {
-    //     if (structure.containsKey(name)) 
-    //       then { error "trying to declare {name} more than once" }
-    //       else { def box = ngDefBox
-    //              structure.at(name) put(box) 
-    //              initialisers.add(initialise(box) to(expr) inContext(self)) }
-    //   }
-    //   method declare(name) asVarInit(expr) {
-    //     def setterName = name ++ "():=(_)"
-    //     if (structure.containsKey(name) || structure.containsKey(setterName)) 
-    //       then { error "trying to declare {name} or {name}:= more than once" }
-    //       else { def box = ngVarBox
-    //              print "about to delare {name} asVar in {self}"
-    //              structure.at(name) put(box)             
-    //              structure.at(setterName) put(box)
-    //              initialisers.add(initialise(box) to(expr) inContext(self)) }
-    //   }
-
-    method declare(name) asDefInit(expr) {
-      def box = ngDefBox
+    method declare(name) asDefInit(expr) properties(properties) {
+      def box = ngDefBox(name) properties(properties)
       addLocalSlot(name) asMethod(box) 
       initialisers.add(initialise(box) to(expr) inContext(self))
     }
-    method declare(name) asVarInit(expr) {
+    method declare(name) asVarInit(expr) properties(properties) {
       def setterName = name ++ "():=(_)"
-      def box = ngVarBox
+      def box = ngVarBox(name) properties(properties)
       addLocalSlot(name) asMethod(box) 
-      addLocalSlot(setterName) asMethod(box) 
+      addLocalSlot(setterName) asMethod(box.setter) 
       initialisers.add(initialise(box) to(expr) inContext(self)) 
     }
 
@@ -511,10 +480,6 @@ class exports {
          else { ctxt.lookup(name)})
       jdebug { "lookup lexicalContext {name} {rv}" }
       rv
-
-      //     if (structure.containsKey(name)) 
-      //        then { structure.at(name) }
-      //        else { ctxt.lookup(name)}
     }
 
 
@@ -524,45 +489,51 @@ class exports {
   }
 
   type Invokeable = { 
-      invoke(this: NGO) args(args: Sequence[[NGO]]) types(typeArgs: Sequence[[NGO]]) creatio(creatio)-> NGO
+      invoke(this: NGO) args(args: Sequence[[NGO]]) types(typeArgs: Sequence[[NGO]]) creatio(creatio) -> NGO
+      isPublic -> Boolean
+      isAbstract -> Boolean
+      isOverride -> Boolean
   }
 
 
-  class ngDefBox {
+  class ngDefBox(origin) properties(properties) {
+     use common.annotationsTrait(properties)
+     assert {!properties.isAbstract} because "A field can't be abstract"
      var boxValue := ngUninitialised
      method initialValue:= (initialValue) {
         if (boxValue != ngUninitialised) then { error "can't initialise initailsed box" }
         boxValue := initialValue
      }
-     method Xapply(creatio) { //can be called as if 'twere a block
-        if (boxValue == ngUninitialised) then { error "can't access uninitailsed box" }
-        boxValue
-     }
      method invoke(this) args(args) types(typeArgs) creatio(_) {
         assert {args.size == 0}
+        assert {typeArgs.size == 0}
         if (ngUninitialised == boxValue) then { error "can't access uninitailsed box" }
         boxValue
      }
-     method asString {"ngDefBox: {boxValue}"}
+     method asString {"ngDefBox: {origin} = {boxValue}"}
 
   }
 
-  class ngVarBox {
-     inherit ngDefBox
+  class ngVarBox(origin) properties(properties) {
+     inherit ngDefBox(origin) properties(properties.getter)
        alias defInvoke(_)args(_)types(_)creatio(_) = invoke(_)args(_)types(_)creatio(_)
-     method asString {"ngVarBox: {boxValue}"}
-     method Xapply(x,creatio) {boxValue:= x}
-     method invoke(this) args(args) types(typeArgs) creatio(creatio) {
-       if (args.size == 1) 
-          then {boxValue:= args.at(1)}
-          else {defInvoke(this) args(args) types(typeArgs) creatio(creatio)}
+     method asString {"ngVarBox (getter): {origin} := {boxValue}"}
+     
+     def setter is public = object {
+       use common.annotationsTrait(properties.setter)
+       method invoke(this) args(args) types(typeArgs) creatio(creatio) {
+          assert {args.size == 1}
+          assert {typeArgs.size == 0}
+          boxValue:= args.at(1)
+         }
      }
   }
 
   //an invokeable method..
-  class ngMethod(methodNode) inContext(ctxt) isPublic(public) {
+  class ngMethod(methodNode) inContext(ctxt) properties(properties) {
+     use common.annotationsTrait(properties)
      method invoke(this) args(args) types(typeArgs) creatio(creatio) {
-       ///print "invoke method invokable {methodNode.signature.name}"
+       jdebug "invoke method invokable {methodNode.signature.name}"
        def params = methodNode.signature.parameters.asList
        def prognBody = progn(methodNode.body)
        def subtxt = ctxt.subcontext
@@ -576,8 +547,9 @@ class exports {
   }
 
   class ngBlockMethod(blockNode) inContext(ctxt) {
+     use common.publicAnnotations
      method invoke(this) args(args) types(typeArgs) creatio(creatio) {
-       ///print "invoke block invokable {blockNode.parameters}"
+       jdebug "invoke block invokable {blockNode.parameters}"
        def params = blockNode.parameters.asList
        def prognBody = progn(blockNode.body)
        def subtxt = ctxt.subcontext
@@ -585,13 +557,14 @@ class exports {
        for (params.indices) do { i -> subtxt.declare(params.at(i).name) asDef(args.at(i)) }
        subtxt.declare(CREATIO) asMethod(creatio) 
        prognBody.eval(subtxt)
-     }
+      }
   }
 
 
 
   //old style lambda; takes creatio plus rest. Or something.
   class ngMethodLambda(lambda) {
+     use common.publicAnnotations
      method invoke(this) args(args) types(typeArgs) creatio(creatio) {
        applyVarargs(lambda,args,creatio)
      }

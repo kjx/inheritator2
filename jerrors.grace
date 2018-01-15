@@ -4,12 +4,14 @@ def errors = self
 
 class exports {
 
-  method error (string) { 
-      interpreterError.raise(string)
+  method error (str) { 
+      interpreterError.raise(str)
   }
 
-  method assert (block) {
-      if (!block.apply) then {error "Assertion failed: {block}"}
+  method assert (block) { assert(block) because "" }
+
+  method assert (block) because (str) {
+      if (!block.apply) then {error "Assertion failed:{str} {block}"}
   }
 
   def interpreterError = errors.interpreterError

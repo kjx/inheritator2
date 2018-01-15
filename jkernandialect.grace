@@ -350,7 +350,6 @@ method defaultVisitor {
 }
 
 method checker(module) {
-    //assume moduleect is top-levle OC, becomes module:
     def moduleBody = list
     def moduleImports = dictionary
     var moduleDialect := ""
@@ -376,28 +375,23 @@ method checker(module) {
     //technically this is the "dialect" context  
     //surrounding the module object
     def ctxt = jeval.newEmptyContext
+
     //should I move these into newEmptyContext?
     ctxt.declare("self") asDef(ctxt)
     ctxt.declare("implicitUninitialised") asDef(ng.ngUninitialised)
 
+    //privacy annotations
     ctxt.declare("confidential") asDef(ng.ngBuiltinAnnotation("confidential"))
     ctxt.declare("public") asDef(ng.ngBuiltinAnnotation("public"))
-    ctxt.declare("abstract") asDef(ng.ngBuiltinAnnotation("abstract"))
-    ctxt.declare("concrete") asDef(ng.ngBuiltinAnnotation("concrete"))
     ctxt.declare("readable") asDef(ng.ngBuiltinAnnotation("readable"))
     ctxt.declare("writable") asDef(ng.ngBuiltinAnnotation("writable"))
-    ctxt.declare("final") asDef(ng.ngBuiltinAnnotation("final"))
-    ctxt.declare("overrides") asDef(ng.ngBuiltinAnnotation("overrides"))
+
+    //inheritance annotations
+    ctxt.declare("abstract") asDef(ng.ngBuiltinAnnotation("abstract"))
+    ctxt.declare("override") asDef(ng.ngBuiltinAnnotation("override"))
 
     ctxt.declare("print(_)") asMethod (ng.ngMethodLambda{ p, creatio -> print(p) })
     ctxt.declare("_creatio") asMethod(false)
-
-    //def moduleObject = ng.ngObject(list, ctxt)  //hmmm
-    
-    //for (moduleBody) do { e ->
-    //    print (e.eval(moduleObject))
-    //}
-
 
     def moduleObject = ng.ngObject(moduleBody, ctxt)  //hmmm
 
