@@ -390,7 +390,7 @@ method checker(module) {
     ctxt.declareName("abstract") value(ng.ngBuiltinAnnotation("abstract"))
     ctxt.declareName("override") value(ng.ngBuiltinAnnotation("override"))
 
-    ctxt.declareName("print(_)") asMethod (ng.ngMethodLambda{ p, creatio -> print(p) })
+    ctxt.declareName("print(_)") raw(ng.ngMethodLambda{ p, creatio -> print(p) })
     ctxt.declareName("_creatio") raw(false)
 
     def moduleObject = ng.ngObject(moduleBody, ctxt)  //hmmm

@@ -8,11 +8,6 @@ def ng = runtime.exports
 import "jcommon" as common
 use common.exports
 
-//TODO building methods (switch methods to build/eval like objects; blocks too I guess)
-
-//TODO - asMethod -> asInvokeable
-//TODO - ngVarBox -> invocableVar
-//TODO - ngDefBox -> invocableDef
 
 //TODO - object constructors need to keep separate parts. This seems unavoidable... - or perhaps it is but ONLY if we "resolve implicit requests" (up or out?) before the fun really starts. This means:
 //- part objects should store the creatio as representing the "whole" of which they are part
@@ -30,7 +25,7 @@ use common.exports
 
 //TODO - shadowing checks  (checkForShadowing in jruntime)
 
-//TODO - inheritance, structure clashes, et.
+//TODO - inheritance, struct/trait clashes, et.
 
 //TODO alias clauses change privacy? 
 //TODO use a wrapper to make things confidential?
@@ -45,6 +40,14 @@ use common.exports
 //TODO add extra argument to Invokeable>>invoke()blah()blah()...
 //   to code for internal vs external request?
 // IF NEEDED
+
+
+//TODO - asMethod -> asInvokeable
+//TODO - ngVarBox -> invocableVar
+//TODO - ngDefBox -> invocableDef  etc
+//TODO - move invokeables out of jruntime. or not.
+
+
 
 //TODO types! 
 //TODO block matching
@@ -81,12 +84,11 @@ class jeval {
       alias jObjectConstructorNode(_) at(_) = objectConstructorNode(_) at(_)
       alias jInheritNode(_,_,_,_) at(_) = inheritNode(_,_,_,_) at(_)
 
-  def asStringPrefix = "jeval."
 
   class nodeAt( source ) -> Node { 
     inherit jNodeAt(source)
-    //method asString { "jNode" }
-    
+    def asStringPrefix = "jeval."
+      
     //the core of the tree-walking interpreter
     //eval, well, evaluates stuff
     //build called by "Two phase" Contexts, e.g. object constuctors, methods
@@ -96,7 +98,7 @@ class jeval {
     //expressions should ignore build, and eval themselves on eval
     //there used to be "One phase" contexts - there aren't any more
 
-    method build(ctxt) -> ng.NGO { print "build NOOP {self}" } 
+    method build(ctxt) -> ng.NGO { ng.ngBuild } //NOOP
     method eval(ctxt) -> ng.NGO { error "can't eval {self}" } 
   }
 
@@ -164,12 +166,12 @@ class jeval {
       annotations' : Sequence[[Expression]],
       value' : Expression)
           at ( source ) -> Parameter {
-      inherit jVarDeclarationNode(name', typeAnnotation', annotations', value') 
+      inherit defDeclarationNode(name', typeAnnotation', annotations', value') 
           at( source ) 
 
       method build(ctxt) {
           def annots = safeFuckingMap { a -> a.eval(ctxt) } over(annotations)
-          def properties = common.processAnnotations(annots,false)
+          def properties = common.processVarAnnotations(annots)
           ctxt.declareVar(name) properties(properties) 
           }
   }
@@ -188,10 +190,7 @@ class jeval {
                  asMethod (ng.ngMethod(self) inContext(ctxt) properties(properties))
           ng.ngDone
       }      
-      method eval(_) { 
-          print "eval {self} NOOP"
-          ng.ngDone
-      }
+      method eval(_) { ng.ngDone }
   }
   
   class explicitRequestNode(
@@ -204,17 +203,13 @@ class jeval {
           at( source ) 
          
       method eval(ctxt) {
-         jdebug { print "eval explicitRequest {name}" }
          def rcvr = receiver.eval(ctxt)
          def types = safeFuckingMap { ta -> ta.eval(ctxt) } over(typeArguments)
          def args = safeFuckingMap { a -> a.eval(ctxt) } over(arguments)       
          def creatio = ctxt.lookup(CREATIO)
-         jdebug { print "call explicitRequest {rcvr} {name} {args}" }
-         def methodBody = rcvr.lookupSlot(name)
-         jdebug { print "cal2 explicitRequest {rcvr} {name} {args} {methodBody}" }
+         def methodBody = rcvr.lookupExternal(name)
          if (!methodBody.isPublic) then {error "External request for confidential attribute {name}"}
          def rv = methodBody.invoke(rcvr) args(args) types(types) creatio(creatio)
-         jdebug { print "done explicitRequest {rcvr} {name} {args} {rv}" }
          rv
       } 
   }
@@ -229,13 +224,11 @@ class jeval {
          
 
       method eval(ctxt) {
-         jdebug { print "eval implicitRequest {name} {ctxt}" }
          def types = safeFuckingMap { ta -> ta.eval(ctxt) } over(typeArguments)
          def args = safeFuckingMap { a -> a.eval(ctxt) } over(arguments)       
          def creatio = ctxt.lookup(CREATIO)
-         def methodBody = ctxt.lookup(name) //not quite it wrt inheritance!
+         def methodBody = ctxt.lookupInternal(name) 
          def rv = methodBody.invoke(ctxt) args(args) types(types) creatio(creatio)
-         jdebug { print "done implicitRequest {name} {args} {rv}"       }
          rv
       } 
   }
@@ -278,9 +271,7 @@ class jeval {
             case { _ -> error "NOT COBOL!" }
       }
 
-      method eval(_) { 
-            print "EVAL {self} NOOP"
-            ng.ngDone }
+      method eval(_) { ng.ngDone }
       
   }  
 

@@ -5,7 +5,6 @@ import "jerrors" as errors
 use errors.exports
 
 
-
 class exports {
    //I really shouldnt' make everything a class family, should I?
    //at least I should explore traits
@@ -20,6 +19,7 @@ class exports {
   //    then use the original one...
 
   // REFAC:  should this have a build?  what should it do?
+
   class progn (body) {
      method eval(ctxt) { 
        jdebug { print "eval progn {self}" }
@@ -129,53 +129,114 @@ class exports {
   class ngo { 
     def dbgCounter is readable = ngoCounter
     ngoCounter:= ngoCounter + 1
-    def structure is public = dictionary //evil evil making this public
+
+    def locals :  Dictionary[[String,Invokeable]] 
+        is public     //evil evil making this public.
+        = dictionary[[String,Invokeable]]
+
+    ////////////////////////////////////////////////////////////
+    ////NEW METHODS FOR DECLARING STUFF
+    ////NEW METHODS FOR DECLARING STUFF
+    ////NEW METHODS FOR DECLARING STUFF
+    ////////////////////////////////////////////////////////////
+
+    //bind a value to a name
+    //use for things like self, arguments, things that 
+    //the interpreter already has to hand, that DON'T need to be initialised
+    method declareName(name) value(value) {
+        addLocal(name) asMethod(invocableValue(value))
+    }
+
+    //evil method for e.g. sticking in things that ARENT invocable
+    //notably, creatios, returncreatios, etc
+    method declareName(name) raw(rawValue) {
+        addLocal(name) asMethod(rawValue)
+    }
+    method declareDef(name) properties(properties) {
+      def box = ngDefBox(name) properties(properties)
+      addLocal(name) asMethod(box) 
+    }
+    method declareVar(name) properties(properties) {
+      def setterName = name ++ ASSIGNMENT_TAIL
+      def box = ngVarBox(name) properties(properties)
+      addLocal(name) asMethod(box) 
+      addLocal(setterName) asMethod(box.setter) 
+    }
+
+    //TODO rename asMethod -> asInvokeable?
+    //compare declare(name) asMethod(?)
+    method addLocal(name) asMethod(m) { 
+      if (locals.containsKey(name))
+        then { error "trying to declare {name} more than once" }
+        elseif { checkForShadowing(name) }
+        then { error "{name} shadows lexical definition" }
+        else { locals.at(name) put(m)} }
+
+    method checkForShadowing(name) { false } //TODO shadowing checks
+
+    ////////////////////////////////////////////////////////////
+    ////
+    ////old methods for declaring stuff
+    ////
+    ////////////////////////////////////////////////////////////
 
 
     //should check for lexical shadowning -- but we don't
     //TODO: asMethod -> asInvokeable
     //need to compare addLocal(_)asMethod(_)
     method declare(name) asMethod ( invokeable ) { 
-      if (structure.containsKey(name)) 
+      if (locals.containsKey(name)) 
         then { error "trying to declare {name} more than once" }
-        else { structure.at(name) put(lambda) }
+        else { locals.at(name) put( invokeable) }
     }
 
     method declare(name) asDef ( ngo ) { 
       jdebug { print "declare {name} asDef {ngo}" }
-      if (structure.containsKey(name)) 
+      if (locals.containsKey(name)) 
         then { error "trying to declare {name} more than once" }
-        ///else { structure.at(name) put { creatio -> ngo } }
-        else { structure.at(name) put (ngMethodLambda { creatio -> ngo } ) }
+        else { locals.at(name) put (ngMethodLambda { creatio -> ngo } ) }
     }
     method declare(name) asVar ( ngo ) { 
       jdebug { print "declare {name} asVar {ngo}" }
-      if (structure.containsKey(name) || structure.containsKey(name ++ ASSIGNMENT_TAIL)) 
+      if (locals.containsKey(name) || locals.containsKey(name ++ ASSIGNMENT_TAIL)) 
         then { error "trying to declare {name} more than once" }
         else { def box = ngVarBox(name) properties(common.confidentialAnnotations)
                ngVarBox.initialValue:= ngo
-               structure.at(name) put(box)             
-               structure.at(name ++ ASSIGNMENT_TAIL) put(box.setter)
+               locals.at(name) put(box)             
+               locals.at(name ++ ASSIGNMENT_TAIL) put(box.setter)
              }
     }
 
+
+    ////////////////////////////////////////////////////////////
+    ////
+    //// lookup
+    ////
+    ////////////////////////////////////////////////////////////
+    
     method lookup(name){
            jdebug { print "lookup ngo {name}" }
-           def rv =  structure.at(name) 
+           def rv =  locals.at(name) 
            jdebug { print "lookup ngo {name} returning {rv}" }
            rv
            }
 
-    //lookup only for slots in "self" 
+    //newone!
     method lookupLocal(name){ 
            jdebug { print "lookupLocal ngo {name}"        }
-           def rv = structure.at(name) 
+           def rv = locals.at(name) 
            jdebug { print "lookupLocal ngo {name} returning {rv}" }
            rv
            }
 
-    method asString {"ngo#{dbgCounter}: {structure}"}
+    //method lookupExternal(name) {lookupInheritance(name)}  //for exernal requets
+    method lookupExternal(name) {lookupLocal(name)}  //for exernal requets
+    method lookupInternal(name) {lookup(name)} //for internal requets
+
+
+    method asString {"ngo#{dbgCounter}\n{locals.keys}"}
   }
+
 
   class ngNumber( value' ) {
      inherit ngo
@@ -206,15 +267,14 @@ class exports {
             //cheating, just points to ast node - and context
      inherit ngo
      method value {value'}
-     method asString { "ngInterface: {value}"}
+     method asString { 
+        def sigs = safeFuckingMap { sig -> sig.name } over (value.signatures)
+        "ngInterface: {sigs}"}
   }
 
   class ngBlock(blockNode,ctxt) {
      inherit lexicalContext(ctxt)
      method asString { "\{a ngBlock\}" }
-
-     //just have to manufacture the apply method
-     //could just make all 5.. 10... 20..
 
      def p = blockNode.parameters.asList
      def name = match (p.size)
@@ -233,7 +293,7 @@ class exports {
   class ngObject(body,ctxt) {
     inherit lexicalContext(ctxt)
 
-    method asString { "ngObject#{dbgCounter}:({status}) {structure}" }
+    method asString { "ngObject#{dbgCounter}:({status}) {locals.keys}" }
 
     var status is readable := "embryo"
 
@@ -244,21 +304,12 @@ class exports {
     jdebug { print "{asString} bottomMost {bottomMost} creatio {ctxt.lookup(CREATIO)}" }
 
     def inheritParents :  Sequence[[Node]] = list 
-    method addInheritParent(p) {inheritParents.add(inheritFrom(p)inContext(self))}
+    //method addInheritParent(p) {inheritParents.add(inheritFrom(p)inContext(self))}
     def useParents :  Sequence[[Node]] = list 
-    method addUseParent(p) {useParents.add(inheritFrom(p)inContext(self))}
+    //method addUseParent(p) {useParents.add(inheritFrom(p)inContext(self))}
 
-    def locals :  Dictionary[[String,Method]] = dictionary
-     
-    //TODO rename asMethod -> asInvokeable?
-    //compare declare(name) asMethod(?)
-    method addLocal(name) asMethod(m) { 
-      if (locals.containsKey(name))
-        then { error "trying to declare {name} more than once" }
-        elseif { checkForShdowing(name) }
-        then { error "{name} shadows lexical definition" }
-        else { locals.at(name) put(m)} }
-    method checkForShadowning(name) { false } //TODO shadowing checks
+    method addInheritParent(p) { }
+    method addUseParent(p) { } 
 
     declareName "outer" value( lookup("self" ) ) // we haven't declared self yet so the enclosing self...
     declareName "self" value(self) //does this make sense? - seems to
@@ -269,91 +320,67 @@ class exports {
     for (body) do { e -> e.build(self) } 
 
 
-    //bind a value to a name
-    //use for things like self, arguments, things that 
-    //the interpreter already has to hand, that DON'T need to be initialised
-    method declareName(name) value(value) {
-        addLocal(name) asMethod(invocableValue(value))
-    }
-
-    //evil method for e.g. sticking in things that ARENT invocable
-    //notably, creatios, returncreatios, etc
-    method declareName(name) raw(rawValue) {
-        addLocal(name) asMethod(rawValue)
-    }
-    method declareDef(name) properties(properties) {
-      def box = ngDefBox(name) properties(properties)
-      addLocal(name) asMethod(box) 
-    }
-    method declareVar(name) properties(properties) {
-      def setterName = name ++ ASSIGNMENT_TAIL
-      def box = ngVarBox(name) properties(properties)
-      addLocal(name) asMethod(box) 
-      addLocal(setterName) asMethod(box.setter) 
-    }
-
-
-
-
-
-
+    //RIP OUT INHERITANCE FOR NOW
+    //RIP OUT INHERITANCE FOR NOW
+    //RIP OUT INHERITANCE FOR NOW
+    //RIP OUT INHERITANCE FOR NOW
 
     //progn(initialisers).eval(self) //whoo! even Freakier!!
 
-    jdebug { print "building parents" }
+    //     jdebug { print "building parents" }
 
-    var inheritanceRequestContext := ctxt //inherits clauses evalled in surrounding context
-    if (bottomMost) then { 
-       inheritanceRequestContext := ctxt.subcontext
-       inheritanceRequestContext.declare(CREATIO) asMethod(self)  //inherited constructors wont be bottom
-    }
+    //     var inheritanceRequestContext := ctxt //inherits clauses evalled in surrounding context
+    //     if (bottomMost) then { 
+    //        inheritanceRequestContext := ctxt.subcontext
+    //        inheritanceRequestContext.declare(CREATIO) asMethod(self)  //inherited constructors wont be bottom
+    //     }
 
-    for (inheritParents) do {  pp ->
-      def p = pp.parent
-      jdebug { print "inherit {p.kind} {p.request} {p.excludes} {p.aliases}" }
-      //need to *evaluate* the parent's request but with creatio argument set
-      //in the enclosing context so it knows its not the bottom
-      //get back an object w/ struture and initaliers - status should be "built"
-      //add ALL its initialiers into our initialisers list
-      //process its struture via exclude & inherit; add the stuff in here
-      //for multiple parents, resolve clashes...
+    //     for (inheritParents) do {  pp ->
+    //       def p = pp.parent
+    //       jdebug { print "inherit {p.kind} {p.request} {p.excludes} {p.aliases}" }
+    //       //need to *evaluate* the parent's request but with creatio argument set
+    //       //in the enclosing context so it knows its not the bottom
+    //       //get back an object w/ struture and initaliers - status should be "built"
+    //       //add ALL its initialiers into our initialisers list
+    //       //process its struture via exclude & inherit; add the stuff in here
+    //       //for multiple parents, resolve clashes...
 
-      def stupidParentalPartObject = p.request.eval(inheritanceRequestContext) 
-      if (stupidParentalPartObject.status != "built") 
-         then { error "FUCK FUCK FUCKETY FUCK FUCK FUCK {stupidParentalPartObject.status}" }
-      initialisers.addAll(stupidParentalPartObject.initialisers)
-      //stupidParentalPartObject.structure.keysAndValuesDo { k, v -> structure.at(k) put(v) }
-      stupidParentalPartObject.structure.keysAndValuesDo 
-        { k, v -> if (!p.excludes.contains(k)) then {structure.at(k) put(v) } }
-      p.aliases.keysAndValuesDo 
-        { k, v -> structure.at(k) put(stupidParentalPartObject.structure.at(v)) }
-      //all these need to deal correctly with overriding, and multiple defns. they dont.
-      //and non-excluded messages...
-    }
+    //       def stupidParentalPartObject = p.request.eval(inheritanceRequestContext) 
+    //       if (stupidParentalPartObject.status != "built") 
+    //          then { error "FUCK FUCK FUCKETY FUCK FUCK FUCK {stupidParentalPartObject.status}" }
+    //       initialisers.addAll(stupidParentalPartObject.initialisers)
+    //       //stupidParentalPartObject.structure.keysAndValuesDo { k, v -> structure.at(k) put(v) }
+    //       stupidParentalPartObject.structure.keysAndValuesDo 
+    //         { k, v -> if (!p.excludes.contains(k)) then {structure.at(k) put(v) } }
+    //       p.aliases.keysAndValuesDo 
+    //         { k, v -> structure.at(k) put(stupidParentalPartObject.structure.at(v)) }
+    //       //all these need to deal correctly with overriding, and multiple defns. they dont.
+    //       //and non-excluded messages...
+    //     }
 
-    //COPPY AND PASTE: SHOULD ABSTRACT OUT
-    for (useParents) do {  pp ->
-      def p = pp.parent
-      jdebug { print "inherit {p.kind} {p.request} {p.excludes} {p.aliases}" }
+    //     //COPPY AND PASTE: SHOULD ABSTRACT OUT
+    //     for (useParents) do {  pp ->
+    //       def p = pp.parent
+    //       jdebug { print "inherit {p.kind} {p.request} {p.excludes} {p.aliases}" }
 
-      def stupidParentalPartObject = p.request.eval(inheritanceRequestContext) //relying on global variable
-      if (stupidParentalPartObject.status != "built") 
-         then { error "FUCK FUCK FUCKETY FUCK FUCK FUCK {stupidParentalPartObject.status}" }
-      initialisers.addAll(stupidParentalPartObject.initialisers)
-      stupidParentalPartObject.structure.keysAndValuesDo 
-        { k, v -> if (!p.excludes.contains(k)) then {structure.at(k) put(v) } }
-      p.aliases.keysAndValuesDo 
-        { k, v -> structure.at(k) put(stupidParentalPartObject.structure.at(v)) }
-      //all these need to deal correctly with overriding, and multiple defns. they dont.
-      //and non-excluded messages...
-    }
+    //       def stupidParentalPartObject = p.request.eval(inheritanceRequestContext) //relying on global variable
+    //       if (stupidParentalPartObject.status != "built") 
+    //          then { error "FUCK FUCK FUCKETY FUCK FUCK FUCK {stupidParentalPartObject.status}" }
+    //       initialisers.addAll(stupidParentalPartObject.initialisers)
+    //       stupidParentalPartObject.structure.keysAndValuesDo 
+    //         { k, v -> if (!p.excludes.contains(k)) then {structure.at(k) put(v) } }
+    //       p.aliases.keysAndValuesDo 
+    //         { k, v -> structure.at(k) put(stupidParentalPartObject.structure.at(v)) }
+    //       //all these need to deal correctly with overriding, and multiple defns. they dont.
+    //       //and non-excluded messages...
+    //     }
 
 
-    //should there be some other structure here?
-    //things just replace shit via the map
-    //
-    jdebug { print "building local" }
-    locals.keysAndValuesDo { k, v -> structure.at(k) put(v) } //WRONG but first approximation
+    //     //should there be some other structure here?
+    //     //things just replace shit via the map
+    //     //
+    //     jdebug { print "building local" }
+    //     locals.keysAndValuesDo { k, v -> structure.at(k) put(v) } //WRONG but first approximation
 
     status := "built"
 
@@ -361,11 +388,12 @@ class exports {
     //structure is complete, but don't run any initialisers.
     //ALL initialisers get run only by the bottomMost constructor
     if (!bottomMost) then { 
+       error "SHOULDNT FUCKEN HAPPEN WITH NO INHERITNACE"
        return self // status still built not cooked!
     }
 
-    jdebug { print "initialising" }
-    for (initialisers) do { e ->
+    jdebug { print "initialising - i.e. evaling" }
+    for (body) do { e ->
        jdebug { print "eval {e}" }
        e.eval(self)
     }
@@ -373,11 +401,11 @@ class exports {
     status := "cooked" //i.e. OK to go! 
 
     //lexical lookup (internal / implicit)
-    method lookup(name){  //copy & paste
+    method lookup(name){  //copy & paste // FUCKED
       jdebug { print "lookup nuObject {name}" }
       // if (status != "cooked") then { error "CAIN'T lookup {name} in {self}" }
-      def rv = (if (structure.containsKey(name)) 
-         then { structure.at(name) }
+      def rv = (if (locals.containsKey(name)) 
+         then { locals.at(name) }
          else { ctxt.lookup(name)})
       jdebug { print "lookup nuObject {name} {rv}" }
       rv
@@ -413,27 +441,26 @@ class exports {
 
   class newEmptyContext { 
     inherit ngo
-    method asString {"context:{structure}"}
+    method asString {"newEmptyContext#{dbgCounter} {locals.keys}"}
     method subcontext {lexicalContext(self)}
   } 
 
   class lexicalContext(ctxt) {
     inherit newEmptyContext 
+     
+    method asString {
+           "lexicalContext#{dbgCounter} {locals.keys}\n" ++ "!!{ctxt.asString}" }
 
     method lookup(name){ 
-      jdebug { print "lookup lexicLContext {name}" }
-      def rv = (if (structure.containsKey(name)) 
-         then { structure.at(name) }
+      def rv = (if (locals.containsKey(name)) 
+         then { locals.at(name) }
          else { ctxt.lookup(name)})
-      jdebug { "lookup lexicalContext {name} {rv}" }
       rv
     }
-
-
-
-
-
   }
+
+
+
 
   type Invokeable = { 
       invoke(this: NGO) args(args: Sequence[[NGO]]) types(typeArgs: Sequence[[NGO]]) creatio(creatio) -> NGO
@@ -441,12 +468,13 @@ class exports {
       isAbstract -> Boolean
       isOverride -> Boolean
       isMissing -> Boolean //usually false. TRUE if lookup failed!!
-      //asPublic(Boolean) -> Invokeable
+      asPublic(Boolean) -> Invokeable
   }
 
 
   class ngDefBox(origin) properties(properties) {
      use common.annotationsTrait(properties)
+     use changePrivacyAnnotations
      assert {!properties.isAbstract} because "A field can't be abstract"
      var boxValue := ngUninitialised
      method initialValue:= (initialValue) {
@@ -474,6 +502,7 @@ class exports {
           assert {args.size == 1}
           assert {typeArgs.size == 0}
           boxValue:= args.at(1)
+          ngDone
          }
      }
   }
@@ -481,6 +510,7 @@ class exports {
   //an invokeable method..
   class ngMethod(methodNode) inContext(ctxt) properties(properties) {
      use common.annotationsTrait(properties)
+     use changePrivacyAnnotations
      method invoke(this) args(args) types(typeArgs) creatio(creatio) {
        jdebug "invoke method invokable {methodNode.signature.name}"
        def params = methodNode.signature.parameters.asList
@@ -491,12 +521,14 @@ class exports {
        subtxt.declare(CREATIO) asMethod(creatio) 
        subtxt.declare(RETURNBLOCK) asMethod {rv -> return rv} 
        subtxt.declare(RETURNCREATIO) asMethod (creatio) 
+       prognBody.build(subtxt)
        prognBody.eval(subtxt)
      }
   }
 
   class ngBlockMethod(blockNode) inContext(ctxt) {
      use common.publicAnnotations
+     use changePrivacyAnnotations
      method invoke(this) args(args) types(typeArgs) creatio(creatio) {
        jdebug "invoke block invokable {blockNode.parameters}"
        def params = blockNode.parameters.asList
@@ -505,6 +537,7 @@ class exports {
        if (args.size != params.size) then {error "arg mismatch"}
        for (params.indices) do { i -> subtxt.declare(params.at(i).name) asDef(args.at(i)) }
        subtxt.declare(CREATIO) asMethod(creatio) 
+       prognBody.build(subtxt)
        prognBody.eval(subtxt)
       }
   }
@@ -513,6 +546,7 @@ class exports {
   //a ngo value bound to a name in a context. already initialised! 
   class invocableValue(value) {
      use common.confidentialAnnotations
+     use changePrivacyAnnotations
      method invoke(this) args(args) types(typeArgs) creatio(creatio) {
        assert {(args.size == 0) && (typeArgs.size == 0) && (false == creatio)}
        value
@@ -524,11 +558,12 @@ class exports {
 
   //what lookup retuns when it doesn't find anything.
   class invocableMissing(description) origin(source) {
-       use common.publicAnnotations
-       method isMissing { true }
-       method invoke(this) args(args) types(typeArgs) creatio(creatio) {  
-          error "{descripton} is missing"
-       }
+     use common.publicAnnotations
+     use changePrivacyAnnotations
+     method isMissing { true }
+     method invoke(this) args(args) types(typeArgs) creatio(creatio) {  
+        error "{descripton} is missing"
+     }
   }
 
 
@@ -538,11 +573,41 @@ class exports {
   //used for primitives pretty mucg
   class ngMethodLambda(lambda) {
      use common.publicAnnotations
+     use changePrivacyAnnotations
      method invoke(this) args(args) types(typeArgs) creatio(creatio) {
        applyVarargs(lambda,args,creatio)
      }
   }
 
+
+  //behaviour to change privacy annotations 
+  trait changePrivacyAnnotations {
+    method asPublic(shouldBePublic : Boolean) { 
+      if (isPublic == shouldBePublic) 
+         then {self}
+         else {invokeableWrapper(self) privacy(shouldBePublic)}
+    }
+  }
+
+
+  class invokeablePrivacyWrapper(subject) privacy(shouldBePublic) {
+    assert (self.isPublic != shouldBePublic)  //or else shold never have got here
+    method isPublic { shouldBePublic }
+
+    method asPublic(shouldBePublic : Boolean) {
+      if (isPublic == shouldBePublic) 
+         then {self}
+         elseif {subject.isPublic == shouldBePublic}
+         then {subject}
+         else { error "asPublic(_): should never happen - excluded middle" }
+    }
+
+    method isOverride { subject.isOverride }
+    method isAbstract { subject.isAbstract }
+    method isMissing { subject.isMissing }
+    method invoke(this) args(args) types(typeArgs) creatio(creatio) {
+      subject.invoke(this) args(args) types(typeArgs) creatio(creatio) }
+  }
 
 
   //apply the block to the LIST of arguments.
