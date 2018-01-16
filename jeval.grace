@@ -8,7 +8,11 @@ def ng = runtime.exports
 import "jcommon" as common
 use common.exports
 
-//TODO - inheritance, structure clashes, et.
+//TODO building methods (switch methods to build/eval like objects; blocks too I guess)
+
+//TODO - asMethod -> asInvokeable
+//TODO - ngVarBox -> invocableVar
+//TODO - ngDefBox -> invocableDef
 
 //TODO - object constructors need to keep separate parts. This seems unavoidable... - or perhaps it is but ONLY if we "resolve implicit requests" (up or out?) before the fun really starts. This means:
 //- part objects should store the creatio as representing the "whole" of which they are part
@@ -17,22 +21,30 @@ use common.exports
 //-- (for Grace, unless we go up then out?, must also resolve to super-parts)
 //- if a method is found in a part object, you don't use the declaration there;
 //-- rather you lookup (inheritance only?) the method in whole object of which the part is part, so the defn you found may be overridden. 
-//- 
-
-//TODO building methods (switch methods to build/eval like objects; blocks too I guess)
-
-//TODO alias clauses change privacy?
-//TODO add extra argument to Invokeable>>invoke()blah()blah()...
-//   to code for internal vs external request?
-//TODO Invokablesx  have copyReadable/copyWritable/copyConfidential/copyPUblic methods
-//    to handle annotations on alias statementts?
-//TODO use a wrapper to make things confidential?
-
-
-
 
 //TODO top of dialect - do things continue on to the enclosing scope of the **dialect**
-//TODO make a ngdialect object, and set up the standard dialect e.g. with print and annotations and stuff
+//TODO make a ngmodule object
+//TODO make a standardGraceDialect object (special module, empty dialect), 
+//   and set up the standard dialect e.g. with print and annotations and stuff
+//TODO lexical lookup gets to a module, then does a lookupObject (i.e. including inheritance) 
+
+//TODO - shadowing checks  (checkForShadowing in jruntime)
+
+//TODO - inheritance, structure clashes, et.
+
+//TODO alias clauses change privacy? 
+//TODO use a wrapper to make things confidential?
+// annotationsTrait gets asConfidential & asPublic methods
+//  (that's all you're allowed to say!)
+//  if already confidential/public, do nothing
+//  if not, return wrapper that just delegates everything except isPublic
+//  if you ask a wrapper to be the other, it can assert its underlying method 
+//  has the other publicity, and just return the inner object!
+
+
+//TODO add extra argument to Invokeable>>invoke()blah()blah()...
+//   to code for internal vs external request?
+// IF NEEDED
 
 //TODO types! 
 //TODO block matching
@@ -43,10 +55,6 @@ use common.exports
 //TODO exceptions
 //TODO refactor AST, redesign class names, add progn/sequence properly visitable
 //TODO correct canonical names of of assignment methods/requests (wash your dog first)
-
-//BADIDEA - operator :=.    if assignment method isn't found, but accessor method *is*, then run as operator:= on the result of the accessor...
-//BADIDEA this comes straight from "boxy grace"
-//next step is magic operation ^ or ("proxy" or something) --- if you have an object with it (and you don't imeplement a request???) you delegate by calling ^ and then re-running the method on that??
 
 //method jdebug(block) {block.apply}
 method jdebug(block) { } 
@@ -73,17 +81,22 @@ class jeval {
       alias jObjectConstructorNode(_) at(_) = objectConstructorNode(_) at(_)
       alias jInheritNode(_,_,_,_) at(_) = inheritNode(_,_,_,_) at(_)
 
+  def asStringPrefix = "jeval."
+
   class nodeAt( source ) -> Node { 
     inherit jNodeAt(source)
     //method asString { "jNode" }
+    
+    //the core of the tree-walking interpreter
+    //eval, well, evaluates stuff
+    //build called by "Two phase" Contexts, e.g. object constuctors, methods
+    //first phase is build, second is eval.
+    //declarations should add themsevles to the context in build
+    //declarations should initialise themselves in eval
+    //expressions should ignore build, and eval themselves on eval
+    //there used to be "One phase" contexts - there aren't any more
 
-    //build called by "Two phase" Contexts, e.g. object constuctors
-    //build itself arranges that "eval" will eventually be called
-    //for declrations, eval will be called on the initialiser, 
-    //not on the declaration.
-    //for one-phase contexts, eval can be called on the declaration
-    //without build, and eval should just do the lot.
-    method build(ctxt) -> ng.NGO { ctxt.addInitialiser( self ) } 
+    method build(ctxt) -> ng.NGO { print "build NOOP {self}" } 
     method eval(ctxt) -> ng.NGO { error "can't eval {self}" } 
   }
 
@@ -108,7 +121,6 @@ class jeval {
       method eval(ctxt) { ng.ngNumber( value ) } 
   }
 
-
   class interfaceNode(
         signatures' : Sequence[[Signature]])
           at ( source ) -> Parameter {
@@ -126,7 +138,6 @@ class jeval {
       method eval(ctxt) { ng.ngBlock(self,ctxt) }
   }
 
-
   class defDeclarationNode(
       name' : String,
       typeAnnotation' : Expression,
@@ -136,12 +147,13 @@ class jeval {
       inherit jDefDeclarationNode(name', typeAnnotation', annotations', value') 
           at( source ) 
 
-      method build(ctxt) { eval(ctxt) }
-      method eval(ctxt) { 
-          //ctxt.declare(name) asDef(value.eval(ctxt))
+      method build(ctxt) {
           def annots = safeFuckingMap { a -> a.eval(ctxt) } over(annotations)
           def properties = common.processAnnotations(annots,false)
-          ctxt.declare(name) asDefInit(value) properties(properties)
+          ctxt.declareDef(name) properties(properties) 
+          }
+      method eval(ctxt) { 
+          ctxt.lookupLocal(name).initialValue:= value.eval(ctxt)
           ng.ngDone          
       }
   }
@@ -155,14 +167,11 @@ class jeval {
       inherit jVarDeclarationNode(name', typeAnnotation', annotations', value') 
           at( source ) 
 
-      method build(ctxt) { eval(ctxt) }
-      method eval(ctxt) { 
-          //ctxt.declare(name) asVar(value.eval(ctxt))
+      method build(ctxt) {
           def annots = safeFuckingMap { a -> a.eval(ctxt) } over(annotations)
-          def varProperties = common.processVarAnnotations(annots)
-          ctxt.declare(name) asVarInit(value) properties(varProperties)
-          ng.ngDone          
-      }
+          def properties = common.processAnnotations(annots,false)
+          ctxt.declareVar(name) properties(properties) 
+          }
   }
 
   class methodNode(
@@ -175,16 +184,12 @@ class jeval {
       method build(ctxt) { 
           def annots = safeFuckingMap { a -> a.eval(ctxt) } over(annotations)
           def properties = common.processAnnotations(annots,true)
-          ctxt.addLocalSlot(signature.name) 
+          ctxt.declare(signature.name) 
                  asMethod (ng.ngMethod(self) inContext(ctxt) properties(properties))
           ng.ngDone
       }      
-      method eval(ctxt) { 
-          //ctxt.declare(signature.name) 
-          //       asMethod (acceptVarargs(signature.parameters,ctxt,body,true))
-          error "shouldn't happen??"
-          ctxt.declare(signature.name) 
-                 asMethod (ng.ngMethod(self) inContext(ctxt) properties(properties))
+      method eval(_) { 
+          print "eval {self} NOOP"
           ng.ngDone
       }
   }
@@ -199,21 +204,16 @@ class jeval {
           at( source ) 
          
       method eval(ctxt) {
-         ///print "eval explicitRequest {name}"
          jdebug { print "eval explicitRequest {name}" }
          def rcvr = receiver.eval(ctxt)
-         //def types = typeArguments.map { ta -> ta.eval(ctxt) }
          def types = safeFuckingMap { ta -> ta.eval(ctxt) } over(typeArguments)
-         //def args = arguments.map { a -> a.eval(ctxt) }
          def args = safeFuckingMap { a -> a.eval(ctxt) } over(arguments)       
          def creatio = ctxt.lookup(CREATIO)
          jdebug { print "call explicitRequest {rcvr} {name} {args}" }
          def methodBody = rcvr.lookupSlot(name)
          jdebug { print "cal2 explicitRequest {rcvr} {name} {args} {methodBody}" }
          if (!methodBody.isPublic) then {error "External request for confidential attribute {name}"}
-         ///def rv = applyVarargs(methodBody,args,creatio)
          def rv = methodBody.invoke(rcvr) args(args) types(types) creatio(creatio)
-         //??def rv = rcvr.externalRequest(name) args(args) typeArgs(types) creatio(creatio)
          jdebug { print "done explicitRequest {rcvr} {name} {args} {rv}" }
          rv
       } 
@@ -229,15 +229,11 @@ class jeval {
          
 
       method eval(ctxt) {
-         ///print "eval implicitRequest {name}" 
          jdebug { print "eval implicitRequest {name} {ctxt}" }
-         //def types = typeArguments.map { ta -> ta.eval(ctxt) }
          def types = safeFuckingMap { ta -> ta.eval(ctxt) } over(typeArguments)
-         //def args = arguments.map { a -> a.eval(ctxt) }
          def args = safeFuckingMap { a -> a.eval(ctxt) } over(arguments)       
          def creatio = ctxt.lookup(CREATIO)
          def methodBody = ctxt.lookup(name) //not quite it wrt inheritance!
-         //def rv = applyVarargs(methodBody,args,creatio)
          def rv = methodBody.invoke(ctxt) args(args) types(types) creatio(creatio)
          jdebug { print "done implicitRequest {name} {args} {rv}"       }
          rv
@@ -282,11 +278,11 @@ class jeval {
             case { _ -> error "NOT COBOL!" }
       }
 
-      method eval(_) { error "CAINT EVAL inheritNode" }
+      method eval(_) { 
+            print "EVAL {self} NOOP"
+            ng.ngDone }
       
   }  
-
-
 
 
   method newEmptyContext { ng.newEmptyContext }

@@ -10,24 +10,22 @@ class jast {
     
     //REALLY BIG DESIGN QUESTION - SHOULD WE HAVE A CLASS NODE??
     //answer - yes but it just delegates to internal method and object nodes?
-    
-    //NOTHER QUETION - SHOULD WE HAVE A "self" NODE? (currently not)
-   
+    //answer - no, but method/object nodes that are from classes
+    // should have that information...
+      
     type Parameter = Unknown
     type Expression = Unknown 
     type Signature = Unknown
     type Visitor = Unknown
     type Sequence = Unknown
 
-    //REALLY NEED OUR OWN SEQUENCE-
-    //with the visitor
-    //with an eval..    
-    
     //method debug(b) {b.apply}
     method debug(b) { } 
     
     class nodeAt( source ) -> Node { 
-       //method asString { "node" }
+       method asString { asStringPrefix ++ asStringBody }
+       method asStringPrefix { "jast." }
+       method asStringBody { "Node" }
        method accept[[T]](visitor : Visitor[[T]]) -> T { }
     }
 
@@ -51,7 +49,7 @@ class jast {
             //not clear this is right - need to think about what annotations go where
       debug { print "sig: {name} {parameters} -> {returnType}" }
     
-      method asString { name } 
+      method asStringBody { "signatureNode {name}..." } 
     
       method accept[[T]](visitor : Visitor[[T]]) -> T {
         visitor.visitSignature(self) }
@@ -69,6 +67,9 @@ class jast {
       def isVariadic : Boolean is public = isVariadic'
     
       debug { print "PARAMETER: {name} : {typeAnnotation} Varargs {isVariadic}"}
+
+      method asStringBody { "parameterNode {name}..." } 
+
       method accept[[T]](visitor : Visitor[[T]]) -> T {
         visitor.visitParameter(self) }
     }
@@ -86,6 +87,8 @@ class jast {
       def annotations : Sequence[[Expression]] is public = annotations'
     
       debug { print "method {signature.name} is {annotations} body {body}"}
+
+      method asStringBody { "methodNode {signature.name}..." } 
     
       method accept[[T]](visitor : Visitor[[T]]) -> T {
         visitor.visitMethod(self) }
@@ -108,6 +111,8 @@ class jast {
          aliases.at(a.at(1)) put(a.at(2)) 
          //note ignoring annotations
       }
+
+      method asStringBody { "inheritNode {kind} {request.name} ..." } 
               
       method accept[[T]](visitor : Visitor[[T]]) -> T {
         visitor.visitInherit(self) }
@@ -128,6 +133,8 @@ class jast {
       def value : Expression is public = value'
     
       debug { print "name {name} type {typeAnnotation} is {annotations} = {value}"}
+      method asStringBody { "declarationNode {name}..." } 
+
       method accept[[T]](visitor : Visitor[[T]]) -> T {
         visitor.visitDeclaration(self) }
     }
@@ -141,6 +148,9 @@ class jast {
       inherit declarationNode(name', typeAnnotation', annotations', value') 
            at( source ) 
       debug { print "DEF: {name} type {typeAnnotation} is {annotations} = {value}"}
+
+      method asStringBody { "defDeclartionNode {name}..." } 
+
       method accept[[T]](visitor : Visitor[[T]]) -> T {
         visitor.visitDefDeclaration(self) }
     }
@@ -154,6 +164,9 @@ class jast {
       inherit declarationNode(name', typeAnnotation', annotations', value') 
           at( source ) 
       debug { print "VAR: {name} type {typeAnnotation} is {annotations} = {value}"}
+
+      method asStringBody { "varDeclarationNode {name}..." } 
+
       method accept[[T]](visitor : Visitor[[T]]) -> T {
         visitor.visitVarDeclaration(self) }
     }
@@ -169,18 +182,22 @@ class jast {
       def name : String is public = name'
       def annotations : Sequence[[Expression]] is public = annotations'
       def value : Expression is public = value'
+
+      method asStringBody { "typeDeclarationNode {name}..." } 
     
       method accept[[T]](visitor : Visitor[[T]]) -> T {
         visitor.visitDeclaration(self) }
     }
     
-    
+
     class returnNode(
       value' : Expression)
           at ( source )  {
       inherit nodeAt( source ) 
     
       def value : Expression is public = value'
+
+      method asStringBody { "returnNode ..." } 
     
       method accept[[T]](visitor : Visitor[[T]]) -> T {
         visitor.visitReturn(self) }
@@ -193,6 +210,8 @@ class jast {
       inherit nodeAt( source ) 
 
       def body : Sequence[[ObjectStatement]]   is public = body'
+
+      method asStringBody { "objectConstructorNode ..." } 
       
       method accept[[T]](visitor : Visitor[[T]]) -> T {
         visitor.visitObjectConstructor(self) }
@@ -208,6 +227,8 @@ class jast {
     
       def moduleDialect : String   is public = body'
       def moduleImports : Dictionary[[String,String]] is public = moduleImports'
+
+      method asStringBody { "moduleNode ..." } 
         
       method accept[[T]](visitor : Visitor[[T]]) -> T {
         visitor.visitModule(self) }
@@ -224,6 +245,8 @@ class jast {
       def name : String is public = name'
       def typeArguments : Sequence[[Expression]] is public = typeArguments'
       def arguments : Sequence[[Expression]] is public = arguments'
+
+      method asStringBody { "requestNode {name}..." } 
     
       method accept[[T]](visitor : Visitor[[T]]) -> T {
         visitor.visitRequest(self) }
@@ -236,6 +259,8 @@ class jast {
           at ( source ) -> Parameter {
       inherit requestNode(name', typeArguments', arguments')
           at( source ) 
+
+      method asStringBody { "implicitRequestNode {name}..." } 
     
       method accept[[T]](visitor : Visitor[[T]]) -> T {
         visitor.visitImplicitRequest(self) }
@@ -252,6 +277,8 @@ class jast {
           at( source ) 
     
       def receiver : Expression is public = receiver'
+
+      method asStringBody { "explicitRequestNode {name}..." } 
     
       method accept[[T]](visitor : Visitor[[T]]) -> T {
         visitor.visitExplicitReceiverRequest(self) }
@@ -266,7 +293,7 @@ class jast {
       method asString { "Number: {value}" }
     
       def value : Number is public = value'
-    
+
       method accept[[T]](visitor : Visitor[[T]]) -> T {
         visitor.visitNumberLiteral(self) }
     }
@@ -279,7 +306,7 @@ class jast {
       def value : String is public = value'
 
       method asString { "String: {value}" }
-    
+
       method accept[[T]](visitor : Visitor[[T]]) -> T {
         visitor.visitStringLiteral(self) }
     }
@@ -293,6 +320,8 @@ class jast {
     
       def parameters : Sequence[[Parameter]] is public = parameters'
       def body : Sequence[[Statement]] is public = body'
+
+      method asStringBody { "blockNode..." } 
     
       method accept[[T]](visitor : Visitor[[T]]) -> T {
         visitor.visitBlock(self) }
@@ -309,6 +338,7 @@ class jast {
 
       debug { print (asString)}
 
+      
       method accept[[T]](visitor : Visitor[[T]]) -> T {
         visitor.visitInterface(self) }
     }

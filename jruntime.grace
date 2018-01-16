@@ -10,32 +10,16 @@ class exports {
    //I really shouldnt' make everything a class family, should I?
    //at least I should explore traits
 
-  //apply the block to the LIST of arguments.
-  //currently this mthod is only used for "old style" varargs
-  method applyVarargs(block,args,creatio) {//args are NGOS, aka already evaluated...
-    def a = args.asList
-    match (args.size)
-      case { 0 -> block.apply(creatio) }
-      case { 1 -> block.apply(a.at(1),creatio) }
-      case { 2 -> block.apply(a.at(1),a.at(2),creatio) }
-      case { 3 -> block.apply(a.at(1),a.at(2),a.at(3),creatio) }
-      case { 4 -> block.apply(a.at(1),a.at(2),a.at(3),a.at(4),creatio) }
-      case { 5 -> block.apply(a.at(1),a.at(2),a.at(3),a.at(4),a.at(5),creatio) }
-      case { _ -> error "CANT BE BOTHERED TO APPLY MORE VARARGS" }
-  }
-
-  //PSEUDO-NODES:
-
+  //this is a proxy for a statementseuqnce that should be in the AST
   //understands eval and uses it to run the statements in a body
   //body is a sequnce of statements
   //should actually replace use of sequence - should be visitable etc.
-
-
-  // HERE - IF creatio is false, then just pass it in to each
-  // If Creation is true, make a subcontext with creatio = false, 
+  // If creatio is false, then just pass it in to each
+  // If Creatio is true, make a subcontext with creatio = false, 
   //    use the new one for each stmt until the last
   //    then use the original one...
 
+  // REFAC:  should this have a build?  what should it do?
   class progn (body) {
      method eval(ctxt) { 
        jdebug { print "eval progn {self}" }
@@ -67,37 +51,6 @@ class exports {
      }
 
   }
-
-  //these two only live in the initialiser list
-  //actally, at this point, everything in the initialiser list is one of these..
-  //run some expression in a fixed context
-  class run(expr) inContext(ctxt) {
-       method eval(_) { jdebug { print "runn {expr} inContext {ctxt}" }
-                        def rv = expr.eval(ctxt)
-                        jdebug { print "done {expr} inContext {ctxt}" }
-                        }      
-       method build(_) { error "run(_)inContext(_) should only be called in eval not build" }
-  }
-
-  //initialise a box in some context
-  class initialise(box) to(expr) inContext(ctxt) {
-     method eval(_) { jdebug { print "initialise {box} inContext {ctxt}" }
-                      box.initialValue:= expr.eval(ctxt) }
-     method build(_) { error "initialise(_)to(_)inContext(_) should only be called in eval not build" }
-  }
-
-  //inherit from some expr 
-  //lives only in inheritParents and useParents lists
-  class inheritFrom(expr) inContext(ctxt) { //dunno if this needs context or not...
-       method parent {expr}
-       jdebug { print "inheritFrom {expr} inContext {ctxt}" }
-       method eval(_) { jdebug { print "inhr {expr} inContext {ctxt}" }
-                        //def rv = expr.eval(ctxt)
-                        jdebug { print "done {expr} inContext {ctxt}" }
-                        }      
-       method build(_) { error "run(_)inContext(_) should only be called in eval not build" }
-  }
-
 
 
 
@@ -178,28 +131,11 @@ class exports {
     ngoCounter:= ngoCounter + 1
     def structure is public = dictionary //evil evil making this public
 
-    method declare(name) asDefInit(expr) properties(properties) {
-      if (structure.containsKey(name)) 
-        then { error "trying to declare {name} more than once" }
-        else { def box = ngDefBox(name) properties(properties)
-               box.initialValue:= expr.eval(self)
-               structure.at(name) put (box) } 
-    }
-    method declare(name) asVarInit (expr) properties(properties) { 
-      if (structure.containsKey(name) || structure.containsKey(name ++ "():=(_)")) 
-        then { error "trying to declare {name} more than once" }
-        else { def box = ngVarBox(name) properties(properties)
-               box.initialValue:= expr.eval(self)
-               structure.at(name) put (box) 
-               structure.at(name ++ "():=(_)") put (box.setter) }
-    }
-
-
-    //I quite like these methods, but am splitting 'em for build vs eval 
-    //call "declare" from build; "initialise" from eval
 
     //should check for lexical shadowning -- but we don't
-    method declare(name) asMethod ( lambda ) { 
+    //TODO: asMethod -> asInvokeable
+    //need to compare addLocal(_)asMethod(_)
+    method declare(name) asMethod ( invokeable ) { 
       if (structure.containsKey(name)) 
         then { error "trying to declare {name} more than once" }
         else { structure.at(name) put(lambda) }
@@ -214,12 +150,12 @@ class exports {
     }
     method declare(name) asVar ( ngo ) { 
       jdebug { print "declare {name} asVar {ngo}" }
-      if (structure.containsKey(name) || structure.containsKey(name ++ "():=(_)")) 
+      if (structure.containsKey(name) || structure.containsKey(name ++ ASSIGNMENT_TAIL)) 
         then { error "trying to declare {name} more than once" }
-        else { def box = ngVarBox(name) properties(common.noAnnotations)
+        else { def box = ngVarBox(name) properties(common.confidentialAnnotations)
                ngVarBox.initialValue:= ngo
                structure.at(name) put(box)             
-               structure.at(name ++ "():=(_)") put(box.setter)
+               structure.at(name ++ ASSIGNMENT_TAIL) put(box.setter)
              }
     }
 
@@ -230,11 +166,11 @@ class exports {
            rv
            }
 
-    //lookup only for slots in "self" (external / explicit)
-    method lookupSlot(name){ 
-           jdebug { print "lookupSlot ngo {name}"        }
+    //lookup only for slots in "self" 
+    method lookupLocal(name){ 
+           jdebug { print "lookupLocal ngo {name}"        }
            def rv = structure.at(name) 
-           jdebug { print "lookupSlot ngo {name} returning {rv}" }
+           jdebug { print "lookupLocal ngo {name} returning {rv}" }
            rv
            }
 
@@ -294,10 +230,6 @@ class exports {
   }
 
 
-  //COMPLETE FUCKING EVIL GLOBAL VARIABLE
-  //var bottomMost := true  //should eventually be determined by creatio argument
-  //COMPLETE FUCKING EVIL GLOBAL VARIABLE
-
   class ngObject(body,ctxt) {
     inherit lexicalContext(ctxt)
 
@@ -305,52 +237,67 @@ class exports {
 
     var status is readable := "embryo"
 
-    //COMPLETE FUCKING EVIL GLOBAL VARIABLE
-    //var bottomMost := true  //should eventually be determined by creatio argument
-
-    //not completely evil variabe. if creatio is FALSE I'm not inherited - i.e. I'm bottommost
-    //otherwise, expect creatio to be the ID of the (bottommost) object being created. I think.
-    def bottomMost = (false == ctxt.lookup(CREATIO))
+    def creatio = ctxt.lookup(CREATIO)
+    def bottomMost = (false == creatio)
+    def whole = (if (bottomMost) then {self} else {creatio})
 
     jdebug { print "{asString} bottomMost {bottomMost} creatio {ctxt.lookup(CREATIO)}" }
 
-    def initialisers : Sequence[[Node]] is public = list 
-    method addInitialiser(i) {initialisers.add(run(i)inContext(self))}
     def inheritParents :  Sequence[[Node]] = list 
     method addInheritParent(p) {inheritParents.add(inheritFrom(p)inContext(self))}
     def useParents :  Sequence[[Node]] = list 
     method addUseParent(p) {useParents.add(inheritFrom(p)inContext(self))}
-    def localSlots :  Dictionary[[String,Method]] = dictionary
-    method addLocalSlot(name) asMethod(m) {  //is this "addMethod" name right?
-      if (localSlots.containsKey(name))
+
+    def locals :  Dictionary[[String,Method]] = dictionary
+     
+    //TODO rename asMethod -> asInvokeable?
+    //compare declare(name) asMethod(?)
+    method addLocal(name) asMethod(m) { 
+      if (locals.containsKey(name))
         then { error "trying to declare {name} more than once" }
-        else { localSlots.at(name) put(m)} }
+        elseif { checkForShdowing(name) }
+        then { error "{name} shadows lexical definition" }
+        else { locals.at(name) put(m)} }
+    method checkForShadowning(name) { false } //TODO shadowing checks
 
-    declare "outer" asDef( lookup("self" ) ) // we haven't declared self yet so the enclosing self...
-    declare "self" asDef(self) //does this make sense? - seems to
+    declareName "outer" value( lookup("self" ) ) // we haven't declared self yet so the enclosing self...
+    declareName "self" value(self) //does this make sense? - seems to
 
-    for (body) do { e -> e.build(self) }
+    //this should not use progn because progn is only for methods,
+    //where the last statement should be treated differently.
+    //here, ALL declarations etc will be treated the same.
+    for (body) do { e -> e.build(self) } 
 
-    method declare(name) asDefInit(expr) properties(properties) {
+
+    //bind a value to a name
+    //use for things like self, arguments, things that 
+    //the interpreter already has to hand, that DON'T need to be initialised
+    method declareName(name) value(value) {
+        addLocal(name) asMethod(invocableValue(value))
+    }
+
+    //evil method for e.g. sticking in things that ARENT invocable
+    //notably, creatios, returncreatios, etc
+    method declareName(name) raw(rawValue) {
+        addLocal(name) asMethod(rawValue)
+    }
+    method declareDef(name) properties(properties) {
       def box = ngDefBox(name) properties(properties)
-      addLocalSlot(name) asMethod(box) 
-      initialisers.add(initialise(box) to(expr) inContext(self))
+      addLocal(name) asMethod(box) 
     }
-    method declare(name) asVarInit(expr) properties(properties) {
-      def setterName = name ++ "():=(_)"
+    method declareVar(name) properties(properties) {
+      def setterName = name ++ ASSIGNMENT_TAIL
       def box = ngVarBox(name) properties(properties)
-      addLocalSlot(name) asMethod(box) 
-      addLocalSlot(setterName) asMethod(box.setter) 
-      initialisers.add(initialise(box) to(expr) inContext(self)) 
+      addLocal(name) asMethod(box) 
+      addLocal(setterName) asMethod(box.setter) 
     }
 
 
 
 
 
-    //progn(body).eval(self) //whoo! freaky!!
 
-    //progn(body).build(self) //whoo! freakIER!!
+
     //progn(initialisers).eval(self) //whoo! even Freakier!!
 
     jdebug { print "building parents" }
@@ -406,7 +353,7 @@ class exports {
     //things just replace shit via the map
     //
     jdebug { print "building local" }
-    localSlots.keysAndValuesDo { k, v -> structure.at(k) put(v) } //WRONG but first approximation
+    locals.keysAndValuesDo { k, v -> structure.at(k) put(v) } //WRONG but first approximation
 
     status := "built"
 
@@ -459,7 +406,7 @@ class exports {
 
   class ngBuiltinAnnotation(description' : String) {
      inherit ngo
-     method asString { "ngBuiltimAnnotation(\"{description}\")" } 
+     method asString { "ngBuiltinAnnotation(\"{description}\")" } 
      method description { description' }
   }
 
@@ -493,6 +440,8 @@ class exports {
       isPublic -> Boolean
       isAbstract -> Boolean
       isOverride -> Boolean
+      isMissing -> Boolean //usually false. TRUE if lookup failed!!
+      //asPublic(Boolean) -> Invokeable
   }
 
 
@@ -561,8 +510,32 @@ class exports {
   }
 
 
+  //a ngo value bound to a name in a context. already initialised! 
+  class invocableValue(value) {
+     use common.confidentialAnnotations
+     method invoke(this) args(args) types(typeArgs) creatio(creatio) {
+       assert {(args.size == 0) && (typeArgs.size == 0) && (false == creatio)}
+       value
+     }
+  } 
+  //potentially every obejct could be invocable, so we don't need this.
+  //too confusing to put in now.
+
+
+  //what lookup retuns when it doesn't find anything.
+  class invocableMissing(description) origin(source) {
+       use common.publicAnnotations
+       method isMissing { true }
+       method invoke(this) args(args) types(typeArgs) creatio(creatio) {  
+          error "{descripton} is missing"
+       }
+  }
+
+
+
 
   //old style lambda; takes creatio plus rest. Or something.
+  //used for primitives pretty mucg
   class ngMethodLambda(lambda) {
      use common.publicAnnotations
      method invoke(this) args(args) types(typeArgs) creatio(creatio) {
@@ -571,14 +544,20 @@ class exports {
   }
 
 
-  type InheritNode = {
-    request
-    aliases
-    excludes
+
+  //apply the block to the LIST of arguments.
+  //currently this mthod is only used for "old style" varargs
+  method applyVarargs(block,args,creatio) {//args are NGOS, aka already evaluated...
+    def a = args.asList
+    match (args.size)
+      case { 0 -> block.apply(creatio) }
+      case { 1 -> block.apply(a.at(1),creatio) }
+      case { 2 -> block.apply(a.at(1),a.at(2),creatio) }
+      case { 3 -> block.apply(a.at(1),a.at(2),a.at(3),creatio) }
+      case { 4 -> block.apply(a.at(1),a.at(2),a.at(3),a.at(4),creatio) }
+      case { 5 -> block.apply(a.at(1),a.at(2),a.at(3),a.at(4),a.at(5),creatio) }
+      case { _ -> error "CANT BE BOTHERED TO APPLY MORE VARARGS" }
   }
-
-
-
 
 
 

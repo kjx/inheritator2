@@ -377,21 +377,21 @@ method checker(module) {
     def ctxt = jeval.newEmptyContext
 
     //should I move these into newEmptyContext?
-    ctxt.declare("self") asDef(ctxt)
-    ctxt.declare("implicitUninitialised") asDef(ng.ngUninitialised)
+    ctxt.declareName("self") value(ctxt)
+    ctxt.declareName("implicitUninitialised") value(ng.ngUninitialised)
 
     //privacy annotations
-    ctxt.declare("confidential") asDef(ng.ngBuiltinAnnotation("confidential"))
-    ctxt.declare("public") asDef(ng.ngBuiltinAnnotation("public"))
-    ctxt.declare("readable") asDef(ng.ngBuiltinAnnotation("readable"))
-    ctxt.declare("writable") asDef(ng.ngBuiltinAnnotation("writable"))
+    ctxt.declareName("confidential") value(ng.ngBuiltinAnnotation("confidential"))
+    ctxt.declareName("public") value(ng.ngBuiltinAnnotation("public"))
+    ctxt.declareName("readable") value(ng.ngBuiltinAnnotation("readable"))
+    ctxt.declareName("writable") value(ng.ngBuiltinAnnotation("writable"))
 
     //inheritance annotations
-    ctxt.declare("abstract") asDef(ng.ngBuiltinAnnotation("abstract"))
-    ctxt.declare("override") asDef(ng.ngBuiltinAnnotation("override"))
+    ctxt.declareName("abstract") value(ng.ngBuiltinAnnotation("abstract"))
+    ctxt.declareName("override") value(ng.ngBuiltinAnnotation("override"))
 
-    ctxt.declare("print(_)") asMethod (ng.ngMethodLambda{ p, creatio -> print(p) })
-    ctxt.declare("_creatio") asMethod(false)
+    ctxt.declareName("print(_)") asMethod (ng.ngMethodLambda{ p, creatio -> print(p) })
+    ctxt.declareName("_creatio") raw(false)
 
     def moduleObject = ng.ngObject(moduleBody, ctxt)  //hmmm
 

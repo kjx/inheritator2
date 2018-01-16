@@ -23,18 +23,21 @@ class exports {
   def CREATIO = "_creatio"
   def RETURNBLOCK = "_returnBlock"
   def RETURNCREATIO = "_returnCreatio"
+  def ASSIGNMENT_TAIL = "():=(_)"
 }
 
 trait annotationsTrait(properties) { 
      method isPublic { properties.isPublic }
      method isOverride { properties.isOverride }
      method isAbstract { properties.isAbstract }
+     method isMissing { false }
 }
 
-trait noAnnotations {
+trait confidentialAnnotations {
      method isPublic { false }
      method isOverride { false }
      method isAbstract { false }
+     method isMissing { false }
 }
 
 
@@ -42,6 +45,7 @@ trait publicAnnotations {
      method isPublic { true }
      method isOverride { false }
      method isAbstract { false }
+     method isMissing { false }
 }
 
 method processAnnotations(annots,publicByDefault) { 
@@ -97,6 +101,7 @@ method processVarAnnotations(annots) { //COPY and PASTE
    }
 }
 
+//probably need a better name for these
 method default (initialValue) { default(initialValue) name ""}
 
 class default(initialValue) named (name) {
