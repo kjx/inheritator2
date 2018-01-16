@@ -42,12 +42,6 @@ use common.exports
 // IF NEEDED
 
 
-//TODO - asMethod -> asInvokeable
-//TODO - ngVarBox -> invocableVar
-//TODO - ngDefBox -> invocableDef  etc
-//TODO - move invokeables out of jruntime. or not.
-
-
 
 //TODO types! 
 //TODO block matching
@@ -55,9 +49,12 @@ use common.exports
 //TODO dynamic typechecks on argumenets - and results
 //TODO add Kernan primitives for argument access and parsing to execution tree
 //TODO   and then convert away from dialect checker to work explicitly
+//TODO add Kernan primitives to let us link through to incoming source code
 //TODO exceptions
 //TODO refactor AST, redesign class names, add progn/sequence properly visitable
 //TODO correct canonical names of of assignment methods/requests (wash your dog first)
+
+
 
 //method jdebug(block) {block.apply}
 method jdebug(block) { } 
@@ -186,8 +183,8 @@ class jeval {
       method build(ctxt) { 
           def annots = safeFuckingMap { a -> a.eval(ctxt) } over(annotations)
           def properties = common.processAnnotations(annots,true)
-          ctxt.declare(signature.name) 
-                 asMethod (ng.ngMethod(self) inContext(ctxt) properties(properties))
+          ctxt.declareName(signature.name) 
+                 invokeable (ng.ngMethod(self) inContext(ctxt) properties(properties))
           ng.ngDone
       }      
       method eval(_) { ng.ngDone }
@@ -241,7 +238,7 @@ class jeval {
       method eval(ctxt) {
           def returnCreatio = ctxt.lookup(RETURNCREATIO)
           def subtxt = ctxt.subcontext
-          subtxt.declare(CREATIO) asMethod( returnCreatio ) 
+          subtxt.declareName(CREATIO) raw( returnCreatio ) 
           ctxt.lookup(RETURNBLOCK).apply( value.eval(subtxt) )
       }
  }
@@ -264,7 +261,6 @@ class jeval {
 
       //don'tcha just love double dispatch! 
       method build(ctxt) { 
-          
           match (kind) 
             case { "inherit" -> ctxt.addInheritParent(self) }
             case { "use" -> ctxt.addUseParent(self) }
