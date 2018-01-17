@@ -4,7 +4,7 @@ use c.abbreviations
 import "jerrors" as errors
 use errors.exports
 import "jruntime" as runtime
-def ng = runtime.exports
+def ng is public = runtime.exports
 import "jcommon" as common
 use common.exports
 
@@ -37,7 +37,7 @@ use common.exports
 //  has the other publicity, and just return the inner object!
 
 
-//TODO add extra argument to Invokeable>>invoke()blah()blah()...
+//TODO add extra argument to Invocable>>invoke()blah()blah()...
 //   to code for internal vs external request?
 // IF NEEDED
 
@@ -156,7 +156,7 @@ class jeval {
           ctxt.declareDef(name) properties(properties) 
           }
       method eval(ctxt) { 
-          ctxt.lookupLocal(name).initialValue:= value.eval(ctxt)
+          ctxt.getLocal(name).initialValue:= value.eval(ctxt)
           ng.ngDone          
       }
   }
@@ -188,7 +188,7 @@ class jeval {
           def annots = safeFuckingMap { a -> a.eval(ctxt) } over(annotations)
           def properties = common.processAnnotations(annots,true)
           ctxt.declareName(signature.name) 
-                 invokeable (ng.ngMethod(self) inContext(ctxt) properties(properties))
+                 invocable (ng.ngMethod(self) inContext(ctxt) properties(properties))
           ng.ngDone
       }      
       method eval(_) { ng.ngDone }
@@ -228,6 +228,7 @@ class jeval {
          def types = safeFuckingMap { ta -> ta.eval(ctxt) } over(typeArguments)
          def args = safeFuckingMap { a -> a.eval(ctxt) } over(arguments)       
          def creatio = ctxt.lookup(CREATIO)
+         print "EVAL lookupInternal({name}) {ctxt}"
          def methodBody = ctxt.lookupInternal(name) 
          def rv = methodBody.invoke(ctxt) args(args) types(types) creatio(creatio)
          rv
@@ -271,7 +272,7 @@ class jeval {
       method build(ctxt) {ctxt.addParent(self)}
 
       method eval(ctxt) { 
-          def parentalPartObject = ctxt.lookupLocal(parentID)
+          def parentalPartObject = ctxt.getLocal(parentID)
           parentalPartObject.initialize //HMMM.
           ng.ngDone          
       }

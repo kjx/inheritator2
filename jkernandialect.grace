@@ -4,8 +4,7 @@ inherit c.abbreviations
 //import "platform/KernanCompiler" as k 
 // import "ast"as kernanAST  // seems this is broken. we define our own types.
 
-import "jruntime" as runtime
-def ng = runtime.exports
+def ng = jm.ng
 
 def jast = jm.jeval
 def jeval = jast

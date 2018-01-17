@@ -6,8 +6,10 @@ use errors.exports
 
 
 class exports {
-   //I really shouldnt' make everything a class family, should I?
-   //at least I should explore traits
+  print "EEXxPORTSTSZ"
+
+  //I really shouldnt' make everything a class family, should I?
+  //at least I should explore traits
 
   /////////////////////////////////////////////////////////////
 
@@ -20,11 +22,10 @@ class exports {
   //    use the new one for each stmt until the last
   //    then use the original one...
 
-  // REFAC:  should this have a build?  what should it do?
-
   class progn (body) {
+     print "progn!"
+
      method eval(ctxt) { 
-       jdebug { print "eval progn {self}" }
        var bodyContext
        if (false == ctxt.lookup(CREATIO)) then {
           bodyContext := ctxt
@@ -38,7 +39,6 @@ class exports {
        rv
      }
      method build(ctxt) {
-       jdebug { print "build progn {self}" }
        var bodyContext
        if (false == ctxt.lookup(CREATIO)) then {
           bodyContext := ctxt
@@ -74,18 +74,23 @@ class exports {
   // can look things up.
   // ngo is an **abstract class**
   class ngo { 
+    method kind {"ngo"}
     def dbgCounter is readable = ngoCounter
     ngoCounter:= ngoCounter + 1
 
-    def locals :  Dictionary[[String,Invokeable]] 
+    print "making {kind}#{dbgCounter}"
+
+    def locals :  Dictionary[[String,Invocable]] 
         is public     //evil evil making this public.
-        = dictionary[[String,Invokeable]]
+        = dictionary[[String,Invocable]]
+
+
 
     ////////////////////////////////////////////////////////////
     //// declaraing stuff
 
-    method declareName(name) invokeable ( invokeable ) { 
-      addLocal(name) slot(invokeable)
+    method declareName(name) invocable ( invocable ) { 
+      addLocal(name) slot(invocable)
     }
     method declareDef(name) properties(properties) {
       def box = ngDefBox(name) properties(properties)
@@ -127,31 +132,34 @@ class exports {
     //use for pseudo-variables within the interpreter - self, outer, CREATIO etc
     //should *not* need to be overridden. really. 
     method lookup(name){
-      def rv = lookupLexical(name)
+      def rv = lookupInternal(name)
       match (rv) 
         case { _ : type { isMissing } -> 
           if (rv.isMissing) then { error: "{name} is missing from {self}" } }
         case { _ -> rv }
       }
 
-    //lookup locally, then up the lexical chain 
-    method lookupLexical(name){
-           locals.at(name) ifAbsent {invokeableMissing(name) origin ("")}
-    }
-
     //lookup purely in local declarations - no inheritance or context
     //mostly used e.g to find the def or var box to initalise;
     //only do c.lookupLocal(n) right after c.addLocal(n)slot(s)
-    //crashes on error
-    method lookupLocal(name){ locals.at(name)  }
+    method lookupLocal(name) is notOverrideable { 
+      locals.at(name) ifAbsent {invocableMissing(name) origin ("Llexical in #{dbgCounter}")}}
+      
+    //like lookupLocal but crashes on error
+    method getLocal(name){ locals.at(name)  }
 
+    //called to get only lexical responses for e.g. inheritance vs lexical resolution
+    method lookupLexical(name) {lookupLocal(name)}
 
     //called by treewalker for intl and extl requests, resp.
     //needed for actual objects (incl primitives, singletons)
-    //but SHOULD NOT be on "plain" contexts
-    method lookupInternal(name) { lookupLexical(name) }
-    method lookupExternal(name) { lookupLexical(name) }
+    //COULD rename as lookupObject????
+    method lookupInternal(name){  
+           print "lookupInternal(ngo) {name} #{dbgCounter} {locals.keys}" 
+           lookupLocal(name)
+    }
 
+    method lookupExternal(name) { error "called lookupExternal {name} on non-object {self}" }
 
     method asString {"ngo#{dbgCounter}\n{locals.keys}"}
   }
@@ -163,50 +171,57 @@ class exports {
   ////
   /////////////////////////////////////////////////////////////
 
-  class newEmptyContext { //needs a better name 
+  class newEmptyContext { //needs a better name - could jsut get rit of it.
     inherit ngo
+    method kind {"newEmptyContext"}
     method asString {"newEmptyContext#{dbgCounter} {locals.keys}"}
     method subcontext {lexicalContext(self)}
   } 
 
-  class lexicalContext(ctxt) {
+  class lexicalContext(ctxt) { 
     inherit newEmptyContext 
-     
+        
+    method kind {"lexicalContext"}
+
     method asString {
            "lexicalContext#{dbgCounter} {locals.keys}\n" ++ "!!{ctxt.asString}" }
 
     method lookupLexical(name){ 
-      if (locals.containsKey(name)) 
-         then { locals.at(name) }
-         else { ctxt.lookupLexical(name)}
+      print "lookupLexical(context) {name} #{dbgCounter} {locals.keys}" 
+      locals.at(name) ifAbsent {ctxt.lookupLexical(name)} 
+      }
+
+    method lookupInternal(name){ 
+      print "lookupInternal(context) {name} #{dbgCounter} {locals.keys}" 
+      locals.at(name) ifAbsent {ctxt.lookupInternal(name)} 
+      }
+
      } 
-  }
+  
 
 
   /////////////////////////////////////////////////////////////
   ////
-  //// OBJECTS!!!x
+  //// OBJECTS!!!
   ////
   /////////////////////////////////////////////////////////////
 
 
   class ngObject(body,ctxt) {
     inherit lexicalContext(ctxt)
-
-    method asString { "ngObject#{dbgCounter}:({status}) {locals.keys}" }
+    method kind{"ngObject"}
 
     var status is readable := "embryo"
+
+    method asString { "ngObject#{dbgCounter}:({status}) {locals.keys} ctxt#{ctxt.dbgCounter}" }
+
+
 
     def creatio = ctxt.lookup(CREATIO)
     def bottomMost = (false == creatio)
     def whole is public = (if (bottomMost) then {self} else {creatio})
 
-    jdebug { print "{asString} bottomMost {bottomMost} creatio {ctxt.lookup(CREATIO)}" }
-
-    //HERE
-    //HERE
-    //HERE
-    declareName "outer" value( lookup("self" ) ) // we haven't declared self yet so the enclosing self...
+    declareName "outer" value( ctxt.lookup("self" ) ) // we haven't declared self yet so the enclosing self...
     declareName "self" value(whole) //does this make sense? - seems to
 
     //start on inheritance --- list of parent part objects
@@ -229,9 +244,13 @@ class exports {
         case { "use" -> useParents.add(parentNode) }
         case { _ -> error "NOT COBOL!" }
 
+      print "addParent {parentNode.request.name} to#{self.dbgCounter} ctxt#{parentRequestContext.dbgCounter}"
+      print "{parentRequestContext}"
+
       //need to *evaluate* the parent's request in the parentRequestContext context
       // (with creatio argument set) so it knows its not the bottom
       // get back a "part object" that has been built() but not yet eval()
+
       def parentalPartObject = parentNode.request.eval(parentRequestContext) 
       assert {parentalPartObject.status == "part"}
       assert {parentalPartObject.whole == whole}
@@ -261,14 +280,93 @@ class exports {
     initialize
 
     method initialize {   
-      jdebug { print "initialising - i.e. evaling" }
       for (body) do { e ->
-        jdebug { print "eval {e}" }
         e.eval(self)
       }
     }
     status := "cooked" //i.e. OK to go! 
-  } 
+
+    method lookupExternal(name) { lookupInheritance(name) }
+
+    method lookupInheritance(name) {
+      print "lookupInheritance({name}) in {self}"
+      //doesn't deal with overrides OR abstract/required/...
+      def localDefn = lookupLocal(name)  
+      def useCandidates = findCandidates(name) parents(useParents)
+      def inheritCandidates = findCandidates(name) parents(inheritParents)
+
+      print "   (localDefn) {localDefn}"
+      print "   (useCandidates) {useCandidates}"
+      print "   (inheritCandidates) {inheritCandidates}"
+
+      if (!localDefn.isMissing) then {
+         if (localDefn.isOverride && ((useCandidates.size + inheritCandidates.size) == 0))
+           then { error "{name} in {self} isOverride but doesn't override anything" }
+           else { return localDefn } }
+
+      if (useCandidates.size == 1) then {return useCandidates.at(1) }
+      if (useCandidates.size > 1) then {return invocableAmbiguous(name) origin(self)}
+      assert {useCandidates.size == 0}
+
+
+      if (inheritCandidates.size == 1) then {return inheritCandidates.at(1) }
+      if (inheritCandidates.size > 1) then {return invocableAmbiguous(name) origin(self)}
+      assert {inheritCandidates.size == 0}
+
+      invocableMissing(name) origin(self)
+
+    }
+
+    method findCandidates(name)parents(parents) {
+      def candidates = list
+      for (parents) do { parentNode -> 
+        print "findCandidates({name}) in {parentNode}"
+        print "   excludes {parentNode.excludes}"
+        print "   aliases {parentNode.aliases}"
+        if (!parentNode.excludes.contains(name)) then {
+           def parentName = parentNode.aliases.at(name) ifAbsent{name}
+           def parentPartObject = getLocal(parentNode.parentID) 
+           def parentDefn = parentPartObject.lookupInheritance(parentName)
+           if ((!parentDefn.isMissing) && (!parentDefn.isAbstract)) 
+              then {candidates.add(parentDefn)}
+      } }
+      candidates    
+    }
+
+    method isMissing(thingy) {
+      match (thingy) 
+        case { invocable : type { isMissing } -> invocable.isMissing }
+        case { _ -> false }
+    }
+
+    method lookupInternal(name) {
+       print "lookupInternal(object) {name} #{dbgCounter} {locals.keys}" 
+       def localDefn = lookupLocal(name)  
+       print "   (local) {localDefn}"
+       def lexicalResult = ctxt.lookupLexical(name)
+       print "   (lexical) {lexicalResult}"
+       def inheritanceResult = lookupInheritance(name)
+       print "   (inheritance) {inheritanceResult}"
+
+       if (!isMissing(localDefn)) 
+         then {localDefn}
+         elseif {isMissing(lexicalResult) && isMissing(inheritanceResult)}
+         then {invocableMissing(name) origin(self)}
+         elseif {isMissing(lexicalResult)}
+         then {inheritanceResult}
+         elseif {isMissing(inheritanceResult)}
+         then {lexicalResult}
+         elseif {inheritanceResult == lexicalResult}
+         then {lexicalResult}
+         else {invocableAmbiguous(name) origin(self)}
+    }   
+
+
+
+
+
+
+  }
 
 
 
@@ -278,26 +376,34 @@ class exports {
   ////
   /////////////////////////////////////////////////////////////
 
+  class ngPrimitive {
+    inherit ngo
+
+    method lookupExternal(name) { lookupLocal(name) }  //primitives only have local slots
+  }
+  
   class ngNumber( value' ) {
-     inherit ngo
+     inherit ngPrimitive
+     method kind {"ngNumber"}
      method value {value'}
      method asString { "ngNumber: {value}"}
 
-     declareName "+(_)" invokeable( ngMethodLambda { other, creatio ->  
+     declareName "+(_)" invocable( ngMethodLambda { other, creatio ->  
                     def rv = ngNumber(value' + other.value)
                     rv } )
 
-     declareName "asString" invokeable( ngMethodLambda { creatio ->  
+     declareName "asString" invocable( ngMethodLambda { creatio ->  
                     def rv = ngString(value'.asString)
                     rv } )
   }
 
   class ngString( value' ) {
-     inherit ngo
+     inherit ngPrimitive
+     method kind {"ngString"}
      method value {value'}
      method asString { "ngString: {value}"}
 
-     declareName "++(_)" invokeable( ngMethodLambda { other, creatio ->  
+     declareName "++(_)" invocable( ngMethodLambda { other, creatio ->  
                     def rv = ngString(value' ++ other.value)
                     rv } )
 
@@ -305,17 +411,19 @@ class exports {
 
   class ngInterface( value', ctxt ) {   
             //cheating, just points to ast node - and context
-     inherit ngo
+     inherit ngPrimitive
+     method kind {"ngINrerface"}
      method value {value'}
      method asString { 
         def sigs = safeFuckingMap { sig -> sig.name } over (value.signatures)
-        "ngInterface: {sigs}"}
+        "ngInterface: #{dbgCounter} {sigs}"}
   }
 
   class ngBlock(blockNode,ctxt) {
      inherit lexicalContext(ctxt)
-     method asString { "\{a ngBlock\}" }
-
+     method lookupExternal(name) { lookupLocal(name) }
+     method asString { "\{a ngBlock\} #{dbgCounter}" }
+     method kind {"ngBlock"}
      def p = blockNode.parameters.asList
      def name = match (p.size)
        case { 0 -> "apply" }
@@ -326,7 +434,7 @@ class exports {
        case { 5 -> "apply(_,_,_,_,_)" }
        case { _ -> error "CANT BE BOTHERED TO APPLY MORE VARARGS" }
 
-     declareName(name) invokeable (ngBlockMethod(blockNode) inContext(ctxt))
+     declareName(name) invocable (ngBlockMethod(blockNode) inContext(ctxt))
   }
 
   /////////////////////////////////////////////////////////////
@@ -335,28 +443,34 @@ class exports {
   ////
   /////////////////////////////////////////////////////////////
 
+
   def ngDone is public = object {
-     inherit ngo
+     inherit ngPrimitive
+     method kind{"ngDone"}
      method asString { "ngDone"}
   }
 
   def ngBuild is public = object {
-     inherit ngo
+     inherit ngPrimitive
+     method kind {"ngBUild"}
      method asString { "ngBuild"} //result returned from build. always an error.
   }
 
   def ngUninitialised is public = object {
-     inherit ngo
+     inherit ngPrimitive
+     method kind {"ngUninit"}
      method asString { "ngUninitialised" } //also an error if accessed
   }
 
   def ngImplicitUnknown is public = object {
-     inherit ngo
+     inherit ngPrimitive
+     method kind {"ngImplicitU"}
      method asString { "ngImplicitUnknown" } 
   }
 
   class ngBuiltinAnnotation(description' : String) {
-     inherit ngo
+     inherit ngPrimitive                         
+     method kind {"ngBuiltinAnnotation"}
      method asString { "ngBuiltinAnnotation(\"{description}\")" } 
      method description { description' }
   }
@@ -364,19 +478,19 @@ class exports {
 
   //////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////
-  //////// Invokeables
-  //////// Invokeables
-  //////// Invokeables
+  //////// Invocables
+  //////// Invocables
+  //////// Invocables
   //////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////
 
-  type Invokeable = { 
+  type Invocable = { 
       invoke(this: NGO) args(args: Sequence[[NGO]]) types(typeArgs: Sequence[[NGO]]) creatio(creatio) -> NGO
       isPublic -> Boolean
       isAbstract -> Boolean
       isOverride -> Boolean
       isMissing -> Boolean //usually false. TRUE if lookup failed!!
-      asPublic(Boolean) -> Invokeable
+      asPublic(Boolean) -> Invocable
   }
 
 
@@ -406,6 +520,7 @@ class exports {
      
      def setter is public = object {
        use common.annotationsTrait(properties.setter)
+       method asString {"ngVarBox (setter): {origin} := {boxValue}"}
        method invoke(this) args(args) types(typeArgs) creatio(creatio) {
           assert {args.size == 1}
           assert {typeArgs.size == 0}
@@ -415,12 +530,11 @@ class exports {
      }
   }
 
-  //an invokeable method..
+  //an invocable method..
   class ngMethod(methodNode) inContext(ctxt) properties(properties) {
      use common.annotationsTrait(properties)
      use changePrivacyAnnotations
      method invoke(this) args(args) types(typeArgs) creatio(creatio) {
-       jdebug "invoke method invokable {methodNode.signature.name}"
        def params = methodNode.signature.parameters.asList
        def prognBody = progn(methodNode.body)
        def subtxt = ctxt.subcontext
@@ -432,13 +546,13 @@ class exports {
        prognBody.build(subtxt)
        prognBody.eval(subtxt)
      }
+     method asString {"ngMethod: {methodNode.signature.name} #{ctxt.dbgCounter}"}
   }
 
   class ngBlockMethod(blockNode) inContext(ctxt) {
      use common.publicAnnotations
      use changePrivacyAnnotations
      method invoke(this) args(args) types(typeArgs) creatio(creatio) {
-       jdebug "invoke block invokable {blockNode.parameters}"
        def params = blockNode.parameters.asList
        def prognBody = progn(blockNode.body)
        def subtxt = ctxt.subcontext
@@ -448,6 +562,7 @@ class exports {
        prognBody.build(subtxt)
        prognBody.eval(subtxt)
       }
+     method asString {"ngBlockMethod"}
   }
 
 
@@ -459,32 +574,48 @@ class exports {
        assert {(args.size == 0) && (typeArgs.size == 0) && (false == creatio)}
        value
      }
+     method asString {"invocableValue: {value}"}
   } 
   //potentially every obejct could be invocable, so we don't need this.
   //too confusing to put in now.
 
+  var imCtr := 0
 
   //what lookup retuns when it doesn't find anything.
   class invocableMissing(name) origin(source) {
+     imCtr := imCtr + 1
+     print "imCRT:{imCtr}"
+     //if (imCtr == 700) then { error "CTASH" }
      use common.publicAnnotations
      use changePrivacyAnnotations
      method isMissing { true }
      method invoke(this) args(args) types(typeArgs) creatio(creatio) {  
         error "{name} is missing from {source}"
      }
+     method asString {"invocableMIssing: {name}"}
   }
+
+  //what lookup retuns when it doesn't find anything.
+  class invocableAmbiguous(name) origin(source) {
+     inherit invocableMissing(name) origin(source)
+     method invoke(this) args(args) types(typeArgs) creatio(creatio) {  
+        error "{name} is ambiguous at {source}"
+     }
+     method asString {"inocableAmbiguous {name}"}
+  }
+
 
   //behaviour to change privacy annotations 
   trait changePrivacyAnnotations {
     method asPublic(shouldBePublic : Boolean) { 
       if (isPublic == shouldBePublic) 
          then {self}
-         else {invokeableWrapper(self) privacy(shouldBePublic)}
+         else {invocableWrapper(self) privacy(shouldBePublic)}
     }
   }
 
-  //proxy to change an invokeable's privacy
-  class invokeableWrapper(subject) privacy(shouldBePublic) {
+  //proxy to change an invocable's privacy
+  class invocableWrapper(subject) privacy(shouldBePublic) {
     assert (self.isPublic != shouldBePublic)  //or else shouldn't be here
     method isPublic { shouldBePublic }
     method asPublic(shouldBePublic : Boolean) {
@@ -499,6 +630,7 @@ class exports {
     method isMissing { subject.isMissing }
     method invoke(this) args(args) types(typeArgs) creatio(creatio) {
       subject.invoke(this) args(args) types(typeArgs) creatio(creatio) }
+    method asString {"inocableWrapper {subject}"}
   }
 
 
@@ -524,7 +656,6 @@ class exports {
         case { 5 -> block.apply(a.at(1),a.at(2),a.at(3),a.at(4),a.at(5),creatio)}
         case { _ -> error "CANT BE BOTHERED TO APPLY MORE VARARGS" }
     }
+    method asString { "ngMethodLambda {lambda}" }
   }
-
-
 }
