@@ -24,6 +24,7 @@ class exports {
   def RETURNBLOCK = "_returnBlock"
   def RETURNCREATIO = "_returnCreatio"
   def ASSIGNMENT_TAIL = "():=(_)"
+  def PARENT = "_parent"
 }
 
 trait annotationsTrait(properties) { 

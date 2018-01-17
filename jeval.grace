@@ -81,11 +81,15 @@ class jeval {
       alias jObjectConstructorNode(_) at(_) = objectConstructorNode(_) at(_)
       alias jInheritNode(_,_,_,_) at(_) = inheritNode(_,_,_,_) at(_)
 
+  var nodeCounter := 0
 
   class nodeAt( source ) -> Node { 
     inherit jNodeAt(source)
     def asStringPrefix = "jeval."
-      
+    
+    def nodeID is public = nodeCounter
+    nodeCounter := nodeCounter + 1 
+          
     //the core of the tree-walking interpreter
     //eval, well, evaluates stuff
     //build called by "Two phase" Contexts, e.g. object constuctors, methods
@@ -251,6 +255,7 @@ class jeval {
       method eval(ctxt) { ng.ngObject(body,ctxt) }            
   }
 
+  //consider renaming as "parentNode"
   class inheritNode(
       kind' : String,
       request' : Request,
@@ -259,15 +264,17 @@ class jeval {
           at ( source ) -> Parameter {
       inherit jInheritNode(kind', request', excludes', aliases') at ( source )
 
-      //don'tcha just love double dispatch! 
-      method build(ctxt) { 
-          match (kind) 
-            case { "inherit" -> ctxt.addInheritParent(self) }
-            case { "use" -> ctxt.addUseParent(self) }
-            case { _ -> error "NOT COBOL!" }
-      }
+      print "inheritNode"
 
-      method eval(_) { ng.ngDone }
+      def parentID is public = "{PARENT}:{nodeID}"
+
+      method build(ctxt) {ctxt.addParent(self)}
+
+      method eval(ctxt) { 
+          def parentalPartObject = ctxt.lookupLocal(parentID)
+          parentalPartObject.initialize //HMMM.
+          ng.ngDone          
+      }
       
   }  
 

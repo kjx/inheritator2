@@ -103,17 +103,19 @@ class exports {
         addLocal(name) slot(invocableValue(value))
     }
     //evil method for e.g. sticking in things that ARENT invocable
-    //notably, creatios, returncreatios, etc
+    //notably, creatios, returncreatios, etc. kind of evil
     method declareName(name) raw(rawValue) {
-        addLocal(name) slot(rawValue)
+        locals.at(name) put(rawValue)
     }
 
+    //hook method
     method addLocal(name) slot(m) is confidential { 
       if (locals.containsKey(name))
         then { error "trying to declare {name} more than once" }
         elseif { checkForShadowing(name) }
         then { error "{name} shadows lexical definition" }
-        else { locals.at(name) put(m)} }
+        else { locals.at(name) put(m) }
+    }
 
     method checkForShadowing(name) is confidential { false } //TODO shadowing checks go here!
 
@@ -197,7 +199,7 @@ class exports {
 
     def creatio = ctxt.lookup(CREATIO)
     def bottomMost = (false == creatio)
-    def whole = (if (bottomMost) then {self} else {creatio})
+    def whole is public = (if (bottomMost) then {self} else {creatio})
 
     jdebug { print "{asString} bottomMost {bottomMost} creatio {ctxt.lookup(CREATIO)}" }
 
@@ -207,109 +209,66 @@ class exports {
     declareName "outer" value( lookup("self" ) ) // we haven't declared self yet so the enclosing self...
     declareName "self" value(whole) //does this make sense? - seems to
 
+    //start on inheritance --- list of parent part objects
     def inheritParents :  Sequence[[Node]] = list 
-    method addInheritParent(inheritNode) {inheritParents.add(inheritNode)}
     def useParents :  Sequence[[Node]] = list 
-    method addUseParent(useNode) {useParents.add(useNode)}
 
-    //this should not use progn because progn is only for methods,
+    //context to request parents - surronding context of the object
+    //but with creatio set to us, so that we know this is a parent request
+    var parentRequestContext := ctxt 
+    if (bottomMost) then { 
+         parentRequestContext := ctxt.subcontext
+         parentRequestContext.declareName(CREATIO) raw(self)  
+    }
+
+    //add a parent - recuse if necessary.
+    //called back from build() when building an inheritNode
+    method addParent(parentNode) { 
+      match (parentNode.kind) 
+        case { "inherit" -> inheritParents.add(parentNode) }
+        case { "use" -> useParents.add(parentNode) }
+        case { _ -> error "NOT COBOL!" }
+
+      //need to *evaluate* the parent's request in the parentRequestContext context
+      // (with creatio argument set) so it knows its not the bottom
+      // get back a "part object" that has been built() but not yet eval()
+      def parentalPartObject = parentNode.request.eval(parentRequestContext) 
+      assert {parentalPartObject.status == "part"}
+      assert {parentalPartObject.whole == whole}
+
+      //store it at the parentID
+      declareName(parentNode.parentID) raw(parentalPartObject)
+    }
+    
+    for (body) do { e -> e.build(self) } 
+
+    //this is will set up "locals" by requests back 
+    //to "declareName (var, def, invokaeanle, etc)"   for vars and methods
+    //and "addParent" for inheritance and use
+    //
+    //note - does not use progn because progn is only for methods,
     //where the last statement should be treated differently.
     //here, ALL declarations etc will be treated the same.
-    for (body) do { e -> e.build(self) } 
-    //this is will call "declareName (var, def, invokaeanle, etc)    
-    //to populate self's locals 
-    //and also add clauses to the parents' lists.
-
-    //BIG QUESTION IS: how do parent objects get inialiased.
-    //by calling *eval*. yes but when and where?
-    //only once all the rest are done?
-
-    //     //////////////////////////////////////////////////////////////////////
-    //     //////////////////////////////////////////////////////////////////////
-    //     //////////////////////////////////////////////////////////////////////
-
-    //     var inheritanceRequestContext := ctxt //inherits clauses evalled in surrounding context
-
-    //     //this extends the surrounding context with a creatio saying it's us!
-    //     if (bottomMost) then { 
-    //          inheritanceRequestContext := ctxt.subcontext
-    //          inheritanceRequestContext.declareName(CREATIO) raw(self)  
-    //     }
-
-    //     //////////////////////////////////////////////////////////////////////
-
-    //         for (inheritParents) do {  pp ->
-    //           def p = pp.parent
-    //           jdebug { print "inherit {p.kind} {p.request} {p.excludes} {p.aliases}" }
-    //           //need to *evaluate* the parent's request but with creatio argument set
-    //           //in the enclosing context so it knows its not the bottom
-    //           //get back an object w/ struture and initaliers - status should be "built"
-    //           //add ALL its initialiers into our initialisers list
-    //           //process its struture via exclude & inherit; add the stuff in here
-    //           //for multiple parents, resolve clashes...
-
-    //           def stupidParentalPartObject = p.request.eval(inheritanceRequestContext) 
-    //           if (stupidParentalPartObject.status != "built") 
-    //              then { error "FUCK FUCK FUCKETY FUCK FUCK FUCK {stupidParentalPartObject.status}" }
-    //           initialisers.addAll(stupidParentalPartObject.initialisers)
-    //           //stupidParentalPartObject.structure.keysAndValuesDo { k, v -> structure.at(k) put(v) }
-    //           stupidParentalPartObject.structure.keysAndValuesDo 
-    //             { k, v -> if (!p.excludes.contains(k)) then {structure.at(k) put(v) } }
-    //           p.aliases.keysAndValuesDo 
-    //             { k, v -> structure.at(k) put(stupidParentalPartObject.structure.at(v)) }
-    //           //all these need to deal correctly with overriding, and multiple defns. they dont.
-    //           //and non-excluded messages...
-    //         }
-
-    //         //COPPY AND PASTE: SHOULD ABSTRACT OUT
-    //         for (useParents) do {  pp ->
-    //           def p = pp.parent
-    //           jdebug { print "inherit {p.kind} {p.request} {p.excludes} {p.aliases}" }
-
-    //           def stupidParentalPartObject = p.request.eval(inheritanceRequestContext) //relying on global variable
-    //           if (stupidParentalPartObject.status != "built") 
-    //              then { error "FUCK FUCK FUCKETY FUCK FUCK FUCK {stupidParentalPartObject.status}" }
-    //           initialisers.addAll(stupidParentalPartObject.initialisers)
-    //           stupidParentalPartObject.structure.keysAndValuesDo 
-    //             { k, v -> if (!p.excludes.contains(k)) then {structure.at(k) put(v) } }
-    //           p.aliases.keysAndValuesDo 
-    //             { k, v -> structure.at(k) put(stupidParentalPartObject.structure.at(v)) }
-    //           //all these need to deal correctly with overriding, and multiple defns. they dont.
-    //           //and non-excluded messages...
-    //         }
-
-    //         //should there be some other structure here?
-    //         //things just replace shit via the map
-    //         //
-    //         jdebug { print "building local" }
-    //         locals.keysAndValuesDo { k, v -> structure.at(k) put(v) } //WRONG but first approximation
-
-    //     //////////////////////////////////////////////////////////////////////
-    //     //////////////////////////////////////////////////////////////////////
-    //     //////////////////////////////////////////////////////////////////////
 
     status := "built"
 
-    //if I'm NOT Bottommost then I quit here.
-    //structure is complete, but don't run any initialisers.
-    //ALL initialisers get run only by the bottomMost constructor
+    //if I'm NOT Bottommost then I quit here - my structure is complete.
     if (!bottomMost) then { 
        status := "part" 
-       assert 
        return self 
-   }
-
-    jdebug { print "initialising - i.e. evaling" }
-    for (body) do { e ->
-       jdebug { print "eval {e}" }
-       e.eval(self)
     }
 
+    initialize
+
+    method initialize {   
+      jdebug { print "initialising - i.e. evaling" }
+      for (body) do { e ->
+        jdebug { print "eval {e}" }
+        e.eval(self)
+      }
+    }
     status := "cooked" //i.e. OK to go! 
-
-
-
-  }
+  } 
 
 
 
