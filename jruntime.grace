@@ -4,11 +4,12 @@ use c.abbreviations
 import "jerrors" as errors
 use errors.exports
 
-method debugPrint(string) {}
+method debugPrint(string) {print(string)}
+
+def MSNG = "missing"
+def AMBG = "ambiguous"
 
 class exports {
-  debugPrint "EEXxPORTSTSZ"
-
   //I really shouldnt' make everything a class family, should I?
   //at least I should explore traits
 
@@ -24,8 +25,6 @@ class exports {
   //    then use the original one...
 
   class progn (body) {
-     debugPrint "progn!"
-
      method eval(ctxt) { 
        var bodyContext
        if (false == ctxt.lookup(CREATIO)) then {
@@ -78,8 +77,6 @@ class exports {
     method kind {"ngo"}
     def dbgCounter is readable = ngoCounter
     ngoCounter:= ngoCounter + 1
-
-    debugPrint "making {kind}#{dbgCounter}"
 
     def locals :  Dictionary[[String,Invocable]] 
         is public     //evil evil making this public.
@@ -144,6 +141,7 @@ class exports {
     //mostly used e.g to find the def or var box to initalise;
     //only do c.lookupLocal(n) right after c.addLocal(n)slot(s)
     method lookupLocal(name) is notOverrideable { 
+      debugPrint "lookupLocal({name}) {kind}#{dbgCounter}"
       locals.at(name) ifAbsent {invocableMissing(name) origin ("Llexical in #{dbgCounter}")}}
       
     //like lookupLocal but crashes on error
@@ -154,13 +152,27 @@ class exports {
 
     //called by treewalker for intl and extl requests, resp.
     //needed for actual objects (incl primitives, singletons)
-    method lookupInternal(name){  
-           debugPrint "lookupInternal(ngo) {name} #{dbgCounter} {locals.keys}" 
-           lookupLocal(name)
+    method findFuckingInternalMethodHolder(name){          
+       debugPrint "findFuckingInternalMethodHolder(ngo) {name} #{dbgCounter} {locals.keys}" 
+       if (locals.containsKey(name)) then {
+          debugPrint "  found localMH {name} ngo#{dbgCounter}"
+          return self
+          } else {
+          debugPrint "   missing"
+          MSNG
+          }
     }
 
-    method lookupExternal(name) { error "called lookupExternal {name} on non-object {self}" }
+    method whole {self}  //general fuckedness
 
+    method lookupObject(name) { lookupLocal(name) }
+    method lookupInternal(name) {
+           def mh = findFuckingInternalMethodHolder(name)
+           print "LImh={mh}"
+           def whole = mh.whole
+           whole.lookupObject(name)  //who the fuck can explain this?
+           }
+    method lookupExternal(name) {lookupObject(name)}
     method asString {"ngo#{dbgCounter}\n{locals.keys}"}
   }
 
@@ -191,12 +203,16 @@ class exports {
       locals.at(name) ifAbsent {ctxt.lookupLexical(name)} 
       }
 
-    method lookupInternal(name){ 
-      debugPrint "lookupInternal(context) {name} #{dbgCounter} {locals.keys}" 
-      locals.at(name) ifAbsent {ctxt.lookupInternal(name)} 
-      }
-
-     } 
+    method findFuckingInternalMethodHolder(name){ 
+      debugPrint "findFuckingInternalMethodHolder(context) {name} #{dbgCounter} {locals.keys}" 
+      if (locals.containsKey(name)) then {
+          debugPrint "  found localMH {name} lexC#{self.dbgCounter}"
+          self
+          } else {
+          debugPrint "  not found going up to #{ctxt.dbgCounter}"
+          ctxt.findFuckingInternalMethodHolder(name)} 
+          }
+    }
   
 
 
@@ -287,8 +303,7 @@ class exports {
     }
     status := "cooked" //i.e. OK to go! 
 
-    method lookupExternal(name) { lookupInheritance(name) }
-
+    method lookupObject(name) { lookupInheritance(name) }
 
     method lookupInheritance(name) {
       debugPrint "lookupInheritance({name}) in {self}"
@@ -319,6 +334,43 @@ class exports {
 
     }
 
+
+
+
+
+    method findFuckingInheritanceMethodHolder(name) {
+      debugPrint "findFuckingINHERITANCEMH({name}) in {self}"
+      def localDefn = lookupLocal(name)  
+      def useCandidates = findfuckingCandidateMethodHolders(name) parents(useParents)
+      def inheritCandidates = findfuckingCandidateMethodHolders(name) parents(inheritParents)
+
+      debugPrint "   (ffinh localDefn) {localDefn}"
+      debugPrint "   (ffinh useCandidates) {useCandidates}"
+      debugPrint "   (ffinh inheritCandidates) {inheritCandidates}"
+
+      //doesn't deal with overides
+      if (!localDefn.isMissing) then {
+         if (localDefn.isOverride && ((useCandidates.size + inheritCandidates.size) == 0))
+           then { error "{name} in {self} isOverride but doesn't override anything" }
+           else { return self } }  //return the method holder not the method!
+
+      if (useCandidates.size == 1) then {return useCandidates.at(1) }
+      if (useCandidates.size > 1) then {AMBG}
+      assert {useCandidates.size == 0}
+
+      if (inheritCandidates.size == 1) then {return inheritCandidates.at(1) }
+      if (inheritCandidates.size > 1) then {AMBG}
+      assert {inheritCandidates.size == 0}
+
+      MSNG
+    }
+
+
+
+
+
+
+
     method findCandidates(name)parents(parents) {
       def candidates = list
       for (parents) do { parentNode -> 
@@ -335,33 +387,64 @@ class exports {
       candidates    
     }
 
-    method isMissing(thingy) {
-      match (thingy) 
-        case { invocable : type { isMissing } -> invocable.isMissing }
+
+    method findfuckingCandidateMethodHolders(name)parents(parents) {
+      def candidates = list
+      for (parents) do { parentNode -> 
+        debugPrint "findfuckingCandidatesMH({name}) in {self}"
+        debugPrint "   excludes {parentNode.excludes}"
+        debugPrint "   aliases {parentNode.aliases}"
+        if (!parentNode.excludes.contains(name)) then {
+           def parentName = parentNode.aliases.at(name) ifAbsent{name}
+           def parentPartObject = getLocal(parentNode.parentID) 
+           def parentDefn = parentPartObject.findFuckingInheritanceMethodHolder(parentName)
+           if (!isMissing(parentDefn)) then {
+              candidates.add(parentDefn)  //should deal with abstract!
+      } } }
+      candidates    
+    }
+
+
+    method isMissing(thingy) { 
+      def rv = match (thingy) 
+        case { (MSNG) -> true }
+        case { (AMBG) -> true } //is this right? probalby NOT
         case { _ -> false }
+      return rv
+    }
+
+    method isAbstract(parentDefn,name) {
+      def invocable = parentDefn.locals.at(name)        //CRASH if not found, parentDefn *must be* a method holder!!!
+      invocable.isAbstract
     }
 
     method lookupLexical(name) { lookupInternal(name) }
 
-    method lookupInternal(name) {
-       debugPrint "lookupInternal(object) {name} #{dbgCounter} {locals.keys}" 
-       def localDefn = lookupLocal(name)  
-       debugPrint "   (local) {localDefn}"
-       def lexicalResult = ctxt.lookupLexical(name)
-       debugPrint "   (lexical) {lexicalResult}"
-       def inheritanceResult = lookupInheritance(name)
-       debugPrint "   (inheritance) {inheritanceResult}"
+    method findFuckingInternalMethodHolder(name) {
+       debugPrint "findFuckingInternalMethodHolder(object) {name} #{self}" 
+       if (locals.containsKey(name)) then {
+          debugPrint "   (ffimh found localMH {name} obj#{dbgCounter}"
+          return self
+          }
+       debugPrint "   (ffimh local #{dbgCounter}) NOT FOUND"
 
-       if (!isMissing(localDefn)) 
-         then {localDefn}
-         elseif {isMissing(lexicalResult) && isMissing(inheritanceResult)}
-         then {invocableMissing(name) origin(self)}
+       def inheritanceResult = findFuckingInheritanceMethodHolder(name)
+       debugPrint "   (ffimh inheritance #{dbgCounter}) {inheritanceResult}"
+
+       def lexicalResult = ctxt.findFuckingInternalMethodHolder(name)
+       debugPrint "   (ffimh lexical #{dbgCounter}) {lexicalResult}"
+
+       print "INHERIT #{dbgCounter} {inheritanceResult} {isMissing(inheritanceResult)}"
+       print "LEXICAL #{dbgCounter} {lexicalResult} {isMissing(lexicalResult)}"
+
+       if (isMissing(lexicalResult) && isMissing(inheritanceResult))
+         then {MSNG}
          elseif {isMissing(inheritanceResult)}
          then {lexicalResult}
          elseif {isMissing(lexicalResult) || (inheritanceResult == lexicalResult)}
-         then {whole.lookupInheritance(name)} 
-         else {invocableAmbiguous(name) origin(self) between(list(lexicalResult,inheritanceResult))}
-    }   
+         then {inheritanceResult}
+         else {error "ffIMH ambi-fucked #{dbgCounter} {lexicalResult} {inheritanceResult}"}
+    }
 
 
 
@@ -381,7 +464,7 @@ class exports {
   class ngPrimitive {
     inherit ngo
 
-    method lookupExternal(name) { lookupLocal(name) }  //primitives only have local slots
+    method lookupObject(name) { lookupLocal(name) }  //primitives only have local slots
   }
   
   class ngNumber( value' ) {
@@ -423,7 +506,7 @@ class exports {
 
   class ngBlock(blockNode,ctxt) {
      inherit lexicalContext(ctxt)
-     method lookupExternal(name) { lookupLocal(name) }
+     method lookupObject(name) { lookupLocal(name) }
      method asString { "\{a ngBlock\} #{dbgCounter}" }
      method kind {"ngBlock"}
      def p = blockNode.parameters.asList
