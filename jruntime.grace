@@ -4,9 +4,10 @@ use c.abbreviations
 import "jerrors" as errors
 use errors.exports
 
+method debugPrint(string) {}
 
 class exports {
-  print "EEXxPORTSTSZ"
+  debugPrint "EEXxPORTSTSZ"
 
   //I really shouldnt' make everything a class family, should I?
   //at least I should explore traits
@@ -23,7 +24,7 @@ class exports {
   //    then use the original one...
 
   class progn (body) {
-     print "progn!"
+     debugPrint "progn!"
 
      method eval(ctxt) { 
        var bodyContext
@@ -67,7 +68,7 @@ class exports {
 
 
   //for debugging
-  var ngoCounter := 0
+  var ngoCounter is public := 0
 
   // ngo?? shold be ngContext? - perhaps that's a better name!
   // basically a list of local "slots", can declare things, 
@@ -78,7 +79,7 @@ class exports {
     def dbgCounter is readable = ngoCounter
     ngoCounter:= ngoCounter + 1
 
-    print "making {kind}#{dbgCounter}"
+    debugPrint "making {kind}#{dbgCounter}"
 
     def locals :  Dictionary[[String,Invocable]] 
         is public     //evil evil making this public.
@@ -153,9 +154,8 @@ class exports {
 
     //called by treewalker for intl and extl requests, resp.
     //needed for actual objects (incl primitives, singletons)
-    //COULD rename as lookupObject????
     method lookupInternal(name){  
-           print "lookupInternal(ngo) {name} #{dbgCounter} {locals.keys}" 
+           debugPrint "lookupInternal(ngo) {name} #{dbgCounter} {locals.keys}" 
            lookupLocal(name)
     }
 
@@ -184,15 +184,15 @@ class exports {
     method kind {"lexicalContext"}
 
     method asString {
-           "lexicalContext#{dbgCounter} {locals.keys}\n" ++ "!!{ctxt.asString}" }
+           "lexicalContext#{dbgCounter} {locals.keys}\n!!{ctxt.asString}" }
 
     method lookupLexical(name){ 
-      print "lookupLexical(context) {name} #{dbgCounter} {locals.keys}" 
+      debugPrint "lookupLexical(context) {name} #{dbgCounter} {locals.keys}" 
       locals.at(name) ifAbsent {ctxt.lookupLexical(name)} 
       }
 
     method lookupInternal(name){ 
-      print "lookupInternal(context) {name} #{dbgCounter} {locals.keys}" 
+      debugPrint "lookupInternal(context) {name} #{dbgCounter} {locals.keys}" 
       locals.at(name) ifAbsent {ctxt.lookupInternal(name)} 
       }
 
@@ -213,7 +213,7 @@ class exports {
 
     var status is readable := "embryo"
 
-    method asString { "ngObject#{dbgCounter}:({status}) {locals.keys} ctxt#{ctxt.dbgCounter}" }
+    method asString { "ngObject#{dbgCounter}:({status}) {locals.keys}\n!!{ctxt.asString}" }
 
 
 
@@ -244,23 +244,24 @@ class exports {
         case { "use" -> useParents.add(parentNode) }
         case { _ -> error "NOT COBOL!" }
 
-      print "addParent {parentNode.request.name} to#{self.dbgCounter} ctxt#{parentRequestContext.dbgCounter}"
-      print "{parentRequestContext}"
+      debugPrint "addParent {parentNode.request.name} to#{self.dbgCounter} ctxt#{parentRequestContext.dbgCounter}"
+      debugPrint "{parentRequestContext}"
 
       //need to *evaluate* the parent's request in the parentRequestContext context
       // (with creatio argument set) so it knows its not the bottom
       // get back a "part object" that has been built() but not yet eval()
 
+      debugPrint "\nOBJECT parental request {parentNode.request.name} self#{dbgCounter} {parentRequestContext}"
       def parentalPartObject = parentNode.request.eval(parentRequestContext) 
       assert {parentalPartObject.status == "part"}
       assert {parentalPartObject.whole == whole}
 
       //store it at the parentID
       declareName(parentNode.parentID) raw(parentalPartObject)
+      debugPrint "PARENT {parentNode.parentID} #{parentalPartObject.dbgCounter}"
     }
     
     for (body) do { e -> e.build(self) } 
-
     //this is will set up "locals" by requests back 
     //to "declareName (var, def, invokaeanle, etc)"   for vars and methods
     //and "addParent" for inheritance and use
@@ -288,16 +289,17 @@ class exports {
 
     method lookupExternal(name) { lookupInheritance(name) }
 
+
     method lookupInheritance(name) {
-      print "lookupInheritance({name}) in {self}"
+      debugPrint "lookupInheritance({name}) in {self}"
       //doesn't deal with overrides OR abstract/required/...
       def localDefn = lookupLocal(name)  
       def useCandidates = findCandidates(name) parents(useParents)
       def inheritCandidates = findCandidates(name) parents(inheritParents)
 
-      print "   (localDefn) {localDefn}"
-      print "   (useCandidates) {useCandidates}"
-      print "   (inheritCandidates) {inheritCandidates}"
+      debugPrint "   (localDefn) {localDefn}"
+      debugPrint "   (useCandidates) {useCandidates}"
+      debugPrint "   (inheritCandidates) {inheritCandidates}"
 
       if (!localDefn.isMissing) then {
          if (localDefn.isOverride && ((useCandidates.size + inheritCandidates.size) == 0))
@@ -305,12 +307,12 @@ class exports {
            else { return localDefn } }
 
       if (useCandidates.size == 1) then {return useCandidates.at(1) }
-      if (useCandidates.size > 1) then {return invocableAmbiguous(name) origin(self)}
+      if (useCandidates.size > 1) then {return invocableAmbiguous(name) origin(self) between(useCandidates)}
       assert {useCandidates.size == 0}
 
 
       if (inheritCandidates.size == 1) then {return inheritCandidates.at(1) }
-      if (inheritCandidates.size > 1) then {return invocableAmbiguous(name) origin(self)}
+      if (inheritCandidates.size > 1) then {return invocableAmbiguous(name) origin(self) between(inheritCandidates)}
       assert {inheritCandidates.size == 0}
 
       invocableMissing(name) origin(self)
@@ -320,9 +322,9 @@ class exports {
     method findCandidates(name)parents(parents) {
       def candidates = list
       for (parents) do { parentNode -> 
-        print "findCandidates({name}) in {parentNode}"
-        print "   excludes {parentNode.excludes}"
-        print "   aliases {parentNode.aliases}"
+        debugPrint "findCandidates({name}) in {self}"
+        debugPrint "   excludes {parentNode.excludes}"
+        debugPrint "   aliases {parentNode.aliases}"
         if (!parentNode.excludes.contains(name)) then {
            def parentName = parentNode.aliases.at(name) ifAbsent{name}
            def parentPartObject = getLocal(parentNode.parentID) 
@@ -339,26 +341,26 @@ class exports {
         case { _ -> false }
     }
 
+    method lookupLexical(name) { lookupInternal(name) }
+
     method lookupInternal(name) {
-       print "lookupInternal(object) {name} #{dbgCounter} {locals.keys}" 
+       debugPrint "lookupInternal(object) {name} #{dbgCounter} {locals.keys}" 
        def localDefn = lookupLocal(name)  
-       print "   (local) {localDefn}"
+       debugPrint "   (local) {localDefn}"
        def lexicalResult = ctxt.lookupLexical(name)
-       print "   (lexical) {lexicalResult}"
+       debugPrint "   (lexical) {lexicalResult}"
        def inheritanceResult = lookupInheritance(name)
-       print "   (inheritance) {inheritanceResult}"
+       debugPrint "   (inheritance) {inheritanceResult}"
 
        if (!isMissing(localDefn)) 
          then {localDefn}
          elseif {isMissing(lexicalResult) && isMissing(inheritanceResult)}
          then {invocableMissing(name) origin(self)}
-         elseif {isMissing(lexicalResult)}
-         then {inheritanceResult}
          elseif {isMissing(inheritanceResult)}
          then {lexicalResult}
-         elseif {inheritanceResult == lexicalResult}
-         then {lexicalResult}
-         else {invocableAmbiguous(name) origin(self)}
+         elseif {isMissing(lexicalResult) || (inheritanceResult == lexicalResult)}
+         then {whole.lookupInheritance(name)} 
+         else {invocableAmbiguous(name) origin(self) between(list(lexicalResult,inheritanceResult))}
     }   
 
 
@@ -584,7 +586,7 @@ class exports {
   //what lookup retuns when it doesn't find anything.
   class invocableMissing(name) origin(source) {
      imCtr := imCtr + 1
-     print "imCRT:{imCtr}"
+     debugPrint "imCRT:{imCtr}"
      //if (imCtr == 700) then { error "CTASH" }
      use common.publicAnnotations
      use changePrivacyAnnotations
@@ -596,10 +598,10 @@ class exports {
   }
 
   //what lookup retuns when it doesn't find anything.
-  class invocableAmbiguous(name) origin(source) {
+  class invocableAmbiguous(name) origin(source) between(possiblities) {
      inherit invocableMissing(name) origin(source)
      method invoke(this) args(args) types(typeArgs) creatio(creatio) {  
-        error "{name} is ambiguous at {source}"
+        error "{name} is ambiguous at {source} between {possibilities}"
      }
      method asString {"inocableAmbiguous {name}"}
   }

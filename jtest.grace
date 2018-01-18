@@ -148,12 +148,12 @@ class subclass {
 
 def s = superclass
 def t = subclass
-// print (s.a)
-// print (s.b)
-// print (t.a)
-// print (t.b)
-// print (t.c)
-// print (t.d)
+print (s.a)
+print (s.b)
+print (t.a)
+print (t.b)
+print (t.c)
+print (t.d)
 
 
 print "DONE DONE DONE DONE DONE DONE DONE DONE DONE DONE DONE "

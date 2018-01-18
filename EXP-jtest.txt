@@ -5,7 +5,7 @@ EXECUTION EXECUTION EXECUTION EXECUTION
 ngString: one
 ngNumber: 2
 ngNumber: 4
-ngInterface: interface: [foo, bar, baz(_,_)] size: 3
+ngInterface: #18 [foo, bar, baz(_,_)]
 ngString: here
 ngNumber: 2
 ngString: there
@@ -15,8 +15,8 @@ ngString: hello
 ngString: oneone
 ngNumber: 22
 ngString: foomethod
-{a ngBlock}
-{a ngBlock}
+{a ngBlock} #30
+{a ngBlock} #31
 ngString: barreturn
 ngString: ping
 ngString: blockescapeOK
@@ -33,11 +33,11 @@ ngNumber: 4
 ngString: BUMP!
 ngNumber: 6
 ngNumber: 0
-Done[-]
+ngDone
 ngNumber: 10
-Done[-]
+ngDone
 ngNumber: 20
-Done[-]
+ngDone
 ngNumber: 25
 ngString: objectsrun
 ngString: one

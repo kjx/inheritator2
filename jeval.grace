@@ -20,8 +20,8 @@ use common.exports
 //TODO top of dialect - do things continue on to the enclosing scope of the **dialect**
 //TODO make a ngmodule object
 //TODO make a standardGraceDialect object (special module, empty dialect), 
-//   and set up the standard dialect e.g. with print and annotations and stuff
-//TODO lexical lookup gets to a module, then does a lookupObject (i.e. including inheritance) 
+//   and set up the standard dialect e.g. with debugPrint and annotations and stuff
+//TODO lexical lookup gets to a module, then does a lookup including inheriatnace to the dialect --- but does not do the dialect's lexical scope.  I guess you could call that lookupDialect!  (if it's not lookupInheritance)
 
 //TODO - shadowing checks  (checkForShadowing in jruntime)
 
@@ -60,7 +60,7 @@ use common.exports
 method jdebug(block) { } 
 
 method DEBUG(block) {block.apply}
-
+method debugPrint(string) { } 
 
 
 
@@ -89,7 +89,7 @@ class jeval {
     
     def nodeID is public = nodeCounter
     nodeCounter := nodeCounter + 1 
-          
+
     //the core of the tree-walking interpreter
     //eval, well, evaluates stuff
     //build called by "Two phase" Contexts, e.g. object constuctors, methods
@@ -228,7 +228,8 @@ class jeval {
          def types = safeFuckingMap { ta -> ta.eval(ctxt) } over(typeArguments)
          def args = safeFuckingMap { a -> a.eval(ctxt) } over(arguments)       
          def creatio = ctxt.lookup(CREATIO)
-         print "EVAL lookupInternal({name}) {ctxt}"
+         debugPrint ""
+         debugPrint "EVAL lookupInternal ({name}) in {ctxt}"
          def methodBody = ctxt.lookupInternal(name) 
          def rv = methodBody.invoke(ctxt) args(args) types(types) creatio(creatio)
          rv
@@ -264,8 +265,6 @@ class jeval {
       aliases' : Dictionary[[String,String ]])
           at ( source ) -> Parameter {
       inherit jInheritNode(kind', request', excludes', aliases') at ( source )
-
-      print "inheritNode"
 
       def parentID is public = "{PARENT}:{nodeID}"
 
