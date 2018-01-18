@@ -175,6 +175,9 @@ class exports {
            }
     method lookupExternal(name) {lookupObject(name)}
     method asString {"ngo#{dbgCounter}\n{locals.keys}"}
+
+
+    method lexicallyEncloses(other) {self == other}
   }
 
 
@@ -213,6 +216,8 @@ class exports {
           //debugPrint "  not found going up to #{ctxt.dbgCounter}"
           ctxt.findFuckingInternalMethodHolder(name)} 
           }
+
+    method lexicallyEncloses(other) {(self == other) || ctxt.lexicallyEncloses(other)}
     }
   
 

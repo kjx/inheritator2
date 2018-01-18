@@ -180,14 +180,27 @@ class jeval {
           at ( source ) -> Parameter {
       inherit jExplicitRequestNode(receiver', name', typeArguments', arguments')
           at( source ) 
-         
+
       method eval(ctxt) {
          def rcvr = receiver.eval(ctxt)
          def types = safeFuckingMap { ta -> ta.eval(ctxt) } over(typeArguments)
          def args = safeFuckingMap { a -> a.eval(ctxt) } over(arguments)       
          def creatio = ctxt.lookup(CREATIO)
          def methodBody = rcvr.lookupExternal(name)
-         if (!methodBody.isPublic) then {error "External request for confidential attribute {name}"}
+
+         def ImplicitRequestNodeBrand = type { implicitRequestNodeBrand }
+
+         //if (!methodBody.isPublic) then {error "External request for confidential attribute {name}"}
+
+         //if (! (methodBody.isPublic || isSpecialRequest)  ) then {error "External request for confidential attribute {name}"}
+
+         def mySelf = ctxt.lookup("self")
+         def isSpecialRequest = rcvr.lexicallyEncloses(mySelf)
+
+         //def isSpecialRequest = 
+         //  ImplicitRequestNodeBrand.match(receiver).andAlso {
+         //    (receiver.name == "self") || (receiver.name == "outer") }
+
          def rv = methodBody.invoke(rcvr) args(args) types(types) creatio(creatio)
          rv
       } 

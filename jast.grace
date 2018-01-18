@@ -264,6 +264,8 @@ class jast {
     
       method accept[[T]](visitor : Visitor[[T]]) -> T {
         visitor.visitImplicitRequest(self) }
+
+      method implicitRequestNodeBrand { error "called brand" }
     }
     
     
