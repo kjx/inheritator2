@@ -201,7 +201,7 @@ class jeval {
          //  ImplicitRequestNodeBrand.match(receiver).andAlso {
          //    (receiver.name == "self") || (receiver.name == "outer") }
 
-         Def rv = methodBody.invoke(rcvr) args(args) types(types) creatio(creatio)
+         def rv = methodBody.invoke(rcvr) args(args) types(types) creatio(creatio)
          rv
       } 
   }
@@ -263,7 +263,7 @@ class jeval {
 
       method eval(ctxt) { 
           def parentalPartObject = ctxt.getLocal(parentID)
-          parentalPartObject.initialize //HMMM.
+          parentalPartObject.initialize
           ng.ngDone          
       }
       
