@@ -192,10 +192,10 @@ class jeval {
 
          //if (!methodBody.isPublic) then {error "External request for confidential attribute {name}"}
 
-         if (! (methodBody.isPublic || isSpecialRequest)  ) then {error "External request for confidential attribute {name}"}
-
          def mySelf = ctxt.lookup("self")
          def isSpecialRequest = rcvr.lexicallyEncloses(mySelf)
+
+         if (! (methodBody.isPublic || isSpecialRequest)  ) then {error "External request for confidential attribute {name}"}
 
          //def isSpecialRequest = 
          //  ImplicitRequestNodeBrand.match(receiver).andAlso {
