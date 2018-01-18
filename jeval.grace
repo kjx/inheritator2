@@ -8,14 +8,7 @@ def ng is public = runtime.exports
 import "jcommon" as common
 use common.exports
 
-
-//TODO - object constructors need to keep separate parts. This seems unavoidable... - or perhaps it is but ONLY if we "resolve implicit requests" (up or out?) before the fun really starts. This means:
-//- part objects should store the creatio as representing the "whole" of which they are part
-//- "lexical"/ implicit lookup looks up the part object in the lexical content
-//-- (not the "whole" object that will have stuff introduced in subclasses)
-//-- (for Grace, unless we go up then out?, must also resolve to super-parts)
-//- if a method is found in a part object, you don't use the declaration there;
-//-- rather you lookup (inheritance only?) the method in whole object of which the part is part, so the defn you found may be overridden. 
+//TODO  refactor / redesign jruntime.grace
 
 //TODO top of dialect - do things continue on to the enclosing scope of the **dialect**
 //TODO make a ngmodule object
@@ -25,27 +18,12 @@ use common.exports
 
 //TODO - shadowing checks  (checkForShadowing in jruntime)
 
-//TODO - inheritance, struct/trait clashes, et.
 
-//TODO alias clauses change privacy? 
-//TODO use a wrapper to make things confidential?
-// annotationsTrait gets asConfidential & asPublic methods
-//  (that's all you're allowed to say!)
-//  if already confidential/public, do nothing
-//  if not, return wrapper that just delegates everything except isPublic
-//  if you ask a wrapper to be the other, it can assert its underlying method 
-//  has the other publicity, and just return the inner object!
-
-
-//TODO add extra argument to Invocable>>invoke()blah()blah()...
-//   to code for internal vs external request?
-// IF NEEDED
-
-
+//TODO alias clauses annotations change privacy? 
+//  (need to fix kernan parser)
 
 //TODO types! 
 //TODO block matching
-//TODO move lookup protocol into objects (from request nodes?)???
 //TODO dynamic typechecks on argumenets - and results
 //TODO add Kernan primitives for argument access and parsing to execution tree
 //TODO   and then convert away from dialect checker to work explicitly

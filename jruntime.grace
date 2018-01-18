@@ -4,7 +4,8 @@ use c.abbreviations
 import "jerrors" as errors
 use errors.exports
 
-method debugPrint(string) {print(string)}
+
+method debugPrint(string) {}
 
 def MSNG = "missing"
 def AMBG = "ambiguous"
@@ -141,7 +142,7 @@ class exports {
     //mostly used e.g to find the def or var box to initalise;
     //only do c.lookupLocal(n) right after c.addLocal(n)slot(s)
     method lookupLocal(name) is notOverrideable { 
-      debugPrint "lookupLocal({name}) {kind}#{dbgCounter}"
+      //debugPrint "lookupLocal({name}) {kind}#{dbgCounter}"
       locals.at(name) ifAbsent {invocableMissing(name) origin ("Llexical in #{dbgCounter}")}}
       
     //like lookupLocal but crashes on error
@@ -153,12 +154,12 @@ class exports {
     //called by treewalker for intl and extl requests, resp.
     //needed for actual objects (incl primitives, singletons)
     method findFuckingInternalMethodHolder(name){          
-       debugPrint "findFuckingInternalMethodHolder(ngo) {name} #{dbgCounter} {locals.keys}" 
+       //debugPrint "findFuckingInternalMethodHolder(ngo) {name} #{dbgCounter} {locals.keys}" 
        if (locals.containsKey(name)) then {
-          debugPrint "  found localMH {name} ngo#{dbgCounter}"
+          //debugPrint "  found localMH {name} ngo#{dbgCounter}"
           return self
           } else {
-          debugPrint "   missing"
+          //debugPrint "   missing"
           MSNG
           }
     }
@@ -168,7 +169,7 @@ class exports {
     method lookupObject(name) { lookupLocal(name) }
     method lookupInternal(name) {
            def mh = findFuckingInternalMethodHolder(name)
-           print "LImh={mh}"
+           //debugPrint "LImh={mh}"
            def whole = mh.whole
            whole.lookupObject(name)  //who the fuck can explain this?
            }
@@ -199,17 +200,17 @@ class exports {
            "lexicalContext#{dbgCounter} {locals.keys}\n!!{ctxt.asString}" }
 
     method lookupLexical(name){ 
-      debugPrint "lookupLexical(context) {name} #{dbgCounter} {locals.keys}" 
+      //debugPrint "lookupLexical(context) {name} #{dbgCounter} {locals.keys}" 
       locals.at(name) ifAbsent {ctxt.lookupLexical(name)} 
       }
 
     method findFuckingInternalMethodHolder(name){ 
-      debugPrint "findFuckingInternalMethodHolder(context) {name} #{dbgCounter} {locals.keys}" 
+      //debugPrint "findFuckingInternalMethodHolder(context) {name} #{dbgCounter} {locals.keys}" 
       if (locals.containsKey(name)) then {
-          debugPrint "  found localMH {name} lexC#{self.dbgCounter}"
+          //debugPrint "  found localMH {name} lexC#{self.dbgCounter}"
           self
           } else {
-          debugPrint "  not found going up to #{ctxt.dbgCounter}"
+          //debugPrint "  not found going up to #{ctxt.dbgCounter}"
           ctxt.findFuckingInternalMethodHolder(name)} 
           }
     }
@@ -260,21 +261,21 @@ class exports {
         case { "use" -> useParents.add(parentNode) }
         case { _ -> error "NOT COBOL!" }
 
-      debugPrint "addParent {parentNode.request.name} to#{self.dbgCounter} ctxt#{parentRequestContext.dbgCounter}"
-      debugPrint "{parentRequestContext}"
+      //debugPrint "addParent {parentNode.request.name} to#{self.dbgCounter} ctxt#{parentRequestContext.dbgCounter}"
+      //debugPrint "{parentRequestContext}"
 
       //need to *evaluate* the parent's request in the parentRequestContext context
       // (with creatio argument set) so it knows its not the bottom
       // get back a "part object" that has been built() but not yet eval()
 
-      debugPrint "\nOBJECT parental request {parentNode.request.name} self#{dbgCounter} {parentRequestContext}"
+      //debugPrint "\nOBJECT parental request {parentNode.request.name} self#{dbgCounter} {parentRequestContext}"
       def parentalPartObject = parentNode.request.eval(parentRequestContext) 
       assert {parentalPartObject.status == "part"}
       assert {parentalPartObject.whole == whole}
 
       //store it at the parentID
       declareName(parentNode.parentID) raw(parentalPartObject)
-      debugPrint "PARENT {parentNode.parentID} #{parentalPartObject.dbgCounter}"
+      //debugPrint "PARENT {parentNode.parentID} #{parentalPartObject.dbgCounter}"
     }
     
     for (body) do { e -> e.build(self) } 
@@ -306,15 +307,15 @@ class exports {
     method lookupObject(name) { lookupInheritance(name) }
 
     method lookupInheritance(name) {
-      debugPrint "lookupInheritance({name}) in {self}"
+      //debugPrint "lookupInheritance({name}) in {self}"
       //doesn't deal with overrides OR abstract/required/...
       def localDefn = lookupLocal(name)  
       def useCandidates = findCandidates(name) parents(useParents)
       def inheritCandidates = findCandidates(name) parents(inheritParents)
 
-      debugPrint "   (localDefn) {localDefn}"
-      debugPrint "   (useCandidates) {useCandidates}"
-      debugPrint "   (inheritCandidates) {inheritCandidates}"
+      //debugPrint "   (localDefn) {localDefn}"
+      //debugPrint "   (useCandidates) {useCandidates}"
+      //debugPrint "   (inheritCandidates) {inheritCandidates}"
 
       if (!localDefn.isMissing) then {
          if (localDefn.isOverride && ((useCandidates.size + inheritCandidates.size) == 0))
@@ -339,14 +340,14 @@ class exports {
 
 
     method findFuckingInheritanceMethodHolder(name) {
-      debugPrint "findFuckingINHERITANCEMH({name}) in {self}"
+      //debugPrint "findFuckingINHERITANCEMH({name}) in {self}"
       def localDefn = lookupLocal(name)  
       def useCandidates = findfuckingCandidateMethodHolders(name) parents(useParents)
       def inheritCandidates = findfuckingCandidateMethodHolders(name) parents(inheritParents)
 
-      debugPrint "   (ffinh localDefn) {localDefn}"
-      debugPrint "   (ffinh useCandidates) {useCandidates}"
-      debugPrint "   (ffinh inheritCandidates) {inheritCandidates}"
+      //debugPrint "   (ffinh localDefn) {localDefn}"
+      //debugPrint "   (ffinh useCandidates) {useCandidates}"
+      //debugPrint "   (ffinh inheritCandidates) {inheritCandidates}"
 
       //doesn't deal with overides
       if (!localDefn.isMissing) then {
@@ -374,9 +375,9 @@ class exports {
     method findCandidates(name)parents(parents) {
       def candidates = list
       for (parents) do { parentNode -> 
-        debugPrint "findCandidates({name}) in {self}"
-        debugPrint "   excludes {parentNode.excludes}"
-        debugPrint "   aliases {parentNode.aliases}"
+        //debugPrint "findCandidates({name}) in {self}"
+        //debugPrint "   excludes {parentNode.excludes}"
+        //debugPrint "   aliases {parentNode.aliases}"
         if (!parentNode.excludes.contains(name)) then {
            def parentName = parentNode.aliases.at(name) ifAbsent{name}
            def parentPartObject = getLocal(parentNode.parentID) 
@@ -391,9 +392,9 @@ class exports {
     method findfuckingCandidateMethodHolders(name)parents(parents) {
       def candidates = list
       for (parents) do { parentNode -> 
-        debugPrint "findfuckingCandidatesMH({name}) in {self}"
-        debugPrint "   excludes {parentNode.excludes}"
-        debugPrint "   aliases {parentNode.aliases}"
+        //debugPrint "findfuckingCandidatesMH({name}) in {self}"
+        //debugPrint "   excludes {parentNode.excludes}"
+        //debugPrint "   aliases {parentNode.aliases}"
         if (!parentNode.excludes.contains(name)) then {
            def parentName = parentNode.aliases.at(name) ifAbsent{name}
            def parentPartObject = getLocal(parentNode.parentID) 
@@ -421,21 +422,21 @@ class exports {
     method lookupLexical(name) { lookupInternal(name) }
 
     method findFuckingInternalMethodHolder(name) {
-       debugPrint "findFuckingInternalMethodHolder(object) {name} #{self}" 
+       //debugPrint "findFuckingInternalMethodHolder(object) {name} #{self}" 
        if (locals.containsKey(name)) then {
-          debugPrint "   (ffimh found localMH {name} obj#{dbgCounter}"
+          //debugPrint "   (ffimh found localMH {name} obj#{dbgCounter}"
           return self
           }
-       debugPrint "   (ffimh local #{dbgCounter}) NOT FOUND"
+       //debugPrint "   (ffimh local #{dbgCounter}) NOT FOUND"
 
        def inheritanceResult = findFuckingInheritanceMethodHolder(name)
-       debugPrint "   (ffimh inheritance #{dbgCounter}) {inheritanceResult}"
+       //debugPrint "   (ffimh inheritance #{dbgCounter}) {inheritanceResult}"
 
        def lexicalResult = ctxt.findFuckingInternalMethodHolder(name)
-       debugPrint "   (ffimh lexical #{dbgCounter}) {lexicalResult}"
+       //debugPrint "   (ffimh lexical #{dbgCounter}) {lexicalResult}"
 
-       print "INHERIT #{dbgCounter} {inheritanceResult} {isMissing(inheritanceResult)}"
-       print "LEXICAL #{dbgCounter} {lexicalResult} {isMissing(lexicalResult)}"
+       //debugPrint "INHERIT #{dbgCounter} {inheritanceResult} {isMissing(inheritanceResult)}"
+       //debugPrint "LEXICAL #{dbgCounter} {lexicalResult} {isMissing(lexicalResult)}"
 
        if (isMissing(lexicalResult) && isMissing(inheritanceResult))
          then {MSNG}
@@ -669,7 +670,7 @@ class exports {
   //what lookup retuns when it doesn't find anything.
   class invocableMissing(name) origin(source) {
      imCtr := imCtr + 1
-     debugPrint "imCRT:{imCtr}"
+     //debugPrint "imCRT:{imCtr}"
      //if (imCtr == 700) then { error "CTASH" }
      use common.publicAnnotations
      use changePrivacyAnnotations
@@ -743,4 +744,5 @@ class exports {
     }
     method asString { "ngMethodLambda {lambda}" }
   }
+
 }
