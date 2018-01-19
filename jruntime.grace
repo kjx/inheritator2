@@ -298,7 +298,13 @@ class exports {
     //////////////////////////////////////////////////
     //lookup methods
 
-    method lookupInheritance(name) {
+
+
+    method lookupInheritance(name) { findInheritanceInContext(name).declaration }
+
+    method XfindInheritanceDeclaringContext(name) { findInheritanceInContext(name).inContext }
+
+    method XlookupInheritance(name) {
       //debugPrint "lookupInheritance({name}) in {self}"
       def localDefn = lookupLocal(name)  
       def useCandidates = findCandidates(name) parents(useParentNodes)
@@ -324,6 +330,31 @@ class exports {
 
       invocableMissing(name) origin(self)
     }
+    
+    method findInheritanceInContext(name) { 
+      def localCandidate = declaration(lookupLocal(name))inContext(self)
+      def useCandidates = findCandidatesInContext(name) parents(useParentNodes)
+      def inheritCandidates = findCandidatesInContext(name) parents(inheritParentNodes)
+
+      def localDefn = localCandidate.declaration
+
+      if (!localDefn.isMissing) then {
+         if (localDefn.isOverride && ((useCandidates.size + inheritCandidates.size) == 0))
+           then { error "{name} in {self} isOverride but doesn't override anything" }
+           else { return localCandidate } }
+
+      if (useCandidates.size == 1) then {return useCandidates.at(1) }
+      if (useCandidates.size > 1) then {return declaration(invocableAmbiguous(name) origin(self) between(useCandidates))inContext(ambiguousContext(name,self,"use",useCanidates))}
+      assert {useCandidates.size == 0}
+
+
+      if (inheritCandidates.size == 1) then {return inheritCandidates.at(1) }
+      if (inheritCandidates.size > 1) then {return declaration(invocableAmbiguous(name) origin(self) between(inheritCandidates))inContext(ambiguousContext(name,self,"inherit",inheritCanidates))}
+      assert {inheritCandidates.size == 0}
+
+      declaration(invocableMissing(name) origin(self))inContext(self)
+     }
+
 
 
     method findInheritanceDeclaringContext(name) {
@@ -343,20 +374,25 @@ class exports {
            else { return self } }  //return the method holder not the method!
 
       if (useCandidates.size == 1) then {return useCandidates.at(1) }
-      if (useCandidates.size > 1) then {return ambiguousContext(name,self,"use",useCanidates)}
+      if (useCandidates.size > 1) then {return declaration(invocableAmbiguous(name) origin(self) between(useCandidates))inContext(ambiguousContext(name,self,"use",useCanidates))}
       assert {useCandidates.size == 0}
 
       if (inheritCandidates.size == 1) then {return inheritCandidates.at(1) }
-      if (inheritCandidates.size > 1) then {return ambiguousContext(name,self,"inherit",inheritCanidates)}
+      if (inheritCandidates.size > 1) then {return declaration(invocableAmbiguous(name) origin(self) between(inheritCandidates))inContext(ambiguousContext(name,self,"inherit",inheritCanidates))}
       assert {inheritCandidates.size == 0}
 
       missingContext(name,self)
     }
 
-    
+  
 
     method findCandidates(name)parents(parents) {
       map { dInC -> dInC.declaration } 
+        over (findCandidatesInContext(name)parents(parents))
+    }
+
+    method findfuckingCandidateMethodHolders(name)parents(parents) {
+      map { dInC -> dInC.inContext } 
         over (findCandidatesInContext(name)parents(parents))
     }
 
@@ -373,7 +409,7 @@ class exports {
       candidates    
     }
 
-    method findfuckingCandidateMethodHolders(name)parents(parents) {
+    method XfindfuckingCandidateMethodHolders(name)parents(parents) {
       def candidates = list
       for (parents) do { parentNode -> 
         if (!parentNode.excludes.contains(name)) then {
@@ -396,7 +432,7 @@ class exports {
            def parentName = parentNode.aliases.at(name) ifAbsent{name}
            def parentPartObject = getLocal(parentNode.parentID) 
            def parentContext = parentPartObject.findInheritanceDeclaringContext(parentName)
-           def parentDefn = lookupInheritance(parentName) //can do better later?
+           def parentDefn = parentPartObject.lookupInheritance(parentName) //can do better later?
            if ((!parentDefn.isMissing) && (!parentDefn.isAbstract)) 
               then {candidatesInContext.add(
                       declaration(parentDefn) inContext(parentContext) )
@@ -408,6 +444,9 @@ class exports {
     //auxilliary class that pairs up declarations and contexts
     //so we only need one set of lookup code
     class declaration(d)inContext(c) {
+      match(d) 
+         case { _ : type { contextImIn } -> assert {d.contextImIn == c} }
+         case { _ -> }
       method declaration {d}
       method inContext {c}  //can't be called "context" due do shadowing. grrr
     }
@@ -455,7 +494,8 @@ class exports {
   }
 
   //a pseudo-context returned when a lookup can't find anything
-  //multiple parent traits...
+  //may or may not be an error given we can have definitions in
+  //other parent traits...
   class missingContext(name, ctxt) { //dunno if this needs more or not!
     // you tried to look up a context and, well, it was missing
     method asString { "{name} is missing in {ctxt}" }
@@ -634,6 +674,7 @@ class exports {
   class ngMethod(methodNode) inContext(ctxt) properties(properties) {
      use common.annotationsTrait(properties)
      use changePrivacyAnnotations
+     method contextImIn { ctxt }
      method invoke(this) args(args) types(typeArgs) creatio(creatio) {
        def params = methodNode.signature.parameters.asList
        def prognBody = progn(methodNode.body)
