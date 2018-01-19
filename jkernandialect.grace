@@ -393,7 +393,7 @@ method checker(module) {
     ctxt.declareName("print(_)") invocable(ng.ngMethodLambda{ p, creatio -> print(p) })
     ctxt.addLocal("_creatio") slot(false)
 
-    def moduleObject = ng.ngObject(moduleBody, ctxt)  //hmmm
+    def moduleObject = ng.objectContext(moduleBody, ctxt)  //hmmm
 
     print "DONE DONE DONE DONE"
        

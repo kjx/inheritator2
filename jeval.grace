@@ -247,7 +247,7 @@ class jeval {
           at ( source ) -> Parameter {
       inherit jObjectConstructorNode(body') at(source) 
 
-      method eval(ctxt) { ng.ngObject(body,ctxt) }            
+      method eval(ctxt) { ng.objectContext(body,ctxt) }            
   }
 
   //consider renaming as "parentNode"

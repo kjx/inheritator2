@@ -70,10 +70,10 @@ class exports {
   //for debugging
   var contextCounter is public := 0
 
-  // context?? shold be ngContext? - perhaps that's a better name!
-  // basically a list of local "slots", can declare things, 
-  // can look things up.
-  // context is an **abstract class**
+  // a context is a scope where you can declare things,
+  // and look them up.  Subclasses get more complex, 
+  // including lexical scoping (in lexicalContext)
+  // and inheritance (in objectContext aka object)
 
   class context { 
     method kind {"context"}
@@ -210,14 +210,15 @@ class exports {
   ////
   /////////////////////////////////////////////////////////////
 
-
-  class ngObject(body,ctxt) {
+  //this class actually represents objecs in the underlying interpreter
+  //it's called objectContext mainly because "object" is already taken by Grace
+  class objectContext(body,ctxt) {
     inherit lexicalContext(ctxt)
-    method kind{"ngObject"}
+    method kind{"objectContext"}
 
     var status is readable := "embryo"
 
-    method asString { "ngObject#{dbg}:({status}) {locals.keys}\n!!{ctxt.asString}" }
+    method asString { "objectContext#{dbg}:({status}) {locals.keys}\n!!{ctxt.asString}" }
 
 
 
