@@ -377,7 +377,7 @@ method checker(module) {
     def ctxt = jeval.context
 
     //these should be moved into a new moduleObject class
-    ctxt.declareName("self") value(ctxt)
+    ctxt.addLocal("self") value(ctxt)
     ctxt.declareName("implicitUninitialised") value(ng.ngUninitialised)
 
     //privacy annotations

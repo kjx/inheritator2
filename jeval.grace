@@ -16,7 +16,6 @@ use common.exports
 //   and set up the standard dialect e.g. with debugPrint and annotations and stuff
 //TODO lexical lookup gets to a module, then does a lookup including inheriatnace to the dialect --- but does not do the dialect's lexical scope.  I guess you could call that lookupDialect!  (if it's not lookupInheritance)
 
-//TODO - shadowing checks  (checkForShadowing in jruntime)
 
 
 //TODO alias clauses annotations change privacy? 

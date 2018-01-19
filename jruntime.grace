@@ -67,18 +67,17 @@ class exports {
   //for debugging
   var contextCounter is public := 0
 
+
   // a context is a scope where you can declare things,
   // and look them up.  Subclasses get more complex, 
   // including lexical scoping (in lexicalContext)
   // and inheritance (in objectContext aka object)
-
   class context { 
     method kind {"context"}
     def dbg is readable = contextCounter
     contextCounter:= contextCounter + 1
 
     def locals :  Dictionary[[String,Invocable]] 
-        is readable     //evil evil making this readable
         = dictionary[[String,Invocable]]
 
     ////////////////////////////////////////////////////////////
@@ -92,19 +91,26 @@ class exports {
         else { addLocal(name) slot(invocable) }
     }
 
-    method checkForShadowing(name) is confidential { false } //TODO shadowing checks go here!
+    method checkForShadowing(name) is confidential { 
+       //!findInternalDeclaringContext(name).isMissing //forbid all shadowing
+       false  //don't forbit any shadowing
+    } 
 
+    //declare a Def which must later be initialised
     method declareDef(name) properties(properties) {
       def box = ngDefBox(name) properties(properties)
       declareName(name) invocable(box) 
     }
+
+    //declare a Var which must later be initialised
     method declareVar(name) properties(properties) {
       def setterName = name ++ ASSIGNMENT_TAIL
       def box = ngVarBox(name) properties(properties)
       declareName(name) invocable(box) 
       declareName(setterName) invocable(box.setter) 
     }
-    //bind a value to a name - for things like self, arguments, things that 
+
+    //bind a value to a name - for things like arguments, that 
     //the interpreter already has to hand, that DON'T need to be initialised
     method declareName(name) value(value) {
         declareName(name) invocable(invocableValue(value))
@@ -112,6 +118,7 @@ class exports {
 
     //accessing local declarations
     method addLocal(name) slot(m) { locals.at(name) put(m) }
+    method addLocal(name) value(m) { locals.at(name) put(invocableValue(m)) }
     method hasLocal(name) { locals.containsKey(name) }
     method getLocal(name) { lookupLocal(name) ifAbsent { error "local {name} missing in #{dbg}"} }
     method lookupLocal(name) ifAbsent(block) { locals.at(name) ifAbsent(block) }
@@ -123,8 +130,8 @@ class exports {
     ////
     ////  getX crashes if not found
     ////  lookupX returns a missing invocable (or whatever)
-    ////  findXDeclaringPart returns the context (which may be an object)
-    ////      that has the declaration of attribute
+    ////  findXDeclaringPart returns the context (which may or may not be an object)
+    ////      that has the declaration of the named attribute
     ////  External lookups only look at inheritance, Internal looks consider nesting also
     
     method getInternal(name){
@@ -154,11 +161,15 @@ class exports {
           }
     }
 
-
+    //external lookups consider only inheritance
     method lookupExternal(name) {lookupInheritance(name)}
     method lookupInheritance(name) {lookupLocal(name)} 
+
+    //where there are parental part objects, this is the whole object
+    //to which they belong
     method whole {self} 
 
+    //create a subcontext nested inside this context
     method subcontext {lexicalContext(self)}
     method isInside(other) {self == other}
 
@@ -174,7 +185,7 @@ class exports {
   ////
   /////////////////////////////////////////////////////////////
 
-
+  //a lexicaContext is a context that is nested inside another context
   class lexicalContext(ctxt) { 
     inherit context
         
@@ -183,14 +194,10 @@ class exports {
     method asString {
            "lexicalContext#{dbg} {locals.keys}\n!!{ctxt.asString}" }
 
-
     method findInternalDeclaringContext(name){ 
-      //debugPrint "findInternalDeclaringContext(context) {name} #{dbg} {locals.keys}" 
       if (locals.containsKey(name)) then {
-          //debugPrint "  found localMH {name} lexC#{self.dbg}"
           self
           } else {
-          //debugPrint "  not found going up to #{ctxt.dbg}"
           ctxt.findInternalDeclaringContext(name)} 
           }
 
@@ -205,94 +212,97 @@ class exports {
   ////
   /////////////////////////////////////////////////////////////
 
-  //this class actually represents objecs in the underlying interpreter
-  //it's called objectContext mainly because "object" is already taken by Grace
+  //this class represents objecs in the underlying interpreter
+  //it's called "objectContext" mainly because "object" is already taken by Grace
+  //an object is essentially a lexical context that also supports inheritance.
+  //to resolve inheritance correctly we have to maintain the contexts of
+  //each contributing object constructor - these are "parental part objects" 
+  //i.e. objectContexts that represent an inherited part of another "whole" object
+  //only objectContexts that represent whole objects are accessible to interpreted programs;
   class objectContext(body,ctxt) {
     inherit lexicalContext(ctxt)
     method kind{"objectContext"}
 
     var status is readable := "embryo"
 
-    method asString { "objectContext#{dbg}:({status}) {locals.keys}\n!!{ctxt.asString}" }
-
-
-
     def creatio = ctxt.getInternal(CREATIO)
     def bottomMost = (false == creatio)
     def whole is public = (if (bottomMost) then {self} else {creatio})
 
-    declareName "outer" value( ctxt.getInternal("self" ) ) // we haven't declared self yet so the enclosing self...
-    declareName "self" value(whole) //does this make sense? - seems to
+    addLocal "outer" slot(ctxt.getInternal("self" )) 
+    addLocal "self"  value(whole) 
 
-    //start on inheritance --- list of parent part objects
-    def inheritParents :  Sequence[[Node]] = list 
-    def useParents :  Sequence[[Node]] = list 
-
-    //context to request parents - surronding context of the object
-    //but with creatio set to us, so that we know this is a parent request
+    //context to use to request parents - the surrounding context of this objectContext
+    //but with a creatio set to us, so that we will know this is a parent request
     var parentRequestContext := ctxt 
     if (bottomMost) then { 
          parentRequestContext := ctxt.subcontext
          parentRequestContext.addLocal(CREATIO) slot(self)  
     }
 
-    //add a parent - recuse if necessary.
-    //called back from build() when building an inheritNode
-    method addParent(parentNode) { 
-      match (parentNode.kind) 
-        case { "inherit" -> inheritParents.add(parentNode) }
-        case { "use" -> useParents.add(parentNode) }
-        case { _ -> error "NOT COBOL!" }
+    //list of AST nodes for inherit and request clauses
+    //note these are AST nodes, not parental part objects
+    def inheritParentNodes :  Sequence[[Node]] = list 
+    def useParentNodes :  Sequence[[Node]] = list 
 
-      //debugPrint "addParent {parentNode.request.name} to#{self.dbg} ctxt#{parentRequestContext.dbg}"
-      //debugPrint "{parentRequestContext}"
-
-      //need to *evaluate* the parent's request in the parentRequestContext context
-      // (with creatio argument set) so it knows its not the bottom
-      // get back a "part object" that has been built() but not yet eval()
-
-      //debugPrint "\nOBJECT parental request {parentNode.request.name} self#{dbg} {parentRequestContext}"
-      def parentalPartObject = parentNode.request.eval(parentRequestContext) 
-      assert {parentalPartObject.status == "part"}
-      assert {parentalPartObject.whole == whole}
-
-      //store it at the parentID
-      addLocal(parentNode.parentID) slot(parentalPartObject)
-      //debugPrint "PARENT {parentNode.parentID} #{parentalPartObject.dbg}"
-    }
-    
-    for (body) do { e -> e.build(self) } 
-    //this is will set up "locals" by requests back 
+    //build the individual declarations into this object    
+    //by going through the body of the object constructor in the AST
+    //this is will set up declarations by double-dispatch requests back 
     //to "declareName (var, def, invokaeanle, etc)"   for vars and methods
     //and "addParent" for inheritance and use
-    //
-    //note - does not use progn because progn is only for methods,
-    //where the last statement should be treated differently.
-    //here, ALL declarations etc will be treated the same.
+    //build() doesn't do anyting for inline code or initialisation
+    for (body) do { e -> e.build(self) } 
 
     status := "built"
 
-    //if I'm NOT Bottommost then I quit here - my structure is complete.
+    //if I'm NOT Bottommost then I must be a parental part object to some other whole
+    //my structure is now completly built() so I stop here
+    //I'll be initialised in the right order as the parentNode in my inheriting 
+    //object is eval()'ed
     if (!bottomMost) then { 
        status := "part" 
        return self 
     }
 
     initialize
+    status := "cooked" //i.e. OK to go! 
+
+    //"constructor" code ends here///
 
     method initialize {   
       for (body) do { e ->
         e.eval(self)
       }
     }
-    status := "cooked" //i.e. OK to go! 
+
+
+    //add a parent represented by a parentNode from the Common AST
+    //an inheritNode double-dispaches back her in the build() phase
+    method addParent(parentNode) { 
+
+      //add the AST node to the appropriate list
+      match (parentNode.kind) 
+        case { "inherit" -> inheritParentNodes.add(parentNode) }
+        case { "use" -> useParentNodes.add(parentNode) }
+        case { _ -> error "NOT COBOL!" }
+
+      //now we actually make the parental request to create the parental part object
+      def parentalPartObject = parentNode.request.eval(parentRequestContext) 
+      assert {parentalPartObject.status == "part"}
+      assert {parentalPartObject.whole == whole}
+
+      //store the parental part object as a pseudo-field in the inheriting objectContext
+      addLocal(parentNode.parentID) slot(parentalPartObject)
+    }
+
+    //////////////////////////////////////////////////
+    //lookup methods
 
     method lookupInheritance(name) {
       //debugPrint "lookupInheritance({name}) in {self}"
-      //doesn't deal with overrides OR abstract/required/...
       def localDefn = lookupLocal(name)  
-      def useCandidates = findCandidates(name) parents(useParents)
-      def inheritCandidates = findCandidates(name) parents(inheritParents)
+      def useCandidates = findCandidates(name) parents(useParentNodes)
+      def inheritCandidates = findCandidates(name) parents(inheritParentNodes)
 
       //debugPrint "   (localDefn) {localDefn}"
       //debugPrint "   (useCandidates) {useCandidates}"
@@ -313,18 +323,14 @@ class exports {
       assert {inheritCandidates.size == 0}
 
       invocableMissing(name) origin(self)
-
     }
-
-
-
 
 
     method findInheritanceDeclaringContext(name) {
       //debugPrint "findFuckingINHERITANCEMH({name}) in {self}"
       def localDefn = lookupLocal(name)  
-      def useCandidates = findfuckingCandidateMethodHolders(name) parents(useParents)
-      def inheritCandidates = findfuckingCandidateMethodHolders(name) parents(inheritParents)
+      def useCandidates = findfuckingCandidateMethodHolders(name) parents(useParentNodes)
+      def inheritCandidates = findfuckingCandidateMethodHolders(name) parents(inheritParentNodes)
 
       //debugPrint "   (ffinh localDefn) {localDefn}"
       //debugPrint "   (ffinh useCandidates) {useCandidates}"
@@ -356,9 +362,6 @@ class exports {
     method findCandidates(name)parents(parents) {
       def candidates = list
       for (parents) do { parentNode -> 
-        //debugPrint "findCandidates({name}) in {self}"
-        //debugPrint "   excludes {parentNode.excludes}"
-        //debugPrint "   aliases {parentNode.aliases}"
         if (!parentNode.excludes.contains(name)) then {
            def parentName = parentNode.aliases.at(name) ifAbsent{name}
            def parentPartObject = getLocal(parentNode.parentID) 
@@ -369,13 +372,9 @@ class exports {
       candidates    
     }
 
-
     method findfuckingCandidateMethodHolders(name)parents(parents) {
       def candidates = list
       for (parents) do { parentNode -> 
-        //debugPrint "findfuckingCandidatesMH({name}) in {self}"
-        //debugPrint "   excludes {parentNode.excludes}"
-        //debugPrint "   aliases {parentNode.aliases}"
         if (!parentNode.excludes.contains(name)) then {
            def parentName = parentNode.aliases.at(name) ifAbsent{name}
            def parentPartObject = getLocal(parentNode.parentID) 
@@ -385,6 +384,33 @@ class exports {
       } } }
       candidates    
     }
+
+    method findCandidatesInContext(name)parents(parents) {
+      def candidatesInContext  = list
+      for (parents) do { parentNode -> 
+        //debugPrint "findCandidates({name}) in {self}"
+        //debugPrint "   excludes {parentNode.excludes}"
+        //debugPrint "   aliases {parentNode.aliases}"
+        if (!parentNode.excludes.contains(name)) then {
+           def parentName = parentNode.aliases.at(name) ifAbsent{name}
+           def parentPartObject = getLocal(parentNode.parentID) 
+           def parentContext = parentPartObject.findInheritanceDeclaringContext(parentName)
+           def parentDefn = lookupInheritance(parentName) //can do better later?
+           if ((!parentDefn.isMissing) && (!parentDefn.isAbstract)) 
+              then {candidatesInContext.add(
+                      declaration(parentDefn) inContext(parentContext) )
+      } } }
+      candidatesInContext
+    }
+
+
+    //auxilliary class that pairs up declarations and contexts
+    //so we only need one set of lookup code
+    class declaration(d)inContext(c) {
+      method declaration {d}
+      method inContext {c}  //can't be called "context" due do shadowing. grrr
+    }
+      
 
 
     method isMissing(thingy) { 
@@ -423,9 +449,12 @@ class exports {
          then {inheritanceResult}
          else {error "ffIMH ambi-fucked #{dbg} {lexicalResult} {inheritanceResult}"}
     }
+
+    method asString { "objectContext#{dbg}:({status}) {locals.keys}\n!!{ctxt.asString}" }
   }
 
-
+  //a pseudo-context returned when a lookup can't find anything
+  //multiple parent traits...
   class missingContext(name, ctxt) { //dunno if this needs more or not!
     // you tried to look up a context and, well, it was missing
     method asString { "{name} is missing in {ctxt}" }
@@ -433,6 +462,7 @@ class exports {
     method isAmbiguous { false } 
   }
 
+  //a pseduo-context returned when a lookup finds multiple matching definitions
   class ambiguousContext(name, ctxt, mode, possibilies) { //dunno if this needs more or not!
     // you tried to look up a context and, well, it was ambiguous
     method asString { "{mode} {name} is ambiguous in {ctxt} between {possibilities}" }
@@ -649,13 +679,8 @@ class exports {
   //potentially every obejct could be invocable, so we don't need this.
   //too confusing to put in now.
 
-  var imCtr := 0
-
   //what lookup retuns when it doesn't find anything.
   class invocableMissing(name) origin(source) {
-     imCtr := imCtr + 1
-     //debugPrint "imCRT:{imCtr}"
-     //if (imCtr == 700) then { error "CTASH" }
      use common.publicAnnotations
      use changePrivacyAnnotations
      method isMissing { true }
