@@ -353,13 +353,14 @@ class exports {
       missingContext(name,self)
     }
 
-
-
-
-
-
+    
 
     method findCandidates(name)parents(parents) {
+      map { dInC -> dInC.declaration } 
+        over (findCandidatesInContext(name)parents(parents))
+    }
+
+    method XfindCandidates(name)parents(parents) {
       def candidates = list
       for (parents) do { parentNode -> 
         if (!parentNode.excludes.contains(name)) then {
