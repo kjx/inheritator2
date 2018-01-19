@@ -7,9 +7,6 @@ use errors.exports
 
 method debugPrint(string) {}
 
-def MSNG = "missing"
-def AMBG = "ambiguous"
-
 class exports {
   //I really shouldnt' make everything a class family, should I?
   //at least I should explore traits
@@ -153,7 +150,7 @@ class exports {
           return self
           } else {
           //debugPrint "   missing"
-          MSNG
+          missingContext(name,self)
           }
     }
 
@@ -166,6 +163,8 @@ class exports {
     method isInside(other) {self == other}
 
     method asString {"context#{dbg}\n{locals.keys}"}
+    method isMissing { false }
+    method isAmbiguous { false }
   }
 
 
@@ -184,10 +183,6 @@ class exports {
     method asString {
            "lexicalContext#{dbg} {locals.keys}\n!!{ctxt.asString}" }
 
-    method lookupLexical(name){ 
-      //debugPrint "lookupLexical(context) {name} #{dbg} {locals.keys}" 
-      locals.at(name) ifAbsent {ctxt.lookupLexical(name)} 
-      }
 
     method findInternalDeclaringContext(name){ 
       //debugPrint "findInternalDeclaringContext(context) {name} #{dbg} {locals.keys}" 
@@ -342,14 +337,14 @@ class exports {
            else { return self } }  //return the method holder not the method!
 
       if (useCandidates.size == 1) then {return useCandidates.at(1) }
-      if (useCandidates.size > 1) then {AMBG}
+      if (useCandidates.size > 1) then {return ambiguousContext(name,self,"use",useCanidates)}
       assert {useCandidates.size == 0}
 
       if (inheritCandidates.size == 1) then {return inheritCandidates.at(1) }
-      if (inheritCandidates.size > 1) then {AMBG}
+      if (inheritCandidates.size > 1) then {return ambiguousContext(name,self,"inherit",inheritCanidates)}
       assert {inheritCandidates.size == 0}
 
-      MSNG
+      missingContext(name,self)
     }
 
 
@@ -393,19 +388,15 @@ class exports {
 
 
     method isMissing(thingy) { 
-      def rv = match (thingy) 
-        case { (MSNG) -> true }
-        case { (AMBG) -> true } //is this right? probalby NOT
-        case { _ -> false }
-      return rv
-    }
+      match (thingy) 
+        case { _ : type { isMissing } -> thingy.isMissing } 
+        case { _ -> thingy}
+      }
 
     method isAbstract(parentDefn,name) {
       def invocable = parentDefn.locals.at(name)        //CRASH if not found, parentDefn *must be* a method holder!!!
       invocable.isAbstract
     }
-
-    method lookupLexical(name) { lookupInternal(name) }
 
     method findInternalDeclaringContext(name) {
        //debugPrint "findInternalDeclaringContext(object) {name} #{self}" 
@@ -425,22 +416,29 @@ class exports {
        //debugPrint "LEXICAL #{dbg} {lexicalResult} {isMissing(lexicalResult)}"
 
        if (isMissing(lexicalResult) && isMissing(inheritanceResult))
-         then {MSNG}
+         then {missingContext(name, self)}
          elseif {isMissing(inheritanceResult)}
          then {lexicalResult}
          elseif {isMissing(lexicalResult) || (inheritanceResult == lexicalResult)}
          then {inheritanceResult}
          else {error "ffIMH ambi-fucked #{dbg} {lexicalResult} {inheritanceResult}"}
     }
-
-
-
-
-
-
   }
 
 
+  class missingContext(name, ctxt) { //dunno if this needs more or not!
+    // you tried to look up a context and, well, it was missing
+    method asString { "{name} is missing in {ctxt}" }
+    method isMissing { true }
+    method isAmbiguous { false } 
+  }
+
+  class ambiguousContext(name, ctxt, mode, possibilies) { //dunno if this needs more or not!
+    // you tried to look up a context and, well, it was ambiguous
+    method asString { "{mode} {name} is ambiguous in {ctxt} between {possibilities}" }
+    method isMissing { true }
+    method isAmbiguous { true } 
+  }
 
   /////////////////////////////////////////////////////////////
   ////
