@@ -373,9 +373,10 @@ method checker(module) {
 
     //technically this is the "dialect" context  
     //surrounding the module object
-    def ctxt = jeval.newEmptyContext
+    //it should ideally also be a moduleObject (presumably in an empty context)
+    def ctxt = jeval.context
 
-    //should I move these into newEmptyContext?
+    //these should be moved into a new moduleObject class
     ctxt.declareName("self") value(ctxt)
     ctxt.declareName("implicitUninitialised") value(ng.ngUninitialised)
 
@@ -389,8 +390,8 @@ method checker(module) {
     ctxt.declareName("abstract") value(ng.ngBuiltinAnnotation("abstract"))
     ctxt.declareName("override") value(ng.ngBuiltinAnnotation("override"))
 
-    ctxt.declareName("print(_)") raw(ng.ngMethodLambda{ p, creatio -> print(p) })
-    ctxt.declareName("_creatio") raw(false)
+    ctxt.declareName("print(_)") invocable(ng.ngMethodLambda{ p, creatio -> print(p) })
+    ctxt.addLocal("_creatio") slot(false)
 
     def moduleObject = ng.ngObject(moduleBody, ctxt)  //hmmm
 

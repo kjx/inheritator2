@@ -185,17 +185,19 @@ class jeval {
          def rcvr = receiver.eval(ctxt)
          def types = safeFuckingMap { ta -> ta.eval(ctxt) } over(typeArguments)
          def args = safeFuckingMap { a -> a.eval(ctxt) } over(arguments)       
-         def creatio = ctxt.lookup(CREATIO)
+         def creatio = ctxt.getInternal(CREATIO)
          def methodBody = rcvr.lookupExternal(name)
 
          def ImplicitRequestNodeBrand = type { implicitRequestNodeBrand }
 
+         assert {rcvr == rcvr.whole}
+         def mySelf = ctxt.getInternal("self").value
+         def isSpecialRequest = mySelf.isInside(rcvr)
+
+         if (! (methodBody.isPublic || isSpecialRequest)  ) 
+           then {error "External request for confidential attribute {name}"}
+
          //if (!methodBody.isPublic) then {error "External request for confidential attribute {name}"}
-
-         def mySelf = ctxt.lookup("self")
-         def isSpecialRequest = rcvr.lexicallyEncloses(mySelf)
-
-         if (! (methodBody.isPublic || isSpecialRequest)  ) then {error "External request for confidential attribute {name}"}
 
          //def isSpecialRequest = 
          //  ImplicitRequestNodeBrand.match(receiver).andAlso {
@@ -218,7 +220,7 @@ class jeval {
       method eval(ctxt) {
          def types = safeFuckingMap { ta -> ta.eval(ctxt) } over(typeArguments)
          def args = safeFuckingMap { a -> a.eval(ctxt) } over(arguments)       
-         def creatio = ctxt.lookup(CREATIO)
+         def creatio = ctxt.getInternal(CREATIO)
          debugPrint ""
          debugPrint "EVAL lookupInternal ({name}) in {ctxt}"
          def methodBody = ctxt.lookupInternal(name) 
@@ -233,10 +235,10 @@ class jeval {
       inherit jReturnNode( value' ) at( source )
       
       method eval(ctxt) {
-          def returnCreatio = ctxt.lookup(RETURNCREATIO)
+          def returnCreatio = ctxt.getInternal(RETURNCREATIO)
           def subtxt = ctxt.subcontext
-          subtxt.declareName(CREATIO) raw( returnCreatio ) 
-          ctxt.lookup(RETURNBLOCK).apply( value.eval(subtxt) )
+          subtxt.addLocal(CREATIO) slot( returnCreatio ) 
+          ctxt.getInternal(RETURNBLOCK).apply( value.eval(subtxt) )
       }
  }
 
@@ -270,5 +272,5 @@ class jeval {
   }  
 
 
-  method newEmptyContext { ng.newEmptyContext }
+  method context { ng.context }
 }

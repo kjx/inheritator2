@@ -28,11 +28,11 @@ class exports {
   class progn (body) {
      method eval(ctxt) { 
        var bodyContext
-       if (false == ctxt.lookup(CREATIO)) then {
+       if (false == ctxt.getInternal(CREATIO)) then {
           bodyContext := ctxt
        } else { 
           bodyContext := ctxt.subcontext
-          bodyContext.declareName(CREATIO) raw(false) 
+          bodyContext.addLocal(CREATIO) slot(false) 
        }
        var rv := ngDone
        for (body) doWithLast { 
@@ -41,11 +41,11 @@ class exports {
      }
      method build(ctxt) {
        var bodyContext
-       if (false == ctxt.lookup(CREATIO)) then {
+       if (false == ctxt.getInternal(CREATIO)) then {
           bodyContext := ctxt
        } else { 
           bodyContext := ctxt.subcontext
-          bodyContext.declareName(CREATIO) raw(false) 
+          bodyContext.addLocal(CREATIO) slot(false) 
        }
        var rv := ngDone
        for (body) doWithLast {
@@ -59,7 +59,7 @@ class exports {
   /////////////////////////////////////////////////////////////
   /////////////////////////////////////////////////////////////
   ////
-  //// NGO - nano-grace objects.
+  //// CONTEXT - nano-grace objects.
   ////
   /////////////////////////////////////////////////////////////
   /////////////////////////////////////////////////////////////
@@ -68,95 +68,88 @@ class exports {
 
 
   //for debugging
-  var ngoCounter is public := 0
+  var contextCounter is public := 0
 
-  // ngo?? shold be ngContext? - perhaps that's a better name!
+  // context?? shold be ngContext? - perhaps that's a better name!
   // basically a list of local "slots", can declare things, 
   // can look things up.
-  // ngo is an **abstract class**
-  class ngo { 
-    method kind {"ngo"}
-    def dbgCounter is readable = ngoCounter
-    ngoCounter:= ngoCounter + 1
+  // context is an **abstract class**
+
+  class context { 
+    method kind {"context"}
+    def dbg is readable = contextCounter
+    contextCounter:= contextCounter + 1
 
     def locals :  Dictionary[[String,Invocable]] 
-        is public     //evil evil making this public.
+        is readable     //evil evil making this readable
         = dictionary[[String,Invocable]]
 
-
-
     ////////////////////////////////////////////////////////////
-    //// declaraing stuff
+    //// local declarations 
 
     method declareName(name) invocable ( invocable ) { 
-      addLocal(name) slot(invocable)
-    }
-    method declareDef(name) properties(properties) {
-      def box = ngDefBox(name) properties(properties)
-      addLocal(name) slot(box) 
-    }
-    method declareVar(name) properties(properties) {
-      def setterName = name ++ ASSIGNMENT_TAIL
-      def box = ngVarBox(name) properties(properties)
-      addLocal(name) slot(box) 
-      addLocal(setterName) slot(box.setter) 
-    }
-    //bind a value to a name - for things like self, arguments, things that 
-    //the interpreter already has to hand, that DON'T need to be initialised
-    method declareName(name) value(value) {
-        addLocal(name) slot(invocableValue(value))
-    }
-    //evil method for e.g. sticking in things that ARENT invocable
-    //notably, creatios, returncreatios, etc. kind of evil
-    method declareName(name) raw(rawValue) {
-        locals.at(name) put(rawValue)
-    }
-
-    //hook method
-    method addLocal(name) slot(m) is confidential { 
-      if (locals.containsKey(name))
+      if ( hasLocal(name) )
         then { error "trying to declare {name} more than once" }
         elseif { checkForShadowing(name) }
         then { error "{name} shadows lexical definition" }
-        else { locals.at(name) put(m) }
+        else { addLocal(name) slot(invocable) }
     }
 
     method checkForShadowing(name) is confidential { false } //TODO shadowing checks go here!
 
+    method declareDef(name) properties(properties) {
+      def box = ngDefBox(name) properties(properties)
+      declareName(name) invocable(box) 
+    }
+    method declareVar(name) properties(properties) {
+      def setterName = name ++ ASSIGNMENT_TAIL
+      def box = ngVarBox(name) properties(properties)
+      declareName(name) invocable(box) 
+      declareName(setterName) invocable(box.setter) 
+    }
+    //bind a value to a name - for things like self, arguments, things that 
+    //the interpreter already has to hand, that DON'T need to be initialised
+    method declareName(name) value(value) {
+        declareName(name) invocable(invocableValue(value))
+    }
+
+    //accessing local declarations
+    method addLocal(name) slot(m) { locals.at(name) put(m) }
+    method hasLocal(name) { locals.containsKey(name) }
+    method getLocal(name) { lookupLocal(name) ifAbsent { error "local {name} missing in #{dbg}"} }
+    method lookupLocal(name) ifAbsent(block) { locals.at(name) ifAbsent(block) }
+    method lookupLocal(name) {
+       lookupLocal(name) ifAbsent { invocableMissing(name) origin ("local in #{dbg}") } }
 
     ////////////////////////////////////////////////////////////
-    //// lookup
-
-    //generic lookup. crashes if not foun
-    //use for pseudo-variables within the interpreter - self, outer, CREATIO etc
-    //should *not* need to be overridden. really. 
-    method lookup(name){
+    //// lookups
+    ////
+    ////  getX crashes if not found
+    ////  lookupX returns a missing invocable (or whatever)
+    ////  findXDeclaringPart returns the context (which may be an object)
+    ////      that has the declaration of attribute
+    ////  External lookups only look at inheritance, Internal looks consider nesting also
+    
+    method getInternal(name){
+      //debugPrint "getInternal({name}) #{dbg}"
       def rv = lookupInternal(name)
       match (rv) 
         case { _ : type { isMissing } -> 
           if (rv.isMissing) then { error: "{name} is missing from {self}" } }
         case { _ -> rv }
+      //debugPrint "getInternal({name}) #{dbg} => {rv}"
+      rv
+      }
+    method lookupInternal(name) {
+      def mh = findInternalDeclaringContext(name)
+      def whole = mh.whole
+      whole.lookupInheritance(name) 
       }
 
-    //lookup purely in local declarations - no inheritance or context
-    //mostly used e.g to find the def or var box to initalise;
-    //only do c.lookupLocal(n) right after c.addLocal(n)slot(s)
-    method lookupLocal(name) is notOverrideable { 
-      //debugPrint "lookupLocal({name}) {kind}#{dbgCounter}"
-      locals.at(name) ifAbsent {invocableMissing(name) origin ("Llexical in #{dbgCounter}")}}
-      
-    //like lookupLocal but crashes on error
-    method getLocal(name){ locals.at(name)  }
-
-    //called to get only lexical responses for e.g. inheritance vs lexical resolution
-    method lookupLexical(name) {lookupLocal(name)}
-
-    //called by treewalker for intl and extl requests, resp.
-    //needed for actual objects (incl primitives, singletons)
-    method findFuckingInternalMethodHolder(name){          
-       //debugPrint "findFuckingInternalMethodHolder(ngo) {name} #{dbgCounter} {locals.keys}" 
+    method findInternalDeclaringContext(name){          
+       //debugPrint "findInternalDeclaringContext(context) {name} #{dbg} {locals.keys}" 
        if (locals.containsKey(name)) then {
-          //debugPrint "  found localMH {name} ngo#{dbgCounter}"
+          //debugPrint "  found localMH {name} context#{dbg}"
           return self
           } else {
           //debugPrint "   missing"
@@ -164,20 +157,15 @@ class exports {
           }
     }
 
-    method whole {self}  //general fuckedness
 
-    method lookupObject(name) { lookupLocal(name) }
-    method lookupInternal(name) {
-           def mh = findFuckingInternalMethodHolder(name)
-           //debugPrint "LImh={mh}"
-           def whole = mh.whole
-           whole.lookupObject(name)  //who the fuck can explain this?
-           }
-    method lookupExternal(name) {lookupObject(name)}
-    method asString {"ngo#{dbgCounter}\n{locals.keys}"}
+    method lookupExternal(name) {lookupInheritance(name)}
+    method lookupInheritance(name) {lookupLocal(name)} 
+    method whole {self} 
 
+    method subcontext {lexicalContext(self)}
+    method isInside(other) {self == other}
 
-    method lexicallyEncloses(other) {self == other}
+    method asString {"context#{dbg}\n{locals.keys}"}
   }
 
 
@@ -187,37 +175,31 @@ class exports {
   ////
   /////////////////////////////////////////////////////////////
 
-  class newEmptyContext { //needs a better name - could jsut get rit of it.
-    inherit ngo
-    method kind {"newEmptyContext"}
-    method asString {"newEmptyContext#{dbgCounter} {locals.keys}"}
-    method subcontext {lexicalContext(self)}
-  } 
 
   class lexicalContext(ctxt) { 
-    inherit newEmptyContext 
+    inherit context
         
     method kind {"lexicalContext"}
 
     method asString {
-           "lexicalContext#{dbgCounter} {locals.keys}\n!!{ctxt.asString}" }
+           "lexicalContext#{dbg} {locals.keys}\n!!{ctxt.asString}" }
 
     method lookupLexical(name){ 
-      //debugPrint "lookupLexical(context) {name} #{dbgCounter} {locals.keys}" 
+      //debugPrint "lookupLexical(context) {name} #{dbg} {locals.keys}" 
       locals.at(name) ifAbsent {ctxt.lookupLexical(name)} 
       }
 
-    method findFuckingInternalMethodHolder(name){ 
-      //debugPrint "findFuckingInternalMethodHolder(context) {name} #{dbgCounter} {locals.keys}" 
+    method findInternalDeclaringContext(name){ 
+      //debugPrint "findInternalDeclaringContext(context) {name} #{dbg} {locals.keys}" 
       if (locals.containsKey(name)) then {
-          //debugPrint "  found localMH {name} lexC#{self.dbgCounter}"
+          //debugPrint "  found localMH {name} lexC#{self.dbg}"
           self
           } else {
-          //debugPrint "  not found going up to #{ctxt.dbgCounter}"
-          ctxt.findFuckingInternalMethodHolder(name)} 
+          //debugPrint "  not found going up to #{ctxt.dbg}"
+          ctxt.findInternalDeclaringContext(name)} 
           }
 
-    method lexicallyEncloses(other) {(self == other) || ctxt.lexicallyEncloses(other)}
+    method isInside(other) {(self == other) || ctxt.isInside(other)}
     }
   
 
@@ -235,15 +217,15 @@ class exports {
 
     var status is readable := "embryo"
 
-    method asString { "ngObject#{dbgCounter}:({status}) {locals.keys}\n!!{ctxt.asString}" }
+    method asString { "ngObject#{dbg}:({status}) {locals.keys}\n!!{ctxt.asString}" }
 
 
 
-    def creatio = ctxt.lookup(CREATIO)
+    def creatio = ctxt.getInternal(CREATIO)
     def bottomMost = (false == creatio)
     def whole is public = (if (bottomMost) then {self} else {creatio})
 
-    declareName "outer" value( ctxt.lookup("self" ) ) // we haven't declared self yet so the enclosing self...
+    declareName "outer" value( ctxt.getInternal("self" ) ) // we haven't declared self yet so the enclosing self...
     declareName "self" value(whole) //does this make sense? - seems to
 
     //start on inheritance --- list of parent part objects
@@ -255,7 +237,7 @@ class exports {
     var parentRequestContext := ctxt 
     if (bottomMost) then { 
          parentRequestContext := ctxt.subcontext
-         parentRequestContext.declareName(CREATIO) raw(self)  
+         parentRequestContext.addLocal(CREATIO) slot(self)  
     }
 
     //add a parent - recuse if necessary.
@@ -266,21 +248,21 @@ class exports {
         case { "use" -> useParents.add(parentNode) }
         case { _ -> error "NOT COBOL!" }
 
-      //debugPrint "addParent {parentNode.request.name} to#{self.dbgCounter} ctxt#{parentRequestContext.dbgCounter}"
+      //debugPrint "addParent {parentNode.request.name} to#{self.dbg} ctxt#{parentRequestContext.dbg}"
       //debugPrint "{parentRequestContext}"
 
       //need to *evaluate* the parent's request in the parentRequestContext context
       // (with creatio argument set) so it knows its not the bottom
       // get back a "part object" that has been built() but not yet eval()
 
-      //debugPrint "\nOBJECT parental request {parentNode.request.name} self#{dbgCounter} {parentRequestContext}"
+      //debugPrint "\nOBJECT parental request {parentNode.request.name} self#{dbg} {parentRequestContext}"
       def parentalPartObject = parentNode.request.eval(parentRequestContext) 
       assert {parentalPartObject.status == "part"}
       assert {parentalPartObject.whole == whole}
 
       //store it at the parentID
-      declareName(parentNode.parentID) raw(parentalPartObject)
-      //debugPrint "PARENT {parentNode.parentID} #{parentalPartObject.dbgCounter}"
+      addLocal(parentNode.parentID) slot(parentalPartObject)
+      //debugPrint "PARENT {parentNode.parentID} #{parentalPartObject.dbg}"
     }
     
     for (body) do { e -> e.build(self) } 
@@ -308,8 +290,6 @@ class exports {
       }
     }
     status := "cooked" //i.e. OK to go! 
-
-    method lookupObject(name) { lookupInheritance(name) }
 
     method lookupInheritance(name) {
       //debugPrint "lookupInheritance({name}) in {self}"
@@ -344,7 +324,7 @@ class exports {
 
 
 
-    method findFuckingInheritanceMethodHolder(name) {
+    method findInheritanceDeclaringContext(name) {
       //debugPrint "findFuckingINHERITANCEMH({name}) in {self}"
       def localDefn = lookupLocal(name)  
       def useCandidates = findfuckingCandidateMethodHolders(name) parents(useParents)
@@ -403,7 +383,7 @@ class exports {
         if (!parentNode.excludes.contains(name)) then {
            def parentName = parentNode.aliases.at(name) ifAbsent{name}
            def parentPartObject = getLocal(parentNode.parentID) 
-           def parentDefn = parentPartObject.findFuckingInheritanceMethodHolder(parentName)
+           def parentDefn = parentPartObject.findInheritanceDeclaringContext(parentName)
            if (!isMissing(parentDefn)) then {
               candidates.add(parentDefn)  //should deal with abstract!
       } } }
@@ -426,22 +406,22 @@ class exports {
 
     method lookupLexical(name) { lookupInternal(name) }
 
-    method findFuckingInternalMethodHolder(name) {
-       //debugPrint "findFuckingInternalMethodHolder(object) {name} #{self}" 
+    method findInternalDeclaringContext(name) {
+       //debugPrint "findInternalDeclaringContext(object) {name} #{self}" 
        if (locals.containsKey(name)) then {
-          //debugPrint "   (ffimh found localMH {name} obj#{dbgCounter}"
+          //debugPrint "   (ffimh found localMH {name} obj#{dbg}"
           return self
           }
-       //debugPrint "   (ffimh local #{dbgCounter}) NOT FOUND"
+       //debugPrint "   (ffimh local #{dbg}) NOT FOUND"
 
-       def inheritanceResult = findFuckingInheritanceMethodHolder(name)
-       //debugPrint "   (ffimh inheritance #{dbgCounter}) {inheritanceResult}"
+       def inheritanceResult = findInheritanceDeclaringContext(name)
+       //debugPrint "   (ffimh inheritance #{dbg}) {inheritanceResult}"
 
-       def lexicalResult = ctxt.findFuckingInternalMethodHolder(name)
-       //debugPrint "   (ffimh lexical #{dbgCounter}) {lexicalResult}"
+       def lexicalResult = ctxt.findInternalDeclaringContext(name)
+       //debugPrint "   (ffimh lexical #{dbg}) {lexicalResult}"
 
-       //debugPrint "INHERIT #{dbgCounter} {inheritanceResult} {isMissing(inheritanceResult)}"
-       //debugPrint "LEXICAL #{dbgCounter} {lexicalResult} {isMissing(lexicalResult)}"
+       //debugPrint "INHERIT #{dbg} {inheritanceResult} {isMissing(inheritanceResult)}"
+       //debugPrint "LEXICAL #{dbg} {lexicalResult} {isMissing(lexicalResult)}"
 
        if (isMissing(lexicalResult) && isMissing(inheritanceResult))
          then {MSNG}
@@ -449,7 +429,7 @@ class exports {
          then {lexicalResult}
          elseif {isMissing(lexicalResult) || (inheritanceResult == lexicalResult)}
          then {inheritanceResult}
-         else {error "ffIMH ambi-fucked #{dbgCounter} {lexicalResult} {inheritanceResult}"}
+         else {error "ffIMH ambi-fucked #{dbg} {lexicalResult} {inheritanceResult}"}
     }
 
 
@@ -468,9 +448,9 @@ class exports {
   /////////////////////////////////////////////////////////////
 
   class ngPrimitive {
-    inherit ngo
+    inherit context
 
-    method lookupObject(name) { lookupLocal(name) }  //primitives only have local slots
+    method lookupInheritance(name) { lookupLocal(name) }  //primitives only have local slots
   }
   
   class ngNumber( value' ) {
@@ -507,13 +487,12 @@ class exports {
      method value {value'}
      method asString { 
         def sigs = safeFuckingMap { sig -> sig.name } over (value.signatures)
-        "ngInterface: #{dbgCounter} {sigs}"}
+        "ngInterface: #{dbg} {sigs}"}
   }
 
   class ngBlock(blockNode,ctxt) {
      inherit lexicalContext(ctxt)
-     method lookupObject(name) { lookupLocal(name) }
-     method asString { "\{a ngBlock\} #{dbgCounter}" }
+     method asString { "\{a ngBlock\} #{dbg}" }
      method kind {"ngBlock"}
      def p = blockNode.parameters.asList
      def name = match (p.size)
@@ -631,13 +610,13 @@ class exports {
        def subtxt = ctxt.subcontext
        if (args.size != params.size) then {error "arg mismatch"}
        for (params.indices) do { i -> subtxt.declareName(params.at(i).name) value(args.at(i)) }
-       subtxt.declareName(CREATIO) raw(creatio) 
-       subtxt.declareName(RETURNBLOCK) raw {rv -> return rv} 
-       subtxt.declareName(RETURNCREATIO) raw (creatio) 
+       subtxt.addLocal(CREATIO) slot(creatio) 
+       subtxt.addLocal(RETURNBLOCK) slot {rv -> return rv} 
+       subtxt.addLocal(RETURNCREATIO) slot (creatio) 
        prognBody.build(subtxt)
        prognBody.eval(subtxt)
      }
-     method asString {"ngMethod: {methodNode.signature.name} #{ctxt.dbgCounter}"}
+     method asString {"ngMethod: {methodNode.signature.name} #{ctxt.dbg}"}
   }
 
   class ngBlockMethod(blockNode) inContext(ctxt) {
@@ -649,7 +628,7 @@ class exports {
        def subtxt = ctxt.subcontext
        if (args.size != params.size) then {error "arg mismatch"}
        for (params.indices) do { i -> subtxt.declareName(params.at(i).name) value(args.at(i)) }
-       subtxt.declareName(CREATIO) raw(creatio) 
+       subtxt.addLocal(CREATIO) slot(creatio) 
        prognBody.build(subtxt)
        prognBody.eval(subtxt)
       }
@@ -657,14 +636,15 @@ class exports {
   }
 
 
-  //a ngo value bound to a name in a context. already initialised! 
-  class invocableValue(value) {
+  //a ng value bound to a name in a context. already initialised! 
+  class invocableValue(value') {
      use common.confidentialAnnotations
      use changePrivacyAnnotations
      method invoke(this) args(args) types(typeArgs) creatio(creatio) {
        assert {(args.size == 0) && (typeArgs.size == 0) && (false == creatio)}
        value
      }
+     method value { value' }
      method asString {"invocableValue: {value}"}
   } 
   //potentially every obejct could be invocable, so we don't need this.
