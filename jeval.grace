@@ -165,7 +165,7 @@ class jeval {
           def annots = safeFuckingMap { a -> a.eval(ctxt) } over(annotations)
           def properties = common.processAnnotations(annots,true)
           ctxt.declareName(signature.name) 
-                 invocable (ng.ngMethod(self) inContext(ctxt) properties(properties))
+                 invocable (ng.invocableMethod(self) properties(properties) inContext(ctxt) )
           ng.ngDone
       }      
       method eval(_) { ng.ngDone }

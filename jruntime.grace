@@ -3,11 +3,26 @@ import "combinator-collections" as c
 use c.abbreviations
 import "jerrors" as errors
 use errors.exports
+import "jinvocables" as invocables
+import "jprimitives" as primitives
 
 
 method debugPrint(string) {}
 
+
+class earlyDefinitions { 
+  type NGO = Unknown
+
+  //for debugging
+  var contextCounter is public := 0
+}
+
 class exports {
+  inherit earlyDefinitions
+  inherit primitives.primitivesFamily
+  inherit invocables.invocablesFamily
+  
+
   //I really shouldnt' make everything a class family, should I?
   //at least I should explore traits
 
@@ -61,12 +76,6 @@ class exports {
   /////////////////////////////////////////////////////////////
   /////////////////////////////////////////////////////////////
 
-  type NGO = Unknown
-
-
-  //for debugging
-  var contextCounter is public := 0
-
 
   // a context is a scope where you can declare things,
   // and look them up.  Subclasses get more complex, 
@@ -98,14 +107,14 @@ class exports {
 
     //declare a Def which must later be initialised
     method declareDef(name) properties(properties) {
-      def box = ngDefBox(name) properties(properties)
+      def box = invocableDef(name) properties(properties) inContext(self)
       declareName(name) invocable(box) 
     }
 
     //declare a Var which must later be initialised
     method declareVar(name) properties(properties) {
       def setterName = name ++ ASSIGNMENT_TAIL
-      def box = ngVarBox(name) properties(properties)
+      def box = invocableVar(name) properties(properties) inContext(self)
       declareName(name) invocable(box) 
       declareName(setterName) invocable(box.setter) 
     }
@@ -113,17 +122,23 @@ class exports {
     //bind a value to a name - for things like arguments, that 
     //the interpreter already has to hand, that DON'T need to be initialised
     method declareName(name) value(value) {
-        declareName(name) invocable(invocableValue(value))
+        declareName(name) invocable(invocableValue(value) inContext(self))
     }
+
+    //bind an host-interpreter lambda to a name - typically for primitives
+    method declareName(name) lambda(lambda) {
+        declareName(name) invocable(invocableLambda(lambda) inContext(self))
+    }
+
 
     //accessing local declarations
     method addLocal(name) slot(m) { locals.at(name) put(m) }
-    method addLocal(name) value(m) { locals.at(name) put(invocableValue(m)) }
+    method addLocal(name) value(m) { locals.at(name) put(invocableValue(m) inContext(self)) }
     method hasLocal(name) { locals.containsKey(name) }
     method getLocal(name) { lookupLocal(name) ifAbsent { error "local {name} missing in #{dbg}"} }
     method lookupLocal(name) ifAbsent(block) { locals.at(name) ifAbsent(block) }
     method lookupLocal(name) {
-       lookupLocal(name) ifAbsent { invocableMissing(name) origin ("local in #{dbg}") } }
+       lookupLocal(name) ifAbsent { invocableMissing(name) inContext(self) } }
 
     ////////////////////////////////////////////////////////////
     //// lookups
@@ -320,15 +335,15 @@ class exports {
            else { return localDefn } }
 
       if (useCandidates.size == 1) then {return useCandidates.at(1) }
-      if (useCandidates.size > 1) then {return invocableAmbiguous(name) origin(self) between(useCandidates)}
+      if (useCandidates.size > 1) then {return invocableAmbiguous(name) inContext(self) between(useCandidates)}
       assert {useCandidates.size == 0}
 
 
       if (inheritCandidates.size == 1) then {return inheritCandidates.at(1) }
-      if (inheritCandidates.size > 1) then {return invocableAmbiguous(name) origin(self) between(inheritCandidates)}
+      if (inheritCandidates.size > 1) then {return invocableAmbiguous(name) inContext(self) between(inheritCandidates)}
       assert {inheritCandidates.size == 0}
 
-      invocableMissing(name) origin(self)
+      invocableMissing(name) inContext(self)
     }
     
     method findInheritanceInContext(name) { 
@@ -344,15 +359,15 @@ class exports {
            else { return localCandidate } }
 
       if (useCandidates.size == 1) then {return useCandidates.at(1) }
-      if (useCandidates.size > 1) then {return declaration(invocableAmbiguous(name) origin(self) between(useCandidates))inContext(ambiguousContext(name,self,"use",useCanidates))}
+      if (useCandidates.size > 1) then {return declaration(invocableAmbiguous(name) inContext(self) between(useCandidates))inContext(ambiguousContext(name,self,"use",useCanidates))}
       assert {useCandidates.size == 0}
 
 
       if (inheritCandidates.size == 1) then {return inheritCandidates.at(1) }
-      if (inheritCandidates.size > 1) then {return declaration(invocableAmbiguous(name) origin(self) between(inheritCandidates))inContext(ambiguousContext(name,self,"inherit",inheritCanidates))}
+      if (inheritCandidates.size > 1) then {return declaration(invocableAmbiguous(name) inContext(self) between(inheritCandidates))inContext(ambiguousContext(name,self,"inherit",inheritCanidates))}
       assert {inheritCandidates.size == 0}
 
-      declaration(invocableMissing(name) origin(self))inContext(self)
+      declaration(invocableMissing(name) inContext(self))inContext(self)
      }
 
 
@@ -374,11 +389,11 @@ class exports {
            else { return self } }  //return the method holder not the method!
 
       if (useCandidates.size == 1) then {return useCandidates.at(1) }
-      if (useCandidates.size > 1) then {return declaration(invocableAmbiguous(name) origin(self) between(useCandidates))inContext(ambiguousContext(name,self,"use",useCanidates))}
+      if (useCandidates.size > 1) then {return declaration(invocableAmbiguous(name) inContext(self) between(useCandidates))inContext(ambiguousContext(name,self,"use",useCanidates))}
       assert {useCandidates.size == 0}
 
       if (inheritCandidates.size == 1) then {return inheritCandidates.at(1) }
-      if (inheritCandidates.size > 1) then {return declaration(invocableAmbiguous(name) origin(self) between(inheritCandidates))inContext(ambiguousContext(name,self,"inherit",inheritCanidates))}
+      if (inheritCandidates.size > 1) then {return declaration(invocableAmbiguous(name) inContext(self) between(inheritCandidates))inContext(ambiguousContext(name,self,"inherit",inheritCanidates))}
       assert {inheritCandidates.size == 0}
 
       missingContext(name,self)
@@ -509,291 +524,6 @@ class exports {
     method asString { "{mode} {name} is ambiguous in {ctxt} between {possibilities}" }
     method isMissing { true }
     method isAmbiguous { true } 
-  }
-
-  /////////////////////////////////////////////////////////////
-  ////
-  //// primitivies
-  ////
-  /////////////////////////////////////////////////////////////
-
-  class ngPrimitive {
-    inherit context
-
-    method lookupInheritance(name) { lookupLocal(name) }  //primitives only have local slots
-  }
-  
-  class ngNumber( value' ) {
-     inherit ngPrimitive
-     method kind {"ngNumber"}
-     method value {value'}
-     method asString { "ngNumber: {value}"}
-
-     declareName "+(_)" invocable( ngMethodLambda { other, creatio ->  
-                    def rv = ngNumber(value' + other.value)
-                    rv } )
-
-     declareName "asString" invocable( ngMethodLambda { creatio ->  
-                    def rv = ngString(value'.asString)
-                    rv } )
-  }
-
-  class ngString( value' ) {
-     inherit ngPrimitive
-     method kind {"ngString"}
-     method value {value'}
-     method asString { "ngString: {value}"}
-
-     declareName "++(_)" invocable( ngMethodLambda { other, creatio ->  
-                    def rv = ngString(value' ++ other.value)
-                    rv } )
-
-  }
-
-  class ngInterface( value', ctxt ) {   
-            //cheating, just points to ast node - and context
-     inherit ngPrimitive
-     method kind {"ngINrerface"}
-     method value {value'}
-     method asString { 
-        def sigs = safeFuckingMap { sig -> sig.name } over (value.signatures)
-        "ngInterface: #{dbg} {sigs}"}
-  }
-
-  class ngBlock(blockNode,ctxt) {
-     inherit lexicalContext(ctxt)
-     method asString { "\{a ngBlock\} #{dbg}" }
-     method kind {"ngBlock"}
-     def p = blockNode.parameters.asList
-     def name = match (p.size)
-       case { 0 -> "apply" }
-       case { 1 -> "apply(_)" }
-       case { 2 -> "apply(_,_)" }
-       case { 3 -> "apply(_,_,_)" }
-       case { 4 -> "apply(_,_,_,_)" }
-       case { 5 -> "apply(_,_,_,_,_)" }
-       case { _ -> error "CANT BE BOTHERED TO APPLY MORE VARARGS" }
-
-     declareName(name) invocable (ngBlockMethod(blockNode) inContext(ctxt))
-  }
-
-  /////////////////////////////////////////////////////////////
-  ////
-  //// singletons
-  ////
-  /////////////////////////////////////////////////////////////
-
-
-  def ngDone is public = object {
-     inherit ngPrimitive
-     method kind{"ngDone"}
-     method asString { "ngDone"}
-  }
-
-  def ngBuild is public = object {
-     inherit ngPrimitive
-     method kind {"ngBUild"}
-     method asString { "ngBuild"} //result returned from build. always an error.
-  }
-
-  def ngUninitialised is public = object {
-     inherit ngPrimitive
-     method kind {"ngUninit"}
-     method asString { "ngUninitialised" } //also an error if accessed
-  }
-
-  def ngImplicitUnknown is public = object {
-     inherit ngPrimitive
-     method kind {"ngImplicitU"}
-     method asString { "ngImplicitUnknown" } 
-  }
-
-  class ngBuiltinAnnotation(description' : String) {
-     inherit ngPrimitive                         
-     method kind {"ngBuiltinAnnotation"}
-     method asString { "ngBuiltinAnnotation(\"{description}\")" } 
-     method description { description' }
-  }
-
-
-  //////////////////////////////////////////////////////////////////////
-  //////////////////////////////////////////////////////////////////////
-  //////// Invocables
-  //////// Invocables
-  //////// Invocables
-  //////////////////////////////////////////////////////////////////////
-  //////////////////////////////////////////////////////////////////////
-
-  type Invocable = { 
-      invoke(this: NGO) args(args: Sequence[[NGO]]) types(typeArgs: Sequence[[NGO]]) creatio(creatio) -> NGO
-      isPublic -> Boolean
-      isAbstract -> Boolean
-      isOverride -> Boolean
-      isMissing -> Boolean //usually false. TRUE if lookup failed!!
-      asPublic(Boolean) -> Invocable
-  }
-
-
-  class ngDefBox(origin) properties(properties) {
-     use common.annotationsTrait(properties)
-     use changePrivacyAnnotations
-     assert {!properties.isAbstract} because "A field can't be abstract"
-     var boxValue := ngUninitialised
-     method initialValue:= (initialValue) {
-        if (boxValue != ngUninitialised) then { error "can't initialise initailsed box" }
-        boxValue := initialValue
-     }
-     method invoke(this) args(args) types(typeArgs) creatio(_) {
-        assert {args.size == 0}
-        assert {typeArgs.size == 0}
-        if (ngUninitialised == boxValue) then { error "can't access uninitailsed box" }
-        boxValue
-     }
-     method asString {"ngDefBox: {origin} = {boxValue}"}
-
-  }
-
-  class ngVarBox(origin) properties(properties) {
-     inherit ngDefBox(origin) properties(properties.getter)
-       alias defInvoke(_)args(_)types(_)creatio(_) = invoke(_)args(_)types(_)creatio(_)
-     method asString {"ngVarBox (getter): {origin} := {boxValue}"}
-     
-     def setter is public = object {
-       use common.annotationsTrait(properties.setter)
-       method asString {"ngVarBox (setter): {origin} := {boxValue}"}
-       method invoke(this) args(args) types(typeArgs) creatio(creatio) {
-          assert {args.size == 1}
-          assert {typeArgs.size == 0}
-          boxValue:= args.at(1)
-          ngDone
-         }
-     }
-  }
-
-  //an invocable method..
-  class ngMethod(methodNode) inContext(ctxt) properties(properties) {
-     use common.annotationsTrait(properties)
-     use changePrivacyAnnotations
-     method contextImIn { ctxt }
-     method invoke(this) args(args) types(typeArgs) creatio(creatio) {
-       def params = methodNode.signature.parameters.asList
-       def prognBody = progn(methodNode.body)
-       def subtxt = ctxt.subcontext
-       if (args.size != params.size) then {error "arg mismatch"}
-       for (params.indices) do { i -> subtxt.declareName(params.at(i).name) value(args.at(i)) }
-       subtxt.addLocal(CREATIO) slot(creatio) 
-       subtxt.addLocal(RETURNBLOCK) slot {rv -> return rv} 
-       subtxt.addLocal(RETURNCREATIO) slot (creatio) 
-       prognBody.build(subtxt)
-       prognBody.eval(subtxt)
-     }
-     method asString {"ngMethod: {methodNode.signature.name} #{ctxt.dbg}"}
-  }
-
-  class ngBlockMethod(blockNode) inContext(ctxt) {
-     use common.publicAnnotations
-     use changePrivacyAnnotations
-     method invoke(this) args(args) types(typeArgs) creatio(creatio) {
-       def params = blockNode.parameters.asList
-       def prognBody = progn(blockNode.body)
-       def subtxt = ctxt.subcontext
-       if (args.size != params.size) then {error "arg mismatch"}
-       for (params.indices) do { i -> subtxt.declareName(params.at(i).name) value(args.at(i)) }
-       subtxt.addLocal(CREATIO) slot(creatio) 
-       prognBody.build(subtxt)
-       prognBody.eval(subtxt)
-      }
-     method asString {"ngBlockMethod"}
-  }
-
-
-  //a ng value bound to a name in a context. already initialised! 
-  class invocableValue(value') {
-     use common.confidentialAnnotations
-     use changePrivacyAnnotations
-     method invoke(this) args(args) types(typeArgs) creatio(creatio) {
-       assert {(args.size == 0) && (typeArgs.size == 0) && (false == creatio)}
-       value
-     }
-     method value { value' }
-     method asString {"invocableValue: {value}"}
-  } 
-  //potentially every obejct could be invocable, so we don't need this.
-  //too confusing to put in now.
-
-  //what lookup retuns when it doesn't find anything.
-  class invocableMissing(name) origin(source) {
-     use common.publicAnnotations
-     use changePrivacyAnnotations
-     method isMissing { true }
-     method invoke(this) args(args) types(typeArgs) creatio(creatio) {  
-        error "{name} is missing from {source}"
-     }
-     method asString {"invocableMIssing: {name}"}
-  }
-
-  //what lookup retuns when it doesn't find anything.
-  class invocableAmbiguous(name) origin(source) between(possiblities) {
-     inherit invocableMissing(name) origin(source)
-     method invoke(this) args(args) types(typeArgs) creatio(creatio) {  
-        error "{name} is ambiguous at {source} between {possibilities}"
-     }
-     method asString {"inocableAmbiguous {name}"}
-  }
-
-
-  //behaviour to change privacy annotations 
-  trait changePrivacyAnnotations {
-    method asPublic(shouldBePublic : Boolean) { 
-      if (isPublic == shouldBePublic) 
-         then {self}
-         else {invocableWrapper(self) privacy(shouldBePublic)}
-    }
-  }
-
-  //proxy to change an invocable's privacy
-  class invocableWrapper(subject) privacy(shouldBePublic) {
-    assert (self.isPublic != shouldBePublic)  //or else shouldn't be here
-    method isPublic { shouldBePublic }
-    method asPublic(shouldBePublic : Boolean) {
-      if (isPublic == shouldBePublic) 
-         then {self}
-         elseif {subject.isPublic == shouldBePublic}
-         then {subject}
-         else { error "asPublic(_): should never happen - excluded middle" }
-    }
-    method isOverride { subject.isOverride }
-    method isAbstract { subject.isAbstract }
-    method isMissing { subject.isMissing }
-    method invoke(this) args(args) types(typeArgs) creatio(creatio) {
-      subject.invoke(this) args(args) types(typeArgs) creatio(creatio) }
-    method asString {"inocableWrapper {subject}"}
-  }
-
-
-  //old style invocable that wraps a lambda block; 
-  //blocks takes arguments plus creatio. 
-  //use for primitives but otherwise avoid
-  class ngMethodLambda(lambda) {
-    use common.publicAnnotations
-    use changePrivacyAnnotations
-    method invoke(this) args(args) types(typeArgs) creatio(creatio) {
-      applyVarargs(lambda,args,creatio)
-    }
-    //apply the block to the LIST of arguments from the interpreter
-    //args are already evaluated
-    method applyVarargs(block,args,creatio) {
-      def a = args.asList
-      match (args.size)
-        case { 0 -> block.apply(creatio)}
-        case { 1 -> block.apply(a.at(1),creatio)}
-        case { 2 -> block.apply(a.at(1),a.at(2),creatio)}
-        case { 3 -> block.apply(a.at(1),a.at(2),a.at(3),creatio)}
-        case { 4 -> block.apply(a.at(1),a.at(2),a.at(3),a.at(4),creatio)}
-        case { 5 -> block.apply(a.at(1),a.at(2),a.at(3),a.at(4),a.at(5),creatio)}
-        case { _ -> error "CANT BE BOTHERED TO APPLY MORE VARARGS" }
-    }
-    method asString { "ngMethodLambda {lambda}" }
   }
 
 }
