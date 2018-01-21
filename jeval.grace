@@ -8,7 +8,6 @@ def ng is public = runtime.exports
 import "jcommon" as common
 use common.exports
 
-//TODO  refactor / redesign jruntime.grace
 
 //TODO top of dialect - do things continue on to the enclosing scope of the **dialect**
 //TODO make a ngmodule object
@@ -16,7 +15,10 @@ use common.exports
 //   and set up the standard dialect e.g. with debugPrint and annotations and stuff
 //TODO lexical lookup gets to a module, then does a lookup including inheriatnace to the dialect --- but does not do the dialect's lexical scope.  I guess you could call that lookupDialect!  (if it's not lookupInheritance)
 
+//TODO remove isMissing / isAbstract from runtime.grace
 
+//TODO rename jruntime as jobjectmodel.grace
+//TODO put all the tests into a subdirectory?
 
 //TODO alias clauses annotations change privacy? 
 //  (need to fix kernan parser)
@@ -184,7 +186,7 @@ class jeval {
          def rcvr = receiver.eval(ctxt)
          def types = safeFuckingMap { ta -> ta.eval(ctxt) } over(typeArguments)
          def args = safeFuckingMap { a -> a.eval(ctxt) } over(arguments)       
-         def creatio = ctxt.getInternal(CREATIO)
+         def creatio = ctxt.getInternal(CREATIO).value
          def methodBody = rcvr.lookupExternal(name)
 
          def ImplicitRequestNodeBrand = type { implicitRequestNodeBrand }
@@ -219,7 +221,7 @@ class jeval {
       method eval(ctxt) {
          def types = safeFuckingMap { ta -> ta.eval(ctxt) } over(typeArguments)
          def args = safeFuckingMap { a -> a.eval(ctxt) } over(arguments)       
-         def creatio = ctxt.getInternal(CREATIO)
+         def creatio = ctxt.getInternal(CREATIO).value
          debugPrint ""
          debugPrint "EVAL lookupInternal ({name}) in {ctxt}"
          def methodBody = ctxt.lookupInternal(name) 
@@ -234,10 +236,16 @@ class jeval {
       inherit jReturnNode( value' ) at( source )
       
       method eval(ctxt) {
-          def returnCreatio = ctxt.getInternal(RETURNCREATIO)
+          def returnCreatio = ctxt.getInternal(RETURNCREATIO).value
+          def returnBlock = ctxt.getInternal(RETURNBLOCK)
+          //HERE!!!
           def subtxt = ctxt.subcontext
-          subtxt.addLocal(CREATIO) slot( returnCreatio ) 
-          ctxt.getInternal(RETURNBLOCK).apply( value.eval(subtxt) )
+          //subtxt.addLocal(CREATIO) slot( returnCreatio ) 
+          //ctxt.getInternal(RETURNBLOCK).apply( value.eval(subtxt) )
+          returnBlock.invoke(ctxt) 
+                          args(list( value.eval(subtxt) ))
+                          types(empty)                  
+                          creatio(returnCreatio)
       }
  }
 

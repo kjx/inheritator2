@@ -4,6 +4,9 @@ inherit c.abbreviations
 //import "platform/KernanCompiler" as k 
 // import "ast"as kernanAST  // seems this is broken. we define our own types.
 
+import "jcommon" as common
+inherit common.exports
+
 def ng = jm.ng
 
 def jast = jm.jeval
@@ -391,7 +394,7 @@ method checker(module) {
     ctxt.declareName("override") value(ng.ngBuiltinAnnotation("override"))
 
     ctxt.declareName("print(_)") lambda { p, creatio -> print(p) }
-    ctxt.addLocal("_creatio") slot(false)
+    ctxt.addLocal(CREATIO) value(ng.ngNotCreatio)
 
     def moduleObject = ng.objectContext(moduleBody, ctxt)  //hmmm
 
