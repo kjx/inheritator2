@@ -374,32 +374,31 @@ method checker(module) {
 
     print "EXECUTION EXECUTION EXECUTION EXECUTION"
 
-    //technically this is the "dialect" context  
-    //surrounding the module object
-    //it should ideally also be a moduleObject (presumably in an empty context)
-    def ctxt = jeval.context
+    //dialect's "pseudo-dialect"
+    //mostly here for testing, this sholdn't be reached from a normal module
+    def dialectDialect = jeval.context
+    dialectDialect.declareName("trump") lambda { creatio -> error "Make GRACE great AGAIN" }    
 
-    //these should be moved into a new moduleObject class
-    ctxt.addLocal("self") value(ctxt)
-    ctxt.declareName("implicitUninitialised") value(ng.ngUninitialised)
+    //the "dialect" module context surrounding the module context
+    def dMod = jeval.moduleObject(empty, dialectDialect)
+
+    dMod.declareName("implicitUninitialised") value(ng.ngUninitialised)
 
     //privacy annotations
-    ctxt.declareName("confidential") value(ng.ngBuiltinAnnotation("confidential"))
-    ctxt.declareName("public") value(ng.ngBuiltinAnnotation("public"))
-    ctxt.declareName("readable") value(ng.ngBuiltinAnnotation("readable"))
-    ctxt.declareName("writable") value(ng.ngBuiltinAnnotation("writable"))
+    dMod.declareName("confidential") value(ng.ngBuiltinAnnotation("confidential"))
+    dMod.declareName("public") value(ng.ngBuiltinAnnotation("public"))
+    dMod.declareName("readable") value(ng.ngBuiltinAnnotation("readable"))
+    dMod.declareName("writable") value(ng.ngBuiltinAnnotation("writable"))
 
     //inheritance annotations
-    ctxt.declareName("abstract") value(ng.ngBuiltinAnnotation("abstract"))
-    ctxt.declareName("override") value(ng.ngBuiltinAnnotation("override"))
+    dMod.declareName("abstract") value(ng.ngBuiltinAnnotation("abstract"))
+    dMod.declareName("override") value(ng.ngBuiltinAnnotation("override"))
 
-    ctxt.declareName("print(_)") lambda { p, creatio -> print(p) }
-    ctxt.addLocal(CREATIO) value(ng.ngNotCreatio)
+    dMod.declareName("print(_)") lambda { p, creatio -> print(p) }
 
-    def moduleObject = ng.objectContext(moduleBody, ctxt)  //hmmm
+    def moduleObject = jeval.moduleObject(moduleBody, dMod) 
 
     print "DONE DONE DONE DONE"
-       
     }
 
 

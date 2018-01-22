@@ -220,10 +220,8 @@ class jeval {
 
       method eval(ctxt) {
          def types = safeFuckingMap { ta -> ta.eval(ctxt) } over(typeArguments)
-         def args = safeFuckingMap { a -> a.eval(ctxt) } over(arguments)       
+         def args = safeFuckingMap { a -> a.eval(ctxt) } over(arguments)   
          def creatio = ctxt.getInternal(CREATIO).value
-         debugPrint ""
-         debugPrint "EVAL lookupInternal ({name}) in {ctxt}"
          def methodBody = ctxt.lookupInternal(name) 
          def rv = methodBody.invoke(ctxt) args(args) types(types) creatio(creatio)
          rv
@@ -238,7 +236,6 @@ class jeval {
       method eval(ctxt) {
           def returnCreatio = ctxt.getInternal(RETURNCREATIO).value
           def returnBlock = ctxt.getInternal(RETURNBLOCK)
-          //HERE!!!
           def subtxt = ctxt.subcontext
           //subtxt.addLocal(CREATIO) slot( returnCreatio ) 
           //ctxt.getInternal(RETURNBLOCK).apply( value.eval(subtxt) )
@@ -280,4 +277,6 @@ class jeval {
 
 
   method context { ng.context }
+  method lexicalContext(c) { ng.lexicalContext(c) }
+  method moduleObject(b,c) { ng.moduleObject(b, c) }
 }

@@ -150,20 +150,25 @@ class exports {
     ////  External lookups only look at inheritance, Internal looks consider nesting also
     
     method getInternal(name){
+      lookupInternal(name) ifAbsent { error "{name} is missing from {self}" } }
+    method lookupInternal(name) ifAbsent(block) { 
       def rv = lookupInternal(name)
       match (rv) 
-        case { _ : type { isMissing } -> 
-          if (rv.isMissing) then { error: "{name} is missing from {self}" } }
+        case { _ : type { isMissing } -> if (rv.isMissing) then {block.apply} }
         case { _ -> rv }
       rv
       }
     method lookupInternal(name) {
       def invocable = lookupDeclaration(name)
+      if (invocable.context.isWhole)   //just an optimisatiton?
+          then {return invocable}
       def whole = invocable.context.whole
       whole.lookupInheritance(name) 
       }
-
     method lookupDeclaration(name){ lookupLocal(name) }
+    
+    method lookupLexical(name){ lookupLocal(name) }    
+    
  
     method XXfindInternalDeclaringContext(name) {
         //debugPrint "findInternalDeclaringContext(context) {name} #{dbg} {locals.keys}" 
@@ -183,6 +188,8 @@ class exports {
     //where there are parental part objects, this is the whole object
     //to which they belong
     method whole {self} 
+    method isWhole {true} 
+    method isPart {false}
 
     //create a subcontext nested inside this context
     method subcontext {lexicalContext(self)}
@@ -210,9 +217,10 @@ class exports {
     method asString {
            "lexicalContext#{dbg} {locals.keys}\n!!{ctxt.asString}" }
 
-    method lookupDeclaration(name) {
-        lookupLocal(name)ifAbsent {lookupEnclosingDeclaration(name)} }
 
+    method lookupDeclaration(name) {lookupLexical(name)}
+    method lookupLexical(name) {
+        lookupLocal(name)ifAbsent {lookupEnclosingDeclaration(name)} }
     method lookupEnclosingDeclaration(name) { ctxt.lookupDeclaration(name) }
     
     method XXXfindInternalDeclaringContext(name){ 
@@ -246,17 +254,25 @@ class exports {
 
     var status is readable := "embryo"
 
-    def creatio = ctxt.getInternal(CREATIO).value
-    def bottomMost = (!creatio.isCreatio)
-    def whole is public = (if (bottomMost) then {self} else {creatio})
+    var creatioSlot := ctxt.lookupDeclaration(CREATIO)
+    def creatio = if (creatioSlot.isMissing) 
+       then {  addLocal(CREATIO) value(ng.ngNotCreatio)
+               ng.ngNotCreatio}
+       else {creatioSlot.value}
 
-    addLocal "outer" slot(ctxt.getInternal("self" )) 
+    def isPart is public = creatio.isCreatio
+    def isWhole is public = (!isPart)
+    
+    def whole is public = (if (isWhole) then {self} else {creatio})
+
+    def mySelf = lookupLexical("self")
+    if (!mySelf.isMissing) then { addLocal "outer" slot(mySelf.value) }
     addLocal "self"  value(whole) 
 
     //context to use to request parents - the surrounding context of this objectContext
     //but with a creatio set to us, so that we will know this is a parent request
     var parentRequestContext := ctxt 
-    if (bottomMost) then { 
+    if (isWhole) then { 
          parentRequestContext := ctxt.subcontext
          parentRequestContext.addLocal(CREATIO) value(self)  
     }
@@ -280,7 +296,7 @@ class exports {
     //my structure is now completly built() so I stop here
     //I'll be initialised in the right order as the parentNode in my inheriting 
     //object is eval()'ed
-    if (!bottomMost) then { 
+    if (isPart) then { 
        status := "part" 
        return self 
     }
@@ -475,9 +491,10 @@ class exports {
 
 
     method isMissing(thingy) { 
-      match (thingy) 
-        case { _ : type { isMissing } -> thingy.isMissing } 
-        case { _ -> thingy}
+      thingy.isMissing
+      //match (thingy) 
+      //  case { _ : type { isMissing } -> thingy.isMissing } 
+      // case { _ -> thingy}
       }
 
     method isAbstract(parentDefn,name) {
@@ -486,7 +503,7 @@ class exports {
     }
 
     method lookupDeclaration(name) {
-       debugPrint "lookupDeclaration(object) {name} #{self}" 
+       //debugPrint "lookupDeclaration(object) {name} #{self}" 
        if (hasLocal(name)) then {return getLocal(name)}
        //debugPrint "   (ffimh local #{dbg}) NOT FOUND"
 
@@ -538,8 +555,20 @@ class exports {
          else {error "ffIMH ambi-fucked #{dbg} {lexicalResult} {inheritanceResult}"}
     }
 
-    method asString { "objectContext#{dbg}:({status}) {locals.keys}\n!!{ctxt.asString}" }
+    method asString { "{kind}#{dbg}:({status}) {locals.keys}\n!!{ctxt.asString}" }
   }
+
+
+  class moduleObject(body,ctxt) {
+    inherit objectContext(body,ctxt)
+    method kind {"moduleObject"}
+    method lookupEnclosingDeclaration(name) { ctxt.lookupInheritance(name) }
+    method asString {
+           "moduleObject#{dbg} {locals.keys}\n!!{ctxt.asString}" }
+
+  }
+
+
 
   //a pseudo-context returned when a lookup can't find anything
   //may or may not be an error given we can have definitions in
