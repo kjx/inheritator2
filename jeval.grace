@@ -9,14 +9,6 @@ import "jcommon" as common
 use common.exports
 
 
-//TODO top of dialect - do things continue on to the enclosing scope of the **dialect**
-//TODO make a ngmodule object
-//TODO make a standardGraceDialect object (special module, empty dialect), 
-//   and set up the standard dialect e.g. with debugPrint and annotations and stuff
-//TODO lexical lookup gets to a module, then does a lookup including inheriatnace to the dialect --- but does not do the dialect's lexical scope.  I guess you could call that lookupDialect!  (if it's not lookupInheritance)
-
-//TODO remove isMissing / isAbstract from runtime.grace
-
 //TODO rename jruntime as jobjectmodel.grace
 //TODO put all the tests into a subdirectory?
 
@@ -25,13 +17,19 @@ use common.exports
 
 //TODO types! 
 //TODO block matching
+//TODO exceptions
+
 //TODO dynamic typechecks on argumenets - and results
 //TODO add Kernan primitives for argument access and parsing to execution tree
 //TODO   and then convert away from dialect checker to work explicitly
 //TODO add Kernan primitives to let us link through to incoming source code
-//TODO exceptions
-//TODO refactor AST, redesign class names, add progn/sequence properly visitable
+
+//TODO refactor AST, redesign class names
+//TODO add "provenacne" to methods, e.g. if they came from a class or type decln
 //TODO correct canonical names of of assignment methods/requests (wash your dog first)
+//TODO refactor progn out of runtime into jast - 
+//TODO add sequence and statementsequence into the common AST
+
 
 
 
