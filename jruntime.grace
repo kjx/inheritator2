@@ -34,26 +34,14 @@ class exports {
 
   class progn (body) {
      method build(ctxt) {
-       var bodyContext
-       if (! ctxt.getInternal(CREATIO).value.isCreatio) then {
-          bodyContext := ctxt
-       } else { 
-          bodyContext := ctxt.subcontext
-          bodyContext.addLocal(CREATIO) value(ngNotCreatio) 
-       }
+       def bodyContext = ctxt.subcontextWithoutCreatio
        var rv := ngDone
        for (body) doWithLast {
           stmt, last -> rv := stmt.build( if (!last) then {bodyContext} else {ctxt} ) }
        rv
      }
      method eval(ctxt) { 
-       var bodyContext
-       if (! ctxt.getInternal(CREATIO).value.isCreatio) then {
-          bodyContext := ctxt
-       } else { 
-          bodyContext := ctxt.subcontext
-          bodyContext.addLocal(CREATIO) value(ngNotCreatio) 
-       }
+       def bodyContext = ctxt.subcontextWithoutCreatio
        var rv := ngDone
        for (body) doWithLast { 
          stmt, last -> rv := stmt.eval( if (!last) then {bodyContext} else {ctxt} ) }
@@ -169,18 +157,6 @@ class exports {
     method lookupDeclaration(name){ lookupLocal(name) }
     
     method lookupLexical(name){ lookupLocal(name) }    
-    
- 
-    method XXfindInternalDeclaringContext(name) {
-        //debugPrint "findInternalDeclaringContext(context) {name} #{dbg} {locals.keys}" 
-       if (locals.containsKey(name)) then {
-          //debugPrint "  found localMH {name} context#{dbg}"
-          return self
-          } else {
-          //debugPrint "   missing"
-          invocableMissing(name) inContext(self)
-          }
-    }
 
     //external lookups consider only inheritance
     method lookupExternal(name) {lookupInheritance(name)}
@@ -193,8 +169,27 @@ class exports {
     method isPart {false}
 
     //create a subcontext nested inside this context
-    method subcontext {lexicalContext(self)}
     method isInside(other) {self == other}
+    method subcontext {lexicalContext(self)}
+    method subcontextNamed(name) {lexicalContext(self)named(name)}
+
+
+    //manage creatio shit
+    method creatio { 
+      def crt = lookupLexical(CREATIO)
+      if (crt.isMissing) then { ng.ngNotCreatio } else { crt.value }
+    }
+
+    method subcontextWithoutCreatio {
+         if (creatio.isCreatio) 
+           then {
+             def noCreatioCtxt = subcontext
+             noCreatioCtxt.addLocal(CREATIO) value(ng.ngNotCreatio)
+             noCreatioCtxt } 
+           else { self } 
+         }
+
+
 
     //misc
     method asString {"context#{dbg}\n{locals.keys}"}
@@ -210,12 +205,13 @@ class exports {
   /////////////////////////////////////////////////////////////
 
   //a lexicaContext is a context that is nested inside another context
-  class lexicalContext(ctxt) { 
+  class lexicalContext(ctxt) { inherit lexicalContext(ctxt)named("") }
+  class lexicalContext(ctxt) named(ctxtName) { 
     inherit context
         
     method kind {"lexicalContext"}
     method asString {
-           "lexicalContext#{dbg} {locals.keys}\n!!{ctxt.asString}" }
+           "lexicalContext:{ctxtName}#{dbg} {locals.keys}\n!!{ctxt.asString}" }
 
     //am I inside some other context?
     method isInside(other) {(self == other) || ctxt.isInside(other)}
@@ -253,14 +249,6 @@ class exports {
     method kind{"objectContext"}
 
     var status is readable := "embryo"
-
-    //determine the creatio - i.e. if we are being inherited 
-    //into some other object, or not.
-    var creatioSlot := lookupEnclosingDeclaration(CREATIO)
-    def creatio = if (creatioSlot.isMissing) 
-       then {  addLocal(CREATIO) value(ng.ngNotCreatio)
-               ng.ngNotCreatio}
-       else {creatioSlot.value}
 
     def isPart is public = creatio.isCreatio
     def isWhole is public = (!isPart)
@@ -332,6 +320,13 @@ class exports {
       // make the parental request to create the parental part object
       def parentalPartObject = parentNode.request.eval(parentRequestContext) 
       assert {parentalPartObject.status == "part"}
+
+      if (parentalPartObject.whole != whole) then {
+         print "PARENTALPARTOBJECT"
+         print (parentalPartObject)
+         print "WHOLE"
+         print (whole) }
+
       assert {parentalPartObject.whole == whole}
 
       // store the parental part object as a
@@ -361,7 +356,7 @@ class exports {
            else { return localDefn } }
 
       if (useCandidates.size == 1) then {return useCandidates.at(1) }
-      if (useCandidates.size > 1) then {return invocableAmbiguous(name) inContext(self) between(useCandidates)}
+      if (useCandidates.size > 1) then {return invocableAmbiguous(name) between(useCandidates) inContext(self) }
       assert {useCandidates.size == 0}
 
       if (inheritCandidates.size == 1) then {return inheritCandidates.at(1) }
@@ -376,15 +371,31 @@ class exports {
     // handling excludes and alias subclases
     method findCandidates(name)parents(parents) {
       def candidates = list
-      for (parents) do { parentNode -> 
-        if (!parentNode.excludes.contains(name)) then {
-           def parentName = parentNode.aliases.at(name) ifAbsent{name}
-           def parentPartObject = getLocal(parentNode.parentID) 
-           def parentDefn = parentPartObject.lookupInheritance(parentName)
-           if ((!parentDefn.isMissing) && (!parentDefn.isAbstract)) 
-              then {candidates.add(parentDefn)}
-      } }
-      candidates    
+      for (parents) do { 
+        parentNode -> processCandidate(name,parentNode,candidates) }
+      candidates
+      }
+
+    method processCandidate(name,parentNode,candidates) {
+      var parentName := name
+      if (parentNode.aliases.containsKey(name)) 
+        then { parentName := parentNode.aliases.at(name) }
+        elseif { parentNode.excludes.contains(name) }
+        then { return 0 }
+
+      def parentPartObject = getLocal(parentNode.parentID) 
+      def parentDefn = parentPartObject.lookupInheritance(parentName)
+      //line below is the WRONG THING I think.
+      //multiple abstract-> abstract (but not ambiguous) etc
+      if ((!parentDefn.isMissing) && (!parentDefn.isAbstract)) 
+              then {
+                //def cand = (
+                //   if (parentNode.aliases.containsKey(name))
+                //     then {parentDefn.asPublic(false)}
+                //     else {parentDefn})
+                //candidates.add(cand)
+                candidates.add(parentDefn)
+                }
     }
       
     method isMissing(thingy) { 
@@ -429,7 +440,6 @@ class exports {
     method lookupEnclosingLexical(name) { ctxt.lookupLocal(name) }
     method asString {
            "moduleObject#{dbg} {locals.keys}\n!!{ctxt.asString}" }
-
   }
 
 }

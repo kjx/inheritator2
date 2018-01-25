@@ -12,6 +12,12 @@ use common.exports
 //TODO rename jruntime as jobjectmodel.grace
 //TODO put all the tests into a subdirectory?
 
+//TODO nother f**king look at alias/excludes
+//do aliases first; check for errors
+//TODO should make exclude retun an "abstract" candidate
+//TODO check candidate consolidation?
+
+
 //TODO alias clauses annotations change privacy? 
 //  (need to fix kernan parser)
 
@@ -181,13 +187,21 @@ class jeval {
           at( source ) 
 
       method eval(ctxt) {
-         def rcvr = receiver.eval(ctxt)
-         def types = safeFuckingMap { ta -> ta.eval(ctxt) } over(typeArguments)
-         def args = safeFuckingMap { a -> a.eval(ctxt) } over(arguments)       
-         def creatio = ctxt.getInternal(CREATIO).value
+
+         def creatio = ctxt.creatio
+         def argCtxt = ctxt.subcontextWithoutCreatio
+         def rcvr = receiver.eval(argCtxt)
+         def types = safeFuckingMap { ta -> ta.eval(argCtxt) } over(typeArguments)
+         def args = safeFuckingMap { a -> a.eval(argCtxt) } over(arguments)       
          def methodBody = rcvr.lookupExternal(name)
 
-         def ImplicitRequestNodeBrand = type { implicitRequestNodeBrand }
+         if (rcvr != rcvr.whole) then {
+             print "about to crash"
+             print "requesting {name}"
+             print "RCVR"
+             print (rcvr)
+             print "RCVR WHOLE"
+             print (rcvr.whole) }
 
          assert {rcvr == rcvr.whole}
          def mySelf = ctxt.getInternal("self").value
@@ -217,9 +231,11 @@ class jeval {
          
 
       method eval(ctxt) {
-         def types = safeFuckingMap { ta -> ta.eval(ctxt) } over(typeArguments)
-         def args = safeFuckingMap { a -> a.eval(ctxt) } over(arguments)   
-         def creatio = ctxt.getInternal(CREATIO).value
+         def creatio = ctxt.creatio 
+         def argCtxt = ctxt.subcontextWithoutCreatio
+
+         def types = safeFuckingMap { ta -> ta.eval(argCtxt) } over(typeArguments)
+         def args = safeFuckingMap { a -> a.eval(argCtxt) } over(arguments)   
          def methodBody = ctxt.lookupInternal(name) 
          def rv = methodBody.invoke(ctxt) args(args) types(types) creatio(creatio)
          rv
@@ -234,11 +250,8 @@ class jeval {
       method eval(ctxt) {
           def returnCreatio = ctxt.getInternal(RETURNCREATIO).value
           def returnBlock = ctxt.getInternal(RETURNBLOCK)
-          def subtxt = ctxt.subcontext
-          //subtxt.addLocal(CREATIO) slot( returnCreatio ) 
-          //ctxt.getInternal(RETURNBLOCK).apply( value.eval(subtxt) )
           returnBlock.invoke(ctxt) 
-                          args(list( value.eval(subtxt) ))
+                          args(list( value.eval(ctxt) ))
                           types(empty)                  
                           creatio(returnCreatio)
       }
