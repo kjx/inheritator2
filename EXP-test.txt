@@ -1,5 +1,5 @@
 MODULE DIALECT: jkernandialect
-MODULE SIZE   : 84
+MODULE SIZE   : 103
 MODULE IMPORTS: dict⟬⟭
 EXECUTION EXECUTION EXECUTION EXECUTION
 ngString: one
@@ -64,6 +64,18 @@ ngString: making inh
 ngString: making jinh
 ngNumber: 3
 ngString: via A
+ngBoolean: true
+ngBoolean: false
+ngBoolean: true
+ngBoolean: false
+ngBoolean: true
+ngBoolean: false
+ngBoolean: true
+ngBoolean: false
+ngBoolean: true
+ngBoolean: false
+ngBoolean: true
+ngBoolean: false
 ngString: DONE DONE DONE DONE DONE DONE DONE DONE DONE DONE DONE 
 DONE DONE DONE DONE
 one
@@ -128,4 +140,16 @@ making inh
 making jinh
 3
 via A
+SuccessfulMatch[-]
+FailedMatch[three]
+SuccessfulMatch[GraceObject[-]]
+FailedMatch[GraceObject[-]]
+SuccessfulMatch[GraceObject[-]]
+FailedMatch[GraceObject[-]]
+SuccessfulMatch[GraceObject[-]]
+FailedMatch[-]
+SuccessfulMatch[GraceObject[-]]
+FailedMatch[-]
+SuccessfulMatch[GraceObject[-]]
+FailedMatch[GraceObject[-]]
 DONE DONE DONE DONE DONE DONE DONE DONE DONE DONE DONE 

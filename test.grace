@@ -223,5 +223,49 @@ print(C.B2.foo)
 
 
 
+
+def plusType = type {
+   +(_)
+}
+
+def fooooType = type { foooo } 
+
+def foooo2Type = type { foooo(_,_) }
+
+def fooooBothType = type {
+            foooo
+            foooo(_,_)
+            }
+
+def foooo = object {
+            method foooo { "foooo" }
+            }
+
+def foooo2 = object {
+            method foooo(a,b) { "foooo2 {a} {b}" }
+            }
+
+def fooooBoth = object {
+            method foooo { "foooo" }
+            method foooo(a,b) { "foooo2 {a} {b}" }
+            }
+
+
+print(plusType.match( 3 ))
+print(plusType.match( "three" ))
+print (fooooType.match(foooo))
+print (fooooType.match(foooo2))
+print (foooo2Type.match(foooo2))
+print (foooo2Type.match(foooo))
+print (fooooType.match(fooooBoth))
+print (fooooType.match(3))
+print (foooo2Type.match(fooooBoth))
+print (foooo2Type.match(3))
+print (fooooBothType.match(fooooBoth))
+print (fooooBothType.match(foooo2))
+
+
+
+
 print "DONE DONE DONE DONE DONE DONE DONE DONE DONE DONE DONE "
 

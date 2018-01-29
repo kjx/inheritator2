@@ -45,6 +45,16 @@ class primitivesFamily {
 
   }
 
+  class ngBoolean( value' ) {
+     inherit ngPrimitive
+     method kind {"ngBoolean: {value}"}
+     method value {value'}
+     method asString { "ngBoolean: {value}"}
+
+     // needs some methods which will need the context
+  }  
+
+
   class ngInterface( value', ctxt ) {   
             //cheating, just points to ast node - and context
      inherit ngPrimitive
@@ -53,6 +63,20 @@ class primitivesFamily {
      method asString { 
         def sigs = safeFuckingMap { sig -> sig.name } over (value.signatures)
         "ngInterface: #{dbg} {sigs}"}
+
+
+     
+     
+     method match(other) {//assumes other is an NGO 
+        for (value.signatures) do { sig -> 
+            if (other.lookupExternal(sig.name).isMissing) then { return false }
+            }
+        true
+     }
+
+     declareName "match(_)" lambda { other, creatio -> 
+                                       ngBoolean(match(other)) }
+        
   }
 
   class ngBlock(blockNode,ctxt) {
