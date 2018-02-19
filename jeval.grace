@@ -30,6 +30,9 @@ use common.exports
 //TODO   and then convert away from dialect checker to work explicitly
 //TODO add Kernan primitives to let us link through to incoming source code
 
+//TODO generics...
+//TODO where clauses...
+
 //TODO refactor AST, redesign class names
 //TODO add "provenacne" to methods, e.g. if they came from a class or type decln
 //TODO correct canonical names of of assignment methods/requests (wash your dog first)
@@ -203,7 +206,7 @@ class jeval {
              print "RCVR WHOLE"
              print (rcvr.whole) }
 
-         assert {rcvr == rcvr.whole}
+         assert {rcvr.isWhole}
          def mySelf = ctxt.getInternal("self").value
          def isSpecialRequest = mySelf.isInside(rcvr)
 
@@ -213,7 +216,7 @@ class jeval {
          //if (!methodBody.isPublic) then {error "External request for confidential attribute {name}"}
 
          //def isSpecialRequest = 
-         //  ImplicitRequestNodeBrand.match(receiver).andAlso {
+         // ImplicitRequestNodeBrand.match(receiver).andAlso {
          //    (receiver.name == "self") || (receiver.name == "outer") }
 
          def rv = methodBody.invoke(rcvr) args(args) types(types) creatio(creatio)

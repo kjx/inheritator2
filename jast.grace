@@ -1,5 +1,8 @@
 //james implementation of "common" AST classes
 
+
+//method error(arg) is required { } 
+
 class jast {    
     
     //REALLY BIG DESIGN QUESTION - SHOULD WE HAVE A CLASS NODE??
@@ -10,13 +13,36 @@ class jast {
     type Parameter = Unknown
     type Expression = Unknown 
     type Signature = Unknown
-    type Visitor = Unknown
     type Sequence = Unknown
+    type Method = Unknown
+    type Return = Unknown
+    type Statement = Unknown
+    type Node = Unknown
+    type Request = Unknown
+    type ObjectStatement = Unknown
+    type SignaturePart = Unknown
+    type OrdinarySignaturePart = Unknown
+    type Dialect = Unknown
+    type Import = Unknown
+    type Inherit = Unknown
+    type Declaration = Unknown
+    type DefDeclaration = Unknown
+    type VarDeclaration = Unknown
+    type ObjectConstructor = Unknown
+    type ImplicitReceiverRequest = Unknown
+    type ExplicitReceiverRequest = Unknown
+    type RequestPart = Unknown
+    type NumberLiteral = Unknown
+    type StringLiteral = Unknown
+    type Block = Unknown
+    type ImplicitDone = Unknown
+    type ImplicitUnknown = Unknown
+    type ImplicitUninitialised = Unknown
 
     //method debug(b) {b.apply}
     method debug(b) { } 
     
-    class nodeAt( source ) -> Node { 
+    class nodeAt( source ) -> Unknown { 
        method asString { asStringPrefix ++ asStringBody }
        method asStringPrefix { "jast." }
        method asStringBody { "Node" }
@@ -24,8 +50,9 @@ class jast {
     }
 
     //quetion about this one - it flattens params, relies on name to disambiguate?
+    //quetion about this one - it flattens params, relies on name to disambiguate?
     class signatureNode(name' : String,
-                        typeParameters' : Sequence[[Paramater]],
+                        typeParameters' : Sequence[[Parameter]],
                         parameters' : Sequence[[Parameter]],
                         returnType' : Expression,
                         annotations' : Sequence[[Expression]])
@@ -36,7 +63,7 @@ class jast {
       // this is kind of ugly
       // should replace ALL these defs with methods - shorter
       def name : String is public = name'
-      def typeParameters : Sequence[[Parameter]] is publc = typeParameters'
+      def typeParameters : Sequence[[Parameter]] is public = typeParameters'
       def parameters : Sequence[[Parameter]] is public = parameters'
       def returnType : Expression is public = returnType'
       def annotations : Sequence[[Expression]] = annotations'
@@ -87,7 +114,8 @@ class jast {
       method accept[[T]](visitor : Visitor[[T]]) -> T {
         visitor.visitMethod(self) }
     }
-    
+
+
     class inheritNode(
       kind' : String,
       request' : Request,
