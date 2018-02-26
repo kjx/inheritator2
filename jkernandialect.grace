@@ -396,6 +396,9 @@ method checker(module) {
 
     dMod.declareName("print(_)") lambda { p, creatio -> print(p) }
 
+    dMod.declareName("Number") value(jm.typeNumber)
+    dMod.declareName("String") value(jm.typeString)
+
     def moduleObject = jeval.moduleObject(moduleBody, dMod) 
 
     print "DONE DONE DONE DONE"

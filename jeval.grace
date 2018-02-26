@@ -40,6 +40,28 @@ use common.exports
 //TODO add sequence and statementsequence into the common AST
 
 
+class typeType {
+      method ==(other) { asString == other.asString }
+}
+
+def typeNumber is public = object { 
+    inherit typeType
+    method ==(other) { asString == other.asString }
+    method asString { "typeNumber" }
+}
+
+def typeString is public = object { 
+    inherit typeType
+    method ==(other) { asString == other.asString }
+    method asString { "typeString" }
+}
+
+
+assert {"typeNumber" == "typeNumber"}
+
+assert {typeNumber == typeNumber}
+assert {typeString == typeString}
+assert {typeString != typeNumber}
 
 
 //method jdebug(block) {block.apply}
@@ -99,7 +121,7 @@ class jeval {
           at ( source ) -> Parameter {
       inherit jStringLiteralNode( value' ) at( source ) 
       
-      method eval(ctxt) { ng.ngString( value ) } 
+      method eval(ctxt) { typeString } 
   }
 
   class numberLiteralNode(
@@ -107,7 +129,7 @@ class jeval {
           at ( source ) -> Parameter {
       inherit jNumberLiteralNode( value' ) at( source ) 
       
-      method eval(ctxt) { ng.ngNumber( value ) } 
+      method eval(ctxt) { typeNumber } 
   }
 
   class interfaceNode(
@@ -142,7 +164,7 @@ class jeval {
           ctxt.declareDef(name) properties(properties) 
           }
       method eval(ctxt) { 
-          ctxt.getLocal(name).initialValue:= value.eval(ctxt)
+          assert (typeAnnotation.eval(ctxt)) equals (value.eval(ctxt))
           ng.ngDone          
       }
   }
