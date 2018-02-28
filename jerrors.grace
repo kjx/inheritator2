@@ -10,8 +10,11 @@ class exports {
 
   method assert (block) { assert(block) because "" }
 
+  method assert (value) equals (desired) {
+      if ((value == desired).not) then {error "{value} shouldBe {desired}"}
+  }
   method assert (block) because (str) {
-      if (!block.apply) then {error "Assertion failed:{str} {block}"}
+      if (!block.apply) then {error "Assertion failed: {str} {block}"}
   }
 
   def interpreterError = errors.interpreterError
