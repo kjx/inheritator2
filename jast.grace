@@ -373,7 +373,7 @@ class jast {
     
     
     
-    type Visitor[[T]] = type {
+    type Visitor[[T]] = interface {
       visitExpression(node : Expression) -> T
       visitSignature(node : Signature) -> T
       visitSignaturePart(node : SignaturePart) -> T

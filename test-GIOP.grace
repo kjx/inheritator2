@@ -112,7 +112,7 @@ woopert.winner
 woopert.miaow
 
 // Types
-type Cat = type { //**change to "interface"
+type Cat = interface { 
   colour -> String
   name -> String 
   eatMouse

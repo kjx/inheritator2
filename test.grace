@@ -3,7 +3,7 @@ dialect "jkernandialect"
 print "one"
 print 2
 print (2 + 2)
-print (type {
+print (interface {
   foo
   bar
   baz(x,y)
@@ -224,15 +224,15 @@ print(C.B2.foo)
 
 
 
-def plusType = type {
+def plusType = interface {
    +(_)
 }
 
-def fooooType = type { foooo } 
+def fooooType = interface { foooo } 
 
-def foooo2Type = type { foooo(_,_) }
+def foooo2Type = interface { foooo(_,_) }
 
-def fooooBothType = type {
+def fooooBothType = interface {
             foooo
             foooo(_,_)
             }

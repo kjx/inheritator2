@@ -1,14 +1,14 @@
-type Node = type {
+type Node = interface {
   accept[[T]](visitor : Visitor[[T]]) -> T
 }
 
-type Signature = Node & type {
+type Signature = Node & interface {
   parts -> Sequence[[SignaturePart]]
   returnType -> Expression
   annotations -> Sequence[[Expression]]
 }
 
-type OrdinarySignaturePart = Node & type {
+type OrdinarySignaturePart = Node & interface {
   name -> String
   typeParameters -> Sequence[[Parameter]]
   parameters -> Sequence[[Parameter]]
@@ -16,7 +16,7 @@ type OrdinarySignaturePart = Node & type {
 
 type SignaturePart = OrdinarySignaturePart
 
-type Parameter = Node & type {
+type Parameter = Node & interface {
   name -> String
   typeAnnotation -> Expression
   isVariadic -> Boolean
@@ -29,23 +29,23 @@ type ObjectStatement
   | Method
   | Statement
 
-type Method = Node & type {
+type Method = Node & interface {
   signature -> Signature
   body -> Sequence[[Statement]]
   annotations -> Sequence[[Expression]]
 }
 
-type Dialect = Node & type {
+type Dialect = Node & interface {
   path -> String
 }
 
-type Import = Node & type {
+type Import = Node & interface {
   path -> String
   name -> String
   typeAnnotation -> Expression
 }
 
-type Inherits = Node & type {
+type Inherits = Node & interface {
   request -> Request
   name -> String
 }
@@ -55,21 +55,21 @@ type Statement
   | Return
   | Expression
 
-type Declaration = Node & type {
+type Declaration = Node & interface {
   name -> String
   value -> Expression
   annotations -> Sequence[[Expression]]
 }
 
-type DefDeclaration = Declaration & type {
+type DefDeclaration = Declaration & interface {
   typeAnnotation -> Expression
 }
 
-type VarDeclaration = Declaration & type {
+type VarDeclaration = Declaration & interface {
   typeAnnotation -> Expression
 }
 
-type Return = Node & type {
+type Return = Node & interface {
   value -> Expression
 }
 
@@ -84,40 +84,40 @@ type Expression
   | ImplicitUnknown
   | ImplicitUninitialised
 
-type ObjectConstructor = Node & type {
+type ObjectConstructor = Node & interface {
   body -> Sequence[[ObjectStatement]]
 }
 
-type Request = Node & type {
+type Request = Node & interface {
   parts -> Sequence[[RequestPart]]
 }
 
 type ImplicitReceiverRequest = Request
 
-type ExplicitReceiverRequest = Request & type {
+type ExplicitReceiverRequest = Request & interface {
   receiver -> Expression
 }
 
-type RequestPart = Node & type {
+type RequestPart = Node & interface {
   name -> String
   typeArguments -> Sequence[[Expression]]
   arguments -> Sequence[[Expression]]
 }
 
-type NumberLiteral = Node & type {
+type NumberLiteral = Node & interface {
   value -> Number
 }
 
-type StringLiteral = Node & type {
+type StringLiteral = Node & interface {
   value -> String
 }
 
-type Block = Node & type {
+type Block = Node & interface {
   parameters -> Sequence[[Parameter]]
   body -> Sequence[[Statement]]
 }
 
-type Type = Node & type {
+type Type = Node & interface {
     signatures -> Sequence[[Signature]]
 }
 
@@ -127,7 +127,7 @@ type ImplicitUnknown = Node & pattern.singleton
 
 type ImplicitUninitialised = Node & pattern.singleton
 
-type Visitor[[T]] = type {
+type Visitor[[T]] = interface {
   visitExpression(node : Expression) -> T
   visitSignature(node : Signature) -> T
   visitSignaturePart(node : SignaturePart) -> T

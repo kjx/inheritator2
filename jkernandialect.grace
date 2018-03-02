@@ -99,7 +99,7 @@ def visitor = object {  //be careful here. someimes need to refer to visitor
     }
 
 
-    method visitType(t) {  
+    method visitInterface(t) {  
         jast.interfaceNode(mapCommon(t.signatures)) at(0)
     }
     
@@ -405,17 +405,17 @@ method checker(module) {
 //since we can't import types we do this
 //note MUST test in this order!
 def kast = object {
-  type Import = {
+  type Import = interface {
           path
           name
           typeAnnotation
           accept(visitor)
      }
-  type Dialect = {
+  type Dialect = interface {
           path
           accept(visitor)
      }
-  type Inherit = { 
+  type Inherit = interface { 
      name
      request
      excludes

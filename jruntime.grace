@@ -141,7 +141,7 @@ class exports {
     method lookupInternal(name) ifAbsent(block) { 
       def rv = lookupInternal(name)
       match (rv) 
-        case { _ : type { isMissing } -> if (rv.isMissing) then {block.apply} }
+        case { _ : interface { isMissing } -> if (rv.isMissing) then {block.apply} }
         case { _ -> rv }
       rv
       }
@@ -401,7 +401,7 @@ class exports {
     method isMissing(thingy) { 
       thingy.isMissing
       //match (thingy) 
-      //  case { _ : type { isMissing } -> thingy.isMissing } 
+      //  case { _ : interface { isMissing } -> thingy.isMissing } 
       // case { _ -> thingy}
       }
 
