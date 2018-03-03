@@ -195,23 +195,6 @@ class jast {
         visitor.visitVarDeclaration(self) }
     }
     
-    //do we want this? kernan codes as method.    
-    class typeDeclarationNode(
-      name' : String,
-      annotations' : Sequence[[Expression]],
-      value' : Expression)
-          at ( source ) -> Parameter {
-      inherit nodeAt( source ) 
-    
-      def name : String is public = name'
-      def annotations : Sequence[[Expression]] is public = annotations'
-      def value : Expression is public = value'
-
-      method asStringBody { "typeDeclarationNode {name}..." } 
-    
-      method accept[[T]](visitor : Visitor[[T]]) -> T {
-        visitor.visitDeclaration(self) }
-    }
     
 
     class returnNode(
