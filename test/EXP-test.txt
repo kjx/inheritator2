@@ -1,11 +1,10 @@
-MODULE DIALECT: jkernandialect
+jast.jast instantiated GraceObject[-]
+MODULE DIALECT: 
 MODULE SIZE   : 103
-MODULE IMPORTS: dict⟬⟭
-EXECUTION EXECUTION EXECUTION EXECUTION
 ngString: one
 ngNumber: 2
 ngNumber: 4
-ngInterface: #21 [foo, bar, baz(_,_)]
+ngInterface: #22 [foo, bar, baz(_,_)]
 ngString: here
 ngNumber: 2
 ngString: there
@@ -15,8 +14,8 @@ ngString: hello
 ngString: oneone
 ngNumber: 22
 ngString: foomethod
-{a ngBlock} #33
 {a ngBlock} #34
+{a ngBlock} #35
 ngString: barreturn
 ngString: ping
 ngString: blockescapeOK
@@ -77,79 +76,3 @@ ngBoolean: false
 ngBoolean: true
 ngBoolean: false
 ngString: DONE DONE DONE DONE DONE DONE DONE DONE DONE DONE DONE 
-DONE DONE DONE DONE
-one
-2
-4
-GraceType[Anonymous]
-here
-2
-there
-4
-4
-hello
-oneone
-22
-foomethod
-Block[{ "a block" }]
-Block[{ "a block" }]
-barreturn
-ping
-blockescapeOK
-bubble1
-20
-50
-bubble2
-44
-88
-BUMP!
-2
-BUMP!
-4
-BUMP!
-6
-0
-Done[-]
-10
-Done[-]
-20
-Done[-]
-25
-objectsrun
-one
-two
-ONE
-TWO
-ONE
-right
-inner
-a
-a
-o5v
-A
-B
-TA
-SB
-C
-A
-making node
-making inh
-making node
-making jnode
-making inh
-making jinh
-3
-via A
-SuccessfulMatch[-]
-FailedMatch[three]
-SuccessfulMatch[GraceObject[-]]
-FailedMatch[GraceObject[-]]
-SuccessfulMatch[GraceObject[-]]
-FailedMatch[GraceObject[-]]
-SuccessfulMatch[GraceObject[-]]
-FailedMatch[-]
-SuccessfulMatch[GraceObject[-]]
-FailedMatch[-]
-SuccessfulMatch[GraceObject[-]]
-FailedMatch[GraceObject[-]]
-DONE DONE DONE DONE DONE DONE DONE DONE DONE DONE DONE 
