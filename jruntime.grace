@@ -440,6 +440,8 @@ class exports {
     method lookupEnclosingLexical(name) { ctxt.lookupLocal(name) }
     method asString {
            "moduleObject#{dbg} {locals.keys}\n!!{ctxt.asString}" }
+    method isLoading { false }
+    method isLoaded { true }
   }
 
 }

@@ -7,6 +7,8 @@ inherit c.abbreviations
 import "jcommon" as common
 inherit common.exports
 
+import "platform/KernanCompiler" as kc
+
 def ng = jm.ng
 
 def jast = jm.jeval
@@ -351,6 +353,57 @@ method defaultVisitor {
     }
 }
 
+
+def modules = dictionary[[String, jast.Node]]
+
+def moduleIsBeingLoaded = object { method isLoaded { false } } 
+
+method loadModule(name : String) { 
+  def mod = modules.at(name) ifAbsent {
+      modules.at(name) put(moduleIsBeingLoaded)
+      def newModuleParseTree = kc.translateFile(name)
+      def newModule = moduleWithinDialect(newModuleParseTree)
+      modules.at(name) put(newModule)
+      return newModule
+  }
+
+  if (mod.isLoading) then {error "Module {name} is Loading - circular import" }
+  
+  return mod
+}
+
+//module containing all our intrinsic / builtin names
+method makeIntrinsicModule {
+
+    //intrinsic module's "pseudo-dialect"
+    //mostly here for testing, this sholdn't be reached from a normal module
+    def intrinsicDialect = jeval.context
+    intrinsicDialect.declareName("trump") lambda { creatio -> error "Make GRACE great AGAIN" }    
+
+    //the intrinsic module context
+    def im = jeval.moduleObject(empty, intrinsicDialect)
+
+    im.declareName("implicitUninitialised") value(ng.ngUninitialised)
+
+    //privacy annotations
+    im.declareName("confidential") value(ng.ngBuiltinAnnotation("confidential"))
+    im.declareName("public") value(ng.ngBuiltinAnnotation("public"))
+    im.declareName("readable") value(ng.ngBuiltinAnnotation("readable"))
+    im.declareName("writable") value(ng.ngBuiltinAnnotation("writable"))
+
+    //inheritance annotations
+    im.declareName("abstract") value(ng.ngBuiltinAnnotation("abstract"))
+    im.declareName("override") value(ng.ngBuiltinAnnotation("override"))
+
+    //basic methods
+    im.declareName("print(_)") lambda { p, creatio -> print(p) }
+
+    return im
+}
+
+
+
+
 method checker(module) {
     def moduleBody = list
     def moduleImports = dictionary
@@ -374,31 +427,13 @@ method checker(module) {
 
     print "EXECUTION EXECUTION EXECUTION EXECUTION"
 
-    //dialect's "pseudo-dialect"
-    //mostly here for testing, this sholdn't be reached from a normal module
-    def dialectDialect = jeval.context
-    dialectDialect.declareName("trump") lambda { creatio -> error "Make GRACE great AGAIN" }    
+    def intrinsicModule = makeIntrinsicModule
 
-    //the "dialect" module context surrounding the module context
-    def dMod = jeval.moduleObject(empty, dialectDialect)
-
-    dMod.declareName("implicitUninitialised") value(ng.ngUninitialised)
-
-    //privacy annotations
-    dMod.declareName("confidential") value(ng.ngBuiltinAnnotation("confidential"))
-    dMod.declareName("public") value(ng.ngBuiltinAnnotation("public"))
-    dMod.declareName("readable") value(ng.ngBuiltinAnnotation("readable"))
-    dMod.declareName("writable") value(ng.ngBuiltinAnnotation("writable"))
-
-    //inheritance annotations
-    dMod.declareName("abstract") value(ng.ngBuiltinAnnotation("abstract"))
-    dMod.declareName("override") value(ng.ngBuiltinAnnotation("override"))
-
-    dMod.declareName("print(_)") lambda { p, creatio -> print(p) }
-
-    def moduleObject = jeval.moduleObject(moduleBody, dMod) 
+    def moduleObject = jeval.moduleObject(moduleBody, intrinsicModule) 
 
     print "DONE DONE DONE DONE"
+ 
+    return moduleObject
     }
 
 

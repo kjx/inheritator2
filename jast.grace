@@ -9,6 +9,8 @@ class jast {
     //answer - yes but it just delegates to internal method and object nodes?
     //answer - no, but method/object nodes that are from classes
     // should have that information...
+
+    type Unknown = interface { } 
       
     type Parameter = Unknown
     type Expression = Unknown 
@@ -395,7 +397,7 @@ class jast {
       visitNumberLiteral(node : NumberLiteral) -> T
       visitStringLiteral(node : StringLiteral) -> T
       visitBlock(node : Block) -> T
-      visitType(node : Type) -> T
+      visitInterface(node : Interface) -> T
       visitImplicitDone(node : ImplicitDone) -> T
       visitImplicitUnknown(node : ImplicitUnknown) -> T
       visitImplicitUninitialised(node : ImplicitUninitialised) -> T
