@@ -12,6 +12,14 @@ import "jloader" as loader
 //TODO rename jruntime as jobjectmodel.grace
 //TODO put all the tests into a subdirectory?
 
+//TODO - request nodes should have names with & without generics
+//TODO - ditto declarations, sadly...
+//TODO - lookup based on name without generics
+//TODO - declarations stored under names without generics
+//TODO - if no generics sent, but args are required, fill in with Unknown
+//TODO - if right number of generics sent, check that names match
+//TODO    to ensure generics are in the right place
+
 //TODO nother f**king look at alias/excludes
 //do aliases first; check for errors
 //TODO should make exclude retun an "abstract" candidate
