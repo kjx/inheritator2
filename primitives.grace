@@ -3,7 +3,7 @@
 class primitivesFamily {
   method context is abstract { }
   method lexicalContext(_) is abstract { }
-  method invocableBlockMethod(_) inContext(_) is abstract { }   
+  method attributeBlockMethod(_) inContext(_) is abstract { }   
 
   /////////////////////////////////////////////////////////////
   ////
@@ -93,7 +93,7 @@ class primitivesFamily {
        case { 5 -> "apply(_,_,_,_,_)" }
        case { _ -> error "CANT BE BOTHERED TO APPLY MORE VARARGS" }
 
-     declareName(name) invocable (invocableBlockMethod(blockNode) inContext(ctxt))
+     declareName(name) attribute (attributeBlockMethod(blockNode) inContext(ctxt))
   }
 
   /////////////////////////////////////////////////////////////

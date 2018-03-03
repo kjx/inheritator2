@@ -1,11 +1,11 @@
 import "combinator-collections" as c
 use c.abbreviations
-import "jerrors" as errors
+import "errors" as errors
 use errors.exports
-import "jinvocables" as invocables
-import "jprimitives" as primitives
-import "Jcommon" as common
-use common.exports
+import "attributes" as attributes
+import "primitives" as primitives
+import "utility" as utility
+use utility.exports
 
 def singleton is public = exports
 def ng = singleton
@@ -23,7 +23,7 @@ class earlyDefinitions {
 class exports {
   inherit earlyDefinitions
   inherit primitives.primitivesFamily
-  inherit invocables.invocablesFamily
+  inherit attributes.attributesFamily
 
   /////////////////////////////////////////////////////////////
 
@@ -73,18 +73,18 @@ class exports {
     def dbg is readable = contextCounter
     contextCounter:= contextCounter + 1
 
-    def locals :  Dictionary[[String,Invocable]] 
-        = dictionary[[String,Invocable]]
+    def locals :  Dictionary[[String,Attribute]] 
+        = dictionary[[String,Attribute]]
 
     ////////////////////////////////////////////////////////////
     //// local declarations 
 
-    method declareName(name) invocable ( invocable ) { 
+    method declareName(name) attribute ( attribute ) { 
       if ( hasLocal(name) )
         then { error "trying to declare {name} more than once" }
         elseif { checkForShadowing(name) }
         then { error "{name} shadows lexical definition" }
-        else { addLocal(name) slot(invocable) }
+        else { addLocal(name) slot(attribute) }
     }
 
     method checkForShadowing(name) is confidential { 
@@ -94,27 +94,27 @@ class exports {
 
     //declare a Def which must later be initialised
     method declareDef(name) properties(properties) {
-      def box = invocableDef(name) properties(properties) inContext(self)
-      declareName(name) invocable(box) 
+      def box = attributeDef(name) properties(properties) inContext(self)
+      declareName(name) attribute(box) 
     }
 
     //declare a Var which must later be initialised
     method declareVar(name) properties(properties) {
       def setterName = name ++ ASSIGNMENT_TAIL
-      def box = invocableVar(name) properties(properties) inContext(self)
-      declareName(name) invocable(box) 
-      declareName(setterName) invocable(box.setter) 
+      def box = attributeVar(name) properties(properties) inContext(self)
+      declareName(name) attribute(box) 
+      declareName(setterName) attribute(box.setter) 
     }
 
     //bind a value to a name - for things like arguments, that 
     //the interpreter already has to hand, that DON'T need to be initialised
     method declareName(name) value(value) {
-        declareName(name) invocable(invocableValue(value) inContext(self))
+        declareName(name) attribute(attributeValue(value) inContext(self))
     }
 
     //bind an host-interpreter lambda to a name - typically for primitives
     method declareName(name) lambda(lambda) {
-        declareName(name) invocable(invocableLambda(lambda) inContext(self))
+        declareName(name) attribute(attributeLambda(lambda) inContext(self))
     }
 
     ////////////////////////////////////////////////////////////
@@ -126,12 +126,12 @@ class exports {
     //// lookup - return a missing sentinel if not presentx
     ////
     method addLocal(name) slot(m) { locals.at(name) put(m) }
-    method addLocal(name) value(m) { locals.at(name) put(invocableValue(m) inContext(self)) }
+    method addLocal(name) value(m) { locals.at(name) put(attributeValue(m) inContext(self)) }
     method hasLocal(name) { locals.containsKey(name) }
     method getLocal(name) { lookupLocal(name) ifAbsent { error "local {name} missing in #{dbg}"} }
     method lookupLocal(name) ifAbsent(block) { locals.at(name) ifAbsent(block) }
     method lookupLocal(name) {
-       lookupLocal(name) ifAbsent { invocableMissing(name) inContext(self) } }
+       lookupLocal(name) ifAbsent { attributeMissing(name) inContext(self) } }
 
     ////////////////////////////////////////////////////////////
     //// lookups - external interface
@@ -150,10 +150,10 @@ class exports {
       rv
       }
     method lookupInternal(name) {
-      def invocable = lookupDeclaration(name)
-      if (invocable.context.isWhole)   //just an optimisatiton?
-          then {return invocable}
-      def whole = invocable.context.whole
+      def attribute = lookupDeclaration(name)
+      if (attribute.context.isWhole)   //just an optimisatiton?
+          then {return attribute}
+      def whole = attribute.context.whole
       whole.lookupInheritance(name) 
       }
 
@@ -360,14 +360,14 @@ class exports {
            else { return localDefn } }
 
       if (useCandidates.size == 1) then {return useCandidates.at(1) }
-      if (useCandidates.size > 1) then {return invocableAmbiguous(name) between(useCandidates) inContext(self) }
+      if (useCandidates.size > 1) then {return attributeAmbiguous(name) between(useCandidates) inContext(self) }
       assert {useCandidates.size == 0}
 
       if (inheritCandidates.size == 1) then {return inheritCandidates.at(1) }
-      if (inheritCandidates.size > 1) then {return invocableAmbiguous(name) inContext(self) between(inheritCandidates)}
+      if (inheritCandidates.size > 1) then {return attributeAmbiguous(name) inContext(self) between(inheritCandidates)}
       assert {inheritCandidates.size == 0}
 
-      invocableMissing(name) inContext(self)
+      attributeMissing(name) inContext(self)
     }
     
 
@@ -420,12 +420,12 @@ class exports {
        def lexicalResult = lookupEnclosingDeclaration(name)
 
        if (isMissing(lexicalResult) && isMissing(inheritanceResult))
-         then {invocableMissing(name) inContext(self)}
+         then {attributeMissing(name) inContext(self)}
          elseif {isMissing(inheritanceResult)}
          then {lexicalResult}
          elseif {isMissing(lexicalResult) || (inheritanceResult == lexicalResult)}
          then {inheritanceResult}
-         else {invocableAmbiguous(name) inContext(self)}
+         else {attributeAmbiguous(name) inContext(self)}
     }
 
     

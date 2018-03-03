@@ -1,0 +1,78 @@
+jast.jast instantiated GraceObject[-]
+MODULE DIALECT: 
+MODULE SIZE   : 103
+ngString: one
+ngNumber: 2
+ngNumber: 4
+ngInterface: #22 [foo, bar, baz(_,_)]
+ngString: here
+ngNumber: 2
+ngString: there
+ngNumber: 4
+ngNumber: 4
+ngString: hello
+ngString: oneone
+ngNumber: 22
+ngString: foomethod
+{a ngBlock} #34
+{a ngBlock} #35
+ngString: barreturn
+ngString: ping
+ngString: blockescapeOK
+ngString: bubble1
+ngNumber: 20
+ngNumber: 50
+ngString: bubble2
+ngNumber: 44
+ngNumber: 88
+ngString: BUMP!
+ngNumber: 2
+ngString: BUMP!
+ngNumber: 4
+ngString: BUMP!
+ngNumber: 6
+ngNumber: 0
+ngDone
+ngNumber: 10
+ngDone
+ngNumber: 20
+ngDone
+ngNumber: 25
+ngString: objectsrun
+ngString: one
+ngString: two
+ngString: ONE
+ngString: TWO
+ngString: ONE
+ngString: right
+ngString: inner
+ngString: a
+ngString: a
+ngString: o5v
+ngString: A
+ngString: B
+ngString: TA
+ngString: SB
+ngString: C
+ngString: A
+ngString: making node
+ngString: making inh
+ngString: making node
+ngString: making jnode
+ngString: making inh
+ngString: making jinh
+ngNumber: 3
+ngString: via A
+ngBoolean: true
+ngBoolean: false
+ngBoolean: true
+ngBoolean: false
+ngBoolean: true
+ngBoolean: false
+ngBoolean: true
+ngBoolean: false
+ngBoolean: true
+ngBoolean: false
+ngBoolean: true
+ngBoolean: false
+ngString: DONE DONE DONE DONE DONE DONE DONE DONE DONE DONE DONE 

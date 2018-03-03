@@ -1,16 +1,13 @@
-import "jast" as jm
+import "common-ast" as jm
 import "combinator-collections" as c
 use c.abbreviations
-import "jerrors" as errors
+import "errors" as errors
 use errors.exports
-import "jruntime" as runtime
+import "object-model" as runtime
 def ng is public = runtime.singleton
-import "jcommon" as common
-use common.exports
-import "jloader" as loader
-
-//TODO rename jruntime as jobjectmodel.grace
-//TODO put all the tests into a subdirectory?
+import "utility" as utility
+use utility.exports
+import "loader" as loader
 
 //TODO - request nodes should have names with & without generics
 //TODO - ditto declarations, sadly...
@@ -20,24 +17,23 @@ import "jloader" as loader
 //TODO - if right number of generics sent, check that names match
 //TODO    to ensure generics are in the right place
 
-//TODO nother f**king look at alias/excludes
-//do aliases first; check for errors
-//TODO should make exclude retun an "abstract" candidate
-//TODO check candidate consolidation?
-
-
-//TODO alias clauses annotations change privacy? 
-//  (need to fix kernan parser)
+//TODO generics...
+//TODO where clauses...
 
 //TODO types! 
 //TODO block matching
 //TODO exceptions
 
+//TODO nother f**king look at alias/excludes
+//do aliases first; check for errors
+//TODO should make exclude retun an "abstract" candidate
+//TODO check candidate consolidation?
+
+//TODO alias clauses annotations change privacy? 
+//  (need to fix kernan parser)
+
 //TODO dynamic typechecks on arguments - and results
 //TODO add Kernan primitives to let us link through to incoming source code
-
-//TODO generics...
-//TODO where clauses...
 
 //TODO imported names should go into an extra surrounding scope
 //TODO     currently they go into the current scope
@@ -47,6 +43,7 @@ import "jloader" as loader
 //TODO refactor AST, redesign class names
 //TODO add "provenacne" to methods, e.g. if they came from a class or type decln
 //TODO correct canonical names of of assignment methods/requests (wash your dog first)
+
 //TODO refactor progn out of runtime into jast - 
 //TODO add sequence and statementsequence into the common AST
 
@@ -155,7 +152,7 @@ class jevalFamily {
 
       method build(ctxt) {
           def annots = safeFuckingMap { a -> a.eval(ctxt) } over(annotations)
-          def properties = common.processAnnotations(annots,false)
+          def properties = utility.processAnnotations(annots,false)
           ctxt.declareDef(name) properties(properties) 
           }
       method eval(ctxt) { 
@@ -175,7 +172,7 @@ class jevalFamily {
 
       method build(ctxt) {
           def annots = safeFuckingMap { a -> a.eval(ctxt) } over(annotations)
-          def properties = common.processVarAnnotations(annots)
+          def properties = utility.processVarAnnotations(annots)
           ctxt.declareVar(name) properties(properties) 
           }
   }
@@ -189,9 +186,9 @@ class jevalFamily {
 
       method build(ctxt) { 
           def annots = safeFuckingMap { a -> a.eval(ctxt) } over(annotations)
-          def properties = common.processAnnotations(annots,true)
+          def properties = utility.processAnnotations(annots,true)
           ctxt.declareName(signature.name) 
-                 invocable (ng.invocableMethod(self) properties(properties) inContext(ctxt) )
+                 attribute (ng.attributeMethod(self) properties(properties) inContext(ctxt) )
           ng.ngDone
       }      
       method eval(_) { ng.ngDone }
@@ -329,7 +326,7 @@ class jevalFamily {
       inherit jImportNode(path',name',typeAnnotation') at ( source ) 
 
       method build(ctxt) {
-          ctxt.declareDef(name) properties(common.confidentialAnnotations) 
+          ctxt.declareDef(name) properties(utility.confidentialAnnotations) 
           }
 
       method eval(ctxt) { 

@@ -1,36 +1,36 @@
 import "combinator-collections" as c
 use c.abbreviations
-import "jerrors" as errors
+import "errors" as errors
 use errors.exports
 
-class invocablesFamily { 
+class attributesFamily { 
   method ngUninitialised is abstract { } 
   method ngDone is abstract { }   
   method progn(_) is abstract { } 
 
   //////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////
-  //////// Invocables
-  //////// Invocables
-  //////// Invocables
+  //////// Attributes
+  //////// Attributes
+  //////// Attributes
   //////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////
 
   type O = Unknown
   type Context = Unknown
-  type Invocable = { 
+  type Attribute = { 
       invoke(this: O) args(args: Sequence[[O]]) types(typeArgs: Sequence[[O]]) creatio(creatio) -> O
       isPublic -> Boolean
       isAbstract -> Boolean
       isOverride -> Boolean
       isMissing -> Boolean //usually false. TRUE if lookup failed!!
-      asPublic(Boolean) -> Invocable
+      asPublic(Boolean) -> Attribute
       context -> Context
   }
 
 
-  class invocableDef(origin) properties(properties) inContext(ctxt) {
-     use common.annotationsTrait(properties)
+  class attributeDef(origin) properties(properties) inContext(ctxt) {
+     use utility.annotationsTrait(properties)
      use changePrivacyAnnotations
      assert {!properties.isAbstract} because "A field can't be abstract"
      var boxValue := ngUninitialised
@@ -44,16 +44,16 @@ class invocablesFamily {
         if (ngUninitialised == boxValue) then { error "can't access uninitailsed box" }
         boxValue
      }
-     method asString {"invocableDef: {origin} = {boxValue}"}
+     method asString {"attributeDef: {origin} = {boxValue}"}
      method context { ctxt } 
   }
 
-  class invocableVar(origin) properties(properties) inContext(ctxt)  {
-     inherit invocableDef(origin) properties(properties.getter) inContext(ctxt)
+  class attributeVar(origin) properties(properties) inContext(ctxt)  {
+     inherit attributeDef(origin) properties(properties.getter) inContext(ctxt)
        alias defInvoke(_)args(_)types(_)creatio(_) = invoke(_)args(_)types(_)creatio(_)
 
      def setter is public = object {
-       use common.annotationsTrait(properties.setter)
+       use utility.annotationsTrait(properties.setter)
        use changePrivacyAnnotations
        method invoke(this) args(args) types(typeArgs) creatio(creatio) {
           assert {args.size == 1}
@@ -62,15 +62,15 @@ class invocablesFamily {
           ngDone
          }
        method context { ctxt } 
-       method asString {"invocableVar (setter): {origin} := {boxValue}"}
+       method asString {"attributeVar (setter): {origin} := {boxValue}"}
      }
-     method asString {"invocableVar (getter): {origin} := {boxValue}"}
+     method asString {"attributeVar (getter): {origin} := {boxValue}"}
      method context { ctxt } 
   }
 
-  //an invocable method..
-  class invocableMethod(methodNode) properties(properties) inContext(ctxt) {
-     use common.annotationsTrait(properties)
+  //an attribute method..
+  class attributeMethod(methodNode) properties(properties) inContext(ctxt) {
+     use utility.annotationsTrait(properties)
      use changePrivacyAnnotations
      method invoke(this) args(args) types(typeArgs) creatio(creatio) {
        //print "invoke {methodNode.signature.name} on #{this.dbg} creatio:{creatio.isCreatio}"
@@ -83,18 +83,18 @@ class invocablesFamily {
 
        subtxt.addLocal(CREATIO) value(creatio) 
        subtxt.addLocal(RETURNBLOCK) 
-                 slot (invocableLambda {rv, _ -> return rv} inContext(subtxt))
+                 slot (attributeLambda {rv, _ -> return rv} inContext(subtxt))
        subtxt.addLocal(RETURNCREATIO) value (creatio) 
 
        prognBody.build(subtxt)
        prognBody.eval(subtxt)
      }
      method context { ctxt } 
-     method asString {"invocableMethod: {methodNode.signature.name} #{ctxt.dbg}"}
+     method asString {"attributeMethod: {methodNode.signature.name} #{ctxt.dbg}"}
   }
 
-  class invocableBlockMethod(blockNode) inContext(ctxt) {
-     use common.publicAnnotations
+  class attributeBlockMethod(blockNode) inContext(ctxt) {
+     use utility.publicAnnotations
      use changePrivacyAnnotations
      method invoke(this) args(args) types(typeArgs) creatio(creatio) {
        def params = blockNode.parameters.asList
@@ -107,13 +107,13 @@ class invocablesFamily {
        prognBody.eval(subtxt)
       }
      method context { ctxt } 
-     method asString {"invocableBlockMethod"}
+     method asString {"attributeBlockMethod"}
   }
 
 
   //a ng value bound to a name in a context. already initialised! 
-  class invocableValue(value') inContext(ctxt) {
-     use common.confidentialAnnotations
+  class attributeValue(value') inContext(ctxt) {
+     use utility.confidentialAnnotations
      use changePrivacyAnnotations
      method invoke(this) args(args) types(typeArgs) creatio(creatio) {
        assert {(args.size == 0) && (typeArgs.size == 0) && (!creatio.isCreatio)}
@@ -121,27 +121,27 @@ class invocablesFamily {
      }
      method context { ctxt } 
      method value { value' }
-     method asString {"invocableValue: {value}"}
+     method asString {"attributeValue: {value}"}
   } 
-  //potentially every obejct could be invocable, so we don't need this.
+  //potentially every obejct could be attribute, so we don't need this.
   //too confusing to put in now.
 
   //what lookup retuns when it doesn't find anything.
-  class invocableMissing(name) inContext(ctxt)  {
+  class attributeMissing(name) inContext(ctxt)  {
      //print "MISSING {name} {ctxt}"
-     use common.publicAnnotations
+     use utility.publicAnnotations
      use changePrivacyAnnotations
      method isMissing { true }
      method invoke(this) args(args) types(typeArgs) creatio(creatio) {  
         error "{name} is missing from {ctxt}"
      }
      method context { ctxt } 
-     method asString {"invocableMissing: {name} at {ctxt}"}
+     method asString {"attributeMissing: {name} at {ctxt}"}
   }
 
   //what lookup retuns when it doesn't find anything.
-  class invocableAmbiguous(name) between(possibilities) inContext(ctxt) {
-     inherit invocableMissing(name) inContext(ctxt) 
+  class attributeAmbiguous(name) between(possibilities) inContext(ctxt) {
+     inherit attributeMissing(name) inContext(ctxt) 
      method invoke(this) args(args) types(typeArgs) creatio(creatio) {  
         error "{name} is ambiguous at {ctxt} between {possibilities}"
      }
@@ -149,11 +149,11 @@ class invocablesFamily {
      method asString {"inocableAmbiguous {name} in {ctxt}"}
   }
 
-  //old style invocable that wraps a lambda block; 
+  //old style attribute that wraps a lambda block; 
   //blocks takes arguments plus creatio. 
   //use for primitives but otherwise avoid
-  class invocableLambda(lambda) inContext(ctxt) {
-    use common.publicAnnotations
+  class attributeLambda(lambda) inContext(ctxt) {
+    use utility.publicAnnotations
     use changePrivacyAnnotations
     method invoke(this) args(args) types(typeArgs) creatio(creatio) {
       applyVarargs(lambda,args,creatio)
@@ -172,7 +172,7 @@ class invocablesFamily {
         case { _ -> error "CANT BE BOTHERED TO APPLY MORE VARARGS" }
     }
     method context { ctxt } 
-    method asString { "invocableLambda {lambda}" }
+    method asString { "attributeLambda {lambda}" }
   }
 
   //behaviour to change privacy annotations 
@@ -181,12 +181,12 @@ class invocablesFamily {
     method asPublic(shouldBePublic : Boolean) { 
       if (isPublic == shouldBePublic) 
          then {self}
-         else {invocableWrapper(self) privacy(shouldBePublic)} 
+         else {attributeWrapper(self) privacy(shouldBePublic)} 
     }
   }
 
-  //proxy to change an invocable's privacy
-  class invocableWrapper(subject) privacy(shouldBePublic)  {
+  //proxy to change an attribute's privacy
+  class attributeWrapper(subject) privacy(shouldBePublic)  {
     assert {subject.isPublic != shouldBePublic} //or else shouldn't be here
     method isPublic { shouldBePublic }
     method asPublic(shouldBePublic : Boolean) {
@@ -202,7 +202,7 @@ class invocablesFamily {
     method invoke(this) args(args) types(typeArgs) creatio(creatio) {
       subject.invoke(this) args(args) types(typeArgs) creatio(creatio) }
     method context { subject.context } 
-    method asString {"invocableWrapper {subject}"}
+    method asString {"attributeWrapper {subject}"}
   }
   method context { ctxt } 
 }

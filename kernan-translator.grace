@@ -1,8 +1,8 @@
 import "combinator-collections" as c
 inherit c.abbreviations
 
-import "jcommon" as common
-inherit common.exports
+import "utility" as utility
+inherit utility.exports
 
 var jast is public //evil evil dependency inversion
 

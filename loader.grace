@@ -1,11 +1,11 @@
 import "platform/KernanCompiler" as kc
 import "combinator-collections" as c
 inherit c.abbreviations
-import "jruntime" as runtime
-def objectModel = runtime.singleton
-import "jcommon" as common
-use common.exports
-import "jtranslator" as translator
+import "object-model" as om
+def objectModel = om.singleton
+import "utility" as utility
+use utility.exports
+import "kernan-translator" as translator
 
 type ASTNode = interface { } 
 

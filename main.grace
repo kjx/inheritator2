@@ -1,8 +1,8 @@
 import "platform/KernanCompiler" as kc
-import "jloader" as loader
-import "jtranslator" as translator
-import "jeval" as jeval
-translator.jast := jeval.singleton
+import "loader" as loader
+import "kernan-translator" as translator
+import "evaluator" as eval
+translator.jast := eval.singleton
 
 for (kc.args) do { fileName ->
    def nameSize = fileName.size
