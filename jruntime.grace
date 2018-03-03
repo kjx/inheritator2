@@ -4,7 +4,11 @@ import "jerrors" as errors
 use errors.exports
 import "jinvocables" as invocables
 import "jprimitives" as primitives
+import "Jcommon" as common
+use common.exports
 
+def singleton is public = exports
+def ng = singleton
 
 method debugPrint(string) {}
 
@@ -440,8 +444,38 @@ class exports {
     method lookupEnclosingLexical(name) { ctxt.lookupLocal(name) }
     method asString {
            "moduleObject#{dbg} {locals.keys}\n!!{ctxt.asString}" }
-    method isLoading { false }
     method isLoaded { true }
+  }
+
+
+  //module containing all our intrinsic / builtin names
+  method intrinsicModuleObject {
+
+    //intrinsic module's "pseudo-dialect"
+    //mostly here for testing, this sholdn't be reached from a normal module
+    def intrinsicDialect = context
+    intrinsicDialect.declareName("trump")
+        lambda { creatio -> error "Make GRACE great AGAIN" }
+
+    //the intrinsic module context
+    def im = moduleObject(empty, intrinsicDialect)
+
+    im.declareName("implicitUninitialised") value(ng.ngUninitialised)
+
+    //privacy annotations
+    im.declareName("confidential") value(ng.ngBuiltinAnnotation("confidential"))
+    im.declareName("public") value(ng.ngBuiltinAnnotation("public"))
+    im.declareName("readable") value(ng.ngBuiltinAnnotation("readable"))
+    im.declareName("writable") value(ng.ngBuiltinAnnotation("writable"))
+
+    //inheritance annotations
+    im.declareName("abstract") value(ng.ngBuiltinAnnotation("abstract"))
+    im.declareName("override") value(ng.ngBuiltinAnnotation("override"))
+
+    //basic methods
+    im.declareName("print(_)") lambda { p, creatio -> print(p) }
+
+    return im
   }
 
 }

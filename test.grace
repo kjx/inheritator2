@@ -1,4 +1,4 @@
-dialect "jkernandialect"
+//dialect "jkernandialect"
 
 print "one"
 print 2

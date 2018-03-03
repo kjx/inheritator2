@@ -10,6 +10,8 @@ class exports {
      rv
   }
 
+  method map(f) over(col) { safeFuckingMap(f)over(col) }
+
   //should probably switch to keysAndValuesDo, last is key == size
   method for(col) doWithLast(block2) {
      def size = col.size
@@ -25,6 +27,8 @@ class exports {
   def RETURNCREATIO = "_returnCreatio"
   def ASSIGNMENT_TAIL = "():=(_)"
   def PARENT = "_parent"
+  def INTRINSICMODULE = "inheritator2/intrinsics"
+  def STANDARDDIALECT = INTRINSICMODULE
 }
 
 trait annotationsTrait(properties) { 
@@ -101,6 +105,8 @@ method processVarAnnotations(annots) { //COPY and PASTE
      }
    }
 }
+
+
 
 //probably need a better name for these
 method default (initialValue) { default(initialValue) name ""}

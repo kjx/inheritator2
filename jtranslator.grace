@@ -1,26 +1,10 @@
-import "jeval" as jm
 import "combinator-collections" as c
 inherit c.abbreviations
-//import "platform/KernanCompiler" as k 
-// import "ast"as kernanAST  // seems this is broken. we define our own types.
 
 import "jcommon" as common
 inherit common.exports
 
-import "platform/KernanCompiler" as kc
-
-def ng = jm.ng
-
-def jast = jm.jeval
-def jeval = jast
-
-//pity the underlying list API doesn't have an accept() method
-method map(f) over(col) {
-  def l = list
-  for (col) do { e -> l.add( f.apply(e) ) }
-  l
-}
-
+var jast is public //evil evil dependency inversion
 
 //print "loading jkernandialect"
 
@@ -33,16 +17,14 @@ def visitor = object {  //be careful here. someimes need to refer to visitor
     method common(j) { j.accept(visitor) }
 
 
-    //could concievably convert these back again like inherits nodes
-    //see what looks simpler overall
-    method visitImport(d) {
-         print "ERROR visitDialect shouldn't happen"
+    method visitImport(i) {
+       jast.importNode(i.path, i.name, i.typeAnnotation) 
+               at(0)
     }
 
     method visitDialect(d) {
          print "ERROR visitDialect shouldn't happen"
     }
-
 
     method visitInherits(i) {
 
@@ -354,107 +336,53 @@ method defaultVisitor {
 }
 
 
-def modules = dictionary[[String, jast.Node]]
-
-def moduleIsBeingLoaded = object { method isLoaded { false } } 
-
-method loadModule(name : String) { 
-  def mod = modules.at(name) ifAbsent {
-      modules.at(name) put(moduleIsBeingLoaded)
-      def newModuleParseTree = kc.translateFile(name)
-      def newModule = moduleWithinDialect(newModuleParseTree)
-      modules.at(name) put(newModule)
-      return newModule
-  }
-
-  if (mod.isLoading) then {error "Module {name} is Loading - circular import" }
-  
-  return mod
-}
-
-//module containing all our intrinsic / builtin names
-method makeIntrinsicModule {
-
-    //intrinsic module's "pseudo-dialect"
-    //mostly here for testing, this sholdn't be reached from a normal module
-    def intrinsicDialect = jeval.context
-    intrinsicDialect.declareName("trump") lambda { creatio -> error "Make GRACE great AGAIN" }    
-
-    //the intrinsic module context
-    def im = jeval.moduleObject(empty, intrinsicDialect)
-
-    im.declareName("implicitUninitialised") value(ng.ngUninitialised)
-
-    //privacy annotations
-    im.declareName("confidential") value(ng.ngBuiltinAnnotation("confidential"))
-    im.declareName("public") value(ng.ngBuiltinAnnotation("public"))
-    im.declareName("readable") value(ng.ngBuiltinAnnotation("readable"))
-    im.declareName("writable") value(ng.ngBuiltinAnnotation("writable"))
-
-    //inheritance annotations
-    im.declareName("abstract") value(ng.ngBuiltinAnnotation("abstract"))
-    im.declareName("override") value(ng.ngBuiltinAnnotation("override"))
-
-    //basic methods
-    im.declareName("print(_)") lambda { p, creatio -> print(p) }
-
-    return im
-}
 
 
-
-
-method checker(module) {
-    def moduleBody = list
-    def moduleImports = dictionary
-    var moduleDialect := ""
-    for (module.body) do { e ->
-     match(e)         
-      case { imp : kast.Import -> 
-               moduleImports.at( imp.name ) put ( imp.path ) }
-      case { dia : kast.Dialect -> 
-           if (moduleDialect == "") 
-             then {moduleDialect := dia.path}
-             else {print "ERROR TOO MANY DIALECTS"} }
-      case { _ -> moduleBody.add( e.accept(visitor) ) }
+method translate(kernanParseTree) {
+    var moduleDialectName := ""
+    def commonModuleBody = list
+    for (kernanParseTree.body) do { e ->
+      match(e)         
+        case { _ : kast.Import -> //make sure dialects aren't treated as imports
+           commonModuleBody.add( e.accept(visitor) ) }
+        case { dia : kast.Dialect -> 
+           if (moduleDialectName == "")
+             then { moduleDialectName := dia.path }
+             else { error "TOO MANY DIALECTS" } }
+        case { _ -> 
+           commonModuleBody.add( e.accept(visitor) ) }
     }
     
-    print "MODULE DIALECT: {moduleDialect}"
-    print "MODULE SIZE   : {moduleBody.size}"
-    print "MODULE IMPORTS: {moduleImports}"
+    print "MODULE DIALECT: {moduleDialectName}"
+    print "MODULE SIZE   : {commonModuleBody.size}"
 
-    jast.moduleNode( moduleDialect, moduleImports, moduleBody ) at(0) 
+    if (moduleDialectName == "") 
+       then { moduleDialectName := STANDARDDIALECT }
 
-    print "EXECUTION EXECUTION EXECUTION EXECUTION"
-
-    def intrinsicModule = makeIntrinsicModule
-
-    def moduleObject = jeval.moduleObject(moduleBody, intrinsicModule) 
-
-    print "DONE DONE DONE DONE"
- 
-    return moduleObject
-    }
+    jast.moduleNode(moduleDialectName, commonModuleBody) at(0) 
+}
 
 
+
+//type defs for the case above
 //since we can't import types we do this
 //note MUST test in this order!
 def kast = object {
   type Import = interface {
-          path
-          name
-          typeAnnotation
-          accept(visitor)
-     }
+        path
+        name
+        typeAnnotation
+        accept(visitor)
+   }
   type Dialect = interface {
-          path
-          accept(visitor)
-     }
+        path
+        accept(visitor)
+   }
   type Inherit = interface { 
-     name
-     request
-     excludes
-     inherits
-     }
+   name
+   request
+   excludes
+   inherits
+   }
 }
 

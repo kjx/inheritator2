@@ -3,8 +3,9 @@
 
 //method error(arg) is required { } 
 
-class jast {    
-    
+class jastFamily {    
+    print "jast.jast instantiated {self}"        
+
     //REALLY BIG DESIGN QUESTION - SHOULD WE HAVE A CLASS NODE??
     //answer - yes but it just delegates to internal method and object nodes?
     //answer - no, but method/object nodes that are from classes
@@ -142,7 +143,50 @@ class jast {
         visitor.visitInherit(self) }
     }
     
+
+    class inheritNode(
+      kind' : String,
+      request' : Request,
+      excludes' : List[[String]],
+      aliases' : Dictionary[[String,String]])
+          at ( source ) -> Parameter {
+      inherit nodeAt( source ) 
     
+      def kind : String is public = kind'
+      def request : Request is public = request'
+      def excludes : List[[String]] is public = excludes'
+      def aliases : Dictionary[[String,String]] is public = dictionary
+      
+      for (aliases') do { a -> 
+         aliases.at(a.at(1)) put(a.at(2)) 
+         //note ignoring annotations
+      }
+
+      method asStringBody { "inheritNode {kind} {request.name} ..." } 
+              
+      method accept[[T]](visitor : Visitor[[T]]) -> T {
+        visitor.visitInherit(self) }
+    }
+
+    
+    class importNode(
+      path' : String,
+      name' : String,
+      typeAnnotation' : Expression)
+          at ( source ) -> Node {
+      inherit nodeAt( source ) 
+    
+      def path : String is public = path'
+      def name : String is public = name'
+      def typeAnnotation : Expression is public = typeAnnotation'
+    
+      method asStringBody { "importNode {name}..." } 
+
+      method accept[[T]](visitor : Visitor[[T]]) -> T {
+        visitor.visitImport(self) }
+    }
+
+
     class declarationNode(
       name' : String,
       typeAnnotation' : Expression,
@@ -162,6 +206,7 @@ class jast {
       method accept[[T]](visitor : Visitor[[T]]) -> T {
         visitor.visitDeclaration(self) }
     }
+    
     
     class defDeclarationNode(
       name' : String,
@@ -227,14 +272,13 @@ class jast {
     
     class moduleNode(
       moduleDialect' : String,
-      moduleImports' : Dictionary[[String,String]],
       body' : Sequence[[ObjectStatement]] )
           at ( source ) -> Parameter {
       inherit objectConstructorNode(body') at ( source )
     
-      def moduleDialect : String   is public = body'
-      def moduleImports : Dictionary[[String,String]] is public = moduleImports'
-
+      def moduleDialect : String   is public = moduleDialect'
+      def body is public = body'
+      
       method asStringBody { "moduleNode ..." } 
         
       method accept[[T]](visitor : Visitor[[T]]) -> T {

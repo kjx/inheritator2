@@ -4,10 +4,10 @@ use c.abbreviations
 import "jerrors" as errors
 use errors.exports
 import "jruntime" as runtime
-def ng is public = runtime.exports
+def ng is public = runtime.singleton
 import "jcommon" as common
 use common.exports
-
+import "jloader" as loader
 
 //TODO rename jruntime as jobjectmodel.grace
 //TODO put all the tests into a subdirectory?
@@ -25,13 +25,16 @@ use common.exports
 //TODO block matching
 //TODO exceptions
 
-//TODO dynamic typechecks on argumenets - and results
-//TODO add Kernan primitives for argument access and parsing to execution tree
-//TODO   and then convert away from dialect checker to work explicitly
+//TODO dynamic typechecks on arguments - and results
 //TODO add Kernan primitives to let us link through to incoming source code
 
 //TODO generics...
 //TODO where clauses...
+
+//TODO imported names should go into an extra surrounding scope
+//TODO     currently they go into the current scope
+//TOOD     this is bad because they can be inherited
+//TODO     although also good because can be local
 
 //TODO refactor AST, redesign class names
 //TODO add "provenacne" to methods, e.g. if they came from a class or type decln
@@ -51,8 +54,8 @@ method debugPrint(string) { }
 
 
 
-class jeval {
-  inherit jm.jast
+class jevalFamily {
+  inherit jm.jastFamily
       alias jNodeAt(_) = nodeAt(_)
       alias jStringLiteralNode(_) at(_) = stringLiteralNode(_) at(_)
       alias jNumberLiteralNode(_) at(_) = numberLiteralNode(_) at(_)
@@ -65,7 +68,9 @@ class jeval {
       alias jBlockNode(_,_) at(_) = blockNode(_,_) at(_)
       alias jReturnNode(_) at(_) = returnNode(_) at (_)
       alias jObjectConstructorNode(_) at(_) = objectConstructorNode(_) at(_)
+      alias jModuleNode(_,_) at(_) = moduleNode(_,_) at(_)
       alias jInheritNode(_,_,_,_) at(_) = inheritNode(_,_,_,_) at(_)
+      alias jImportNode(_,_,_) at(_) = importNode(_,_,_) at(_)
 
   var nodeCounter := 0
 
@@ -77,13 +82,17 @@ class jeval {
     nodeCounter := nodeCounter + 1 
 
     //the core of the tree-walking interpreter
+    //
     //eval, well, evaluates stuff
     //build called by "Two phase" Contexts, e.g. object constuctors, methods
     //first phase is build, second is eval.
-    //declarations should add themsevles to the context in build
-    //declarations should initialise themselves in eval
+    //
+    //only "declarations" that build attributes into contexts
+    //   should implement build
+    //   declarations should add themsevles to the context in build
+    //   declarations should initialise themselves in eval
+    //
     //expressions should ignore build, and eval themselves on eval
-    //there used to be "One phase" contexts - there aren't any more
 
     method build(ctxt) -> ng.NGO { ng.ngBuild } //NOOP
     method eval(ctxt) -> ng.NGO { error "can't eval {self}" } 
@@ -268,6 +277,19 @@ class jeval {
       method eval(ctxt) { ng.objectContext(body,ctxt) }            
   }
 
+
+  class moduleNode(
+      moduleDialect' : String,
+      body' : Sequence[[ObjectStatement]] )
+          at ( source ) -> Parameter {
+      inherit jModuleNode(moduleDialect', body') at(source)
+    
+      method eval(ctxt) {
+        def dialectModuleObject = loader.loadModule(moduleDialect)
+        ng.moduleObject(body,dialectModuleObject) }            
+  }
+
+
   //consider renaming as "parentNode"
   class inheritNode(
       kind' : String,
@@ -287,10 +309,34 @@ class jeval {
           ng.ngDone          
       }
       
-  }  
+  }
+
+
+
+  class importNode(
+      path' : String,
+      name' : String,
+      typeAnnotation' : Expression)
+          at ( source ) -> Node {
+      inherit jImportNode(path',name',typeAnnotation') at ( source ) 
+
+      method build(ctxt) {
+          ctxt.declareDef(name) properties(common.confidentialAnnotations) 
+          }
+
+      method eval(ctxt) { 
+          def importedModule = loader.loadModule(path)
+          ctxt.getLocal(name).initialValue:=importedModule
+          ng.ngDone          
+      }
+  }
 
 
   method context { ng.context }
   method lexicalContext(c) { ng.lexicalContext(c) }
   method moduleObject(b,c) { ng.moduleObject(b, c) }
 }
+
+
+def singleton is public = jevalFamily
+//loader.commonASTFactory:= singleton
