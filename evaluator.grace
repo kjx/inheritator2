@@ -9,18 +9,13 @@ import "utility" as utility
 use utility.exports
 import "loader" as loader
 
-//TODO - request nodes should have names with & without generics
-//TODO - ditto declarations, sadly...
-//TODO - lookup based on name without generics
-//TODO - declarations stored under names without generics
-//TODO - if no generics sent, but args are required, fill in with Unknown
-//TODO - if right number of generics sent, check that names match
-//TODO    to ensure generics are in the right place
 
-//TODO generics...
+
+//TODO dynamic typechecks on arguments - and results
 //TODO where clauses...
 
 //TODO types! 
+
 //TODO block matching
 //TODO exceptions
 
@@ -32,7 +27,6 @@ import "loader" as loader
 //TODO alias clauses annotations change privacy? 
 //  (need to fix kernan parser)
 
-//TODO dynamic typechecks on arguments - and results
 //TODO add Kernan primitives to let us link through to incoming source code
 
 //TODO imported names should go into an extra surrounding scope
@@ -41,11 +35,13 @@ import "loader" as loader
 //TODO     although also good because can be local
 
 //TODO refactor AST, redesign class names
-//TODO add "provenacne" to methods, e.g. if they came from a class or type decln
-//TODO correct canonical names of of assignment methods/requests (wash your dog first)
-
 //TODO refactor progn out of runtime into jast - 
 //TODO add sequence and statementsequence into the common AST
+
+//TODO add "provenacne" to methods, e.g. if they came from a class or type decln
+
+//TODO correct canonical names of of assignment methods/requests (wash your dog first)
+
 
 
 
