@@ -96,15 +96,16 @@ def visitor = object {  //be careful here. someimes need to refer to visitor
 
         for (irr.parts) do { part -> 
             name := name ++ splunge(part.name)
-            if (c.sizeOfVariadicList(part.typeArguments) > 0) then {
-               name := name ++ 
-                  munge(part.typeArguments, "[", "_", ",", "]") }
-            if ((c.sizeOfVariadicList(irr.parts) > 1) || 
+            // if (c.sizeOfVariadicList(part.typeArguments) > 0) then {
+            //   name := name ++
+            //      munge(part.typeArguments, "[", "_", ",", "]") }
+            if ((c.sizeOfVariadicList(irr.parts) > 1) ||
                 (c.sizeOfVariadicList(part.arguments) > 0)) then {
                name := name ++ munge(part.arguments, "(", "_", ",", ")") }
             typeArguments := typeArguments ++ mapCommon(part.typeArguments)
             arguments := arguments ++ mapCommon(part.arguments)
             }
+
 
         jast.implicitRequestNode(name, typeArguments, arguments) at(0)
     }
@@ -185,9 +186,9 @@ def visitor = object {  //be careful here. someimes need to refer to visitor
 
         for (sig.parts) do { part -> 
             name := name ++ splunge(part.name)
-            if (c.sizeOfVariadicList(part.typeParameters) > 0) then {
-               name := name ++ 
-                  munge(part.typeParameters, "[", "_", ",", "]") }
+            // if (c.sizeOfVariadicList(part.typeParameters) > 0) then {
+            //   name := name ++
+            //      munge(part.typeParameters, "[", "_", ",", "]") }
             if ((c.sizeOfVariadicList(sig.parts) > 1) || 
                 (c.sizeOfVariadicList(part.parameters) > 0)) then {
                name := name ++ munge(part.parameters, "(", "_", ",", ")") }

@@ -38,9 +38,6 @@ class jastFamily {
     type NumberLiteral = Unknown
     type StringLiteral = Unknown
     type Block = Unknown
-    type ImplicitDone = Unknown
-    type ImplicitUnknown = Unknown
-    type ImplicitUninitialised = Unknown
 
     //method debug(b) {b.apply}
     method debug(b) { } 
@@ -425,9 +422,6 @@ class jastFamily {
       visitStringLiteral(node : StringLiteral) -> T
       visitBlock(node : Block) -> T
       visitInterface(node : Interface) -> T
-      visitImplicitDone(node : ImplicitDone) -> T
-      visitImplicitUnknown(node : ImplicitUnknown) -> T
-      visitImplicitUninitialised(node : ImplicitUninitialised) -> T
     }
     
 }    

@@ -23,7 +23,13 @@ class earlyDefinitions {
 class exports {
   inherit earlyDefinitions
   inherit primitives.primitivesFamily
+    //exclude context
+    //exclude lexicalContext(_)
+    //exclude attributeBlockMethod(_) inContext(_)
   inherit attributes.attributesFamily
+    exclude ngUninitialised
+    exclude ngDone
+    exclude ngImplicitUnknown
 
   /////////////////////////////////////////////////////////////
 
@@ -461,6 +467,8 @@ class exports {
     def im = moduleObject(empty, intrinsicDialect)
 
     im.declareName("implicitUninitialised") value(ng.ngUninitialised)
+    im.declareName("implicitUnknown") value(ng.ngImplicitUnknown)
+    im.declareName("Unknown") value(ng.ngUnknown)
 
     //privacy annotations
     im.declareName("confidential") value(ng.ngBuiltinAnnotation("confidential"))

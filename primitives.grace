@@ -16,6 +16,12 @@ class primitivesFamily {
     method lookupInheritance(name) { lookupLocal(name) }  //primitives only have local slots
 
     method whole { self }  //HMM. should clarify actual interface
+
+    method asString { "ngPrimitive (should be abstract)"}
+
+    declareName "asString" lambda { creatio ->
+                    def rv = ngString(asString)
+                    rv }
   }
   
   class ngNumber( value' ) {
@@ -27,10 +33,6 @@ class primitivesFamily {
      declareName "+(_)" lambda { other, creatio ->  
                     def rv = ngNumber(value' + other.value)
                     rv } 
-
-     declareName "asString" lambda { creatio ->  
-                    def rv = ngString(value'.asString)
-                    rv }
   }
 
   class ngString( value' ) {
@@ -111,7 +113,7 @@ class primitivesFamily {
 
   def ngBuild is public = object {
      inherit ngPrimitive
-     method kind {"ngBUild"}
+     method kind {"ngBuild"}
      method asString { "ngBuild"} //result returned from build. always an error.
   }
 
@@ -125,6 +127,12 @@ class primitivesFamily {
      inherit ngPrimitive
      method kind {"ngImplicitU"}
      method asString { "ngImplicitUnknown" } 
+  }
+
+  def ngUnknown is public = object {
+     inherit ngPrimitive
+     method kind {"ngUnknown"}
+     method asString { "ngUnknown" }
   }
 
   def ngNotCreatio is public = object {

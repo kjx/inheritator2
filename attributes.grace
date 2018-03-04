@@ -6,6 +6,7 @@ use errors.exports
 class attributesFamily { 
   method ngUninitialised is abstract { } 
   method ngDone is abstract { }   
+  method ngImplicitUnknown is abstract { }
   method progn(_) is abstract { } 
 
   //////////////////////////////////////////////////////////////////////
@@ -74,18 +75,31 @@ class attributesFamily {
      use changePrivacyAnnotations
      method invoke(this) args(args) types(typeArgs) creatio(creatio) {
        //print "invoke {methodNode.signature.name} on #{this.dbg} creatio:{creatio.isCreatio}"
-       def params = methodNode.signature.parameters.asList
-       def prognBody = progn(methodNode.body)
 
        def subtxt = ctxt.subcontextNamed(methodNode.signature.name)
+
+       def params = methodNode.signature.parameters.asList
        if (args.size != params.size) then {error "arg mismatch"}
        for (params.indices) do { i -> subtxt.declareName(params.at(i).name) value(args.at(i)) }
+
+       def typeParams = methodNode.signature.typeParameters.asList
+
+       if (typeArgs.size == typeParams.size)
+          then {
+            for (typeParams.indices) do { i ->
+              subtxt.declareName(typeParams.at(i).name) value(typeArgs.at(i)) } }
+          elseif {typeArgs.size == 0}
+          then {
+            for (typeParams.indices) do { i ->
+              subtxt.declareName(typeParams.at(i).name) value(ngImplicitUnknown) } }
+          else {error "generic arg mismatch"}
 
        subtxt.addLocal(CREATIO) value(creatio) 
        subtxt.addLocal(RETURNBLOCK) 
                  slot (attributeLambda {rv, _ -> return rv} inContext(subtxt))
        subtxt.addLocal(RETURNCREATIO) value (creatio) 
 
+       def prognBody = progn(methodNode.body)
        prognBody.build(subtxt)
        prognBody.eval(subtxt)
      }
