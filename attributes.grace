@@ -9,13 +9,6 @@ class attributesFamily {
   method ngImplicitUnknown is abstract { }
   method progn(_) is abstract { } 
 
-  //////////////////////////////////////////////////////////////////////
-  //////////////////////////////////////////////////////////////////////
-  //////// Attributes
-  //////// Attributes
-  //////// Attributes
-  //////////////////////////////////////////////////////////////////////
-  //////////////////////////////////////////////////////////////////////
 
   type O = Unknown
   type Context = Unknown
@@ -80,7 +73,18 @@ class attributesFamily {
 
        def params = methodNode.signature.parameters.asList
        if (args.size != params.size) then {error "arg mismatch"}
-       for (params.indices) do { i -> subtxt.declareName(params.at(i).name) value(args.at(i)) }
+       for (params.indices) do { i ->
+           //first attempt at typechecking.
+           //there is a subtle circularity here - this aught to be a Request of Match
+           //but we don't want to check the parameter type there!
+           //this version uses an internal match requestion, which
+           //will only work on built-in "types"
+           def par = params.at(i)
+           def arg = args.at(i)
+           if (par.typeAnnotation.eval(ctxt).match(arg))
+             then {subtxt.declareName(par.name) value(arg)}
+             else {error "argument type error: {methodnode.name} {par.name} {arg}"}
+       }
 
        def typeParams = methodNode.signature.typeParameters.asList
 
@@ -153,7 +157,7 @@ class attributesFamily {
      method asString {"attributeMissing: {name} at {ctxt}"}
   }
 
-  //what lookup retuns when it doesn't find anything.
+  //what lookup retuns when it's abiguous
   class attributeAmbiguous(name) between(possibilities) inContext(ctxt) {
      inherit attributeMissing(name) inContext(ctxt) 
      method invoke(this) args(args) types(typeArgs) creatio(creatio) {  
@@ -188,6 +192,19 @@ class attributesFamily {
     method context { ctxt } 
     method asString { "attributeLambda {lambda}" }
   }
+
+
+  //dynamic type check.
+  //Takes a typeExpression and a context, not a type object
+  //  because it's mostly used to check against declared types
+  method check(obj) isType(typeExpression) inContext(ctxt) {
+    def typeObject = typeExpression.eval(ctxt)
+    if (!typeObject.match(obj))
+      then { error "type check failed: {obj} isnt {typeObject} from {typeExpression}" }
+    obj
+  }
+  method check(o,t,c) { check(o) isType(t) inContext(c) } //abbreviation?
+
 
   //behaviour to change privacy annotations 
   trait changePrivacyAnnotations {

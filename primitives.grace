@@ -60,7 +60,7 @@ class primitivesFamily {
   class ngInterface( value', ctxt ) {   
             //cheating, just points to ast node - and context
      inherit ngPrimitive
-     method kind {"ngINrerface"}
+     method kind {"ngInterface"}
      method value {value'}
      method asString { 
         def sigs = safeFuckingMap { sig -> sig.name } over (value.signatures)
@@ -123,16 +123,18 @@ class primitivesFamily {
      method asString { "ngUninitialised" } //also an error if accessed
   }
 
-  def ngImplicitUnknown is public = object {
-     inherit ngPrimitive
-     method kind {"ngImplicitU"}
-     method asString { "ngImplicitUnknown" } 
-  }
-
   def ngUnknown is public = object {
-     inherit ngPrimitive
+     inherit ngInterface(ngUninitialised,context)
      method kind {"ngUnknown"}
      method asString { "ngUnknown" }
+     method match(other) {true}
+  }
+
+  def ngImplicitUnknown is public = object {
+     inherit ngInterface(ngUninitialised,context)
+     method match(other) {true}
+     method kind {"ngImplicitU"}
+     method asString { "ngImplicitUnknown" } 
   }
 
   def ngNotCreatio is public = object {
