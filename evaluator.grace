@@ -28,6 +28,7 @@ import "loader" as loader
 //  (need to fix kernan parser)
 
 //TODO add Kernan primitives to let us link through to incoming source code
+//TODO add Kernan support for block generic arguments
 
 //TODO imported names should go into an extra surrounding scope
 //TODO     currently they go into the current scope
@@ -60,7 +61,7 @@ class jevalFamily {
       alias jNodeAt(_) = nodeAt(_)
       alias jStringLiteralNode(_) at(_) = stringLiteralNode(_) at(_)
       alias jNumberLiteralNode(_) at(_) = numberLiteralNode(_) at(_)
-      alias jInterfaceNode(_) at(_) = interfaceNode(_) at(_) 
+      alias jInterfaceNode(_) at(_) = interfaceNode(_) at(_)
       alias jExplicitRequestNode(_,_,_,_) at(_) = explicitRequestNode(_,_,_,_) at(_)
       alias jImplicitRequestNode(_,_,_) at(_) = implicitRequestNode(_,_,_) at(_)
       alias jDefDeclarationNode(_,_,_,_) at(_) = defDeclarationNode(_,_,_,_) at(_)
@@ -107,7 +108,7 @@ class jevalFamily {
   class stringLiteralNode(
       value' : String)
           at ( source ) -> Parameter {
-      inherit jStringLiteralNode( value' ) at( source ) 
+      inherit jStringLiteralNode( value' ) at( source )
       
       method eval(ctxt) { ng.ngString( value ) } 
   }
@@ -115,7 +116,7 @@ class jevalFamily {
   class numberLiteralNode(
       value' : String)
           at ( source ) -> Parameter {
-      inherit jNumberLiteralNode( value' ) at( source ) 
+      inherit jNumberLiteralNode( value' ) at( source )
       
       method eval(ctxt) { ng.ngNumber( value ) } 
   }
@@ -123,7 +124,7 @@ class jevalFamily {
   class interfaceNode(
         signatures' : Sequence[[Signature]])
           at ( source ) -> Parameter {
-      inherit jInterfaceNode(signatures') at( source ) 
+      inherit jInterfaceNode(signatures') at( source )
 
       method eval(ctxt ) { ng.ngInterface( self, ctxt ) }
   }
@@ -132,7 +133,7 @@ class jevalFamily {
       parameters' : Sequence[[Parameter]],
       body' : Sequence[[Statement]])
           at ( source ) -> Parameter {
-      inherit jBlockNode( parameters', body' ) at( source ) 
+      inherit jBlockNode( parameters', body' ) at( source )
       
       method eval(ctxt) { ng.ngBlock(self,ctxt) }
   }
@@ -143,13 +144,13 @@ class jevalFamily {
       annotations' : Sequence[[Expression]],
       value' : Expression)
           at ( source ) -> Parameter {
-      inherit jDefDeclarationNode(name', typeAnnotation', annotations', value') 
-          at( source ) 
+      inherit jDefDeclarationNode(name', typeAnnotation', annotations', value')
+          at( source )
 
       method build(ctxt) {
           def annots = safeFuckingMap { a -> a.eval(ctxt) } over(annotations)
           def properties = utility.processAnnotations(annots,false)
-          ctxt.declareDef(name) properties(properties) 
+          ctxt.declareDef(name) asType(typeAnnotation) properties(properties)
           }
       method eval(ctxt) { 
           ctxt.getLocal(name).initialValue:= value.eval(ctxt)
@@ -163,13 +164,13 @@ class jevalFamily {
       annotations' : Sequence[[Expression]],
       value' : Expression)
           at ( source ) -> Parameter {
-      inherit defDeclarationNode(name', typeAnnotation', annotations', value') 
-          at( source ) 
+      inherit defDeclarationNode(name', typeAnnotation', annotations', value')
+          at( source )
 
       method build(ctxt) {
           def annots = safeFuckingMap { a -> a.eval(ctxt) } over(annotations)
           def properties = utility.processVarAnnotations(annots)
-          ctxt.declareVar(name) properties(properties) 
+          ctxt.declareVar(name) asType(typeAnnotation) properties(properties)
           }
   }
 
@@ -183,7 +184,7 @@ class jevalFamily {
       method build(ctxt) { 
           def annots = safeFuckingMap { a -> a.eval(ctxt) } over(annotations)
           def properties = utility.processAnnotations(annots,true)
-          ctxt.declareName(signature.name) 
+          ctxt.declareName(signature.name)
                  attribute (ng.attributeMethod(self) properties(properties) inContext(ctxt) )
           ng.ngDone
       }      
@@ -197,7 +198,7 @@ class jevalFamily {
       arguments' : Sequence[[Expression]])
           at ( source ) -> Parameter {
       inherit jExplicitRequestNode(receiver', name', typeArguments', arguments')
-          at( source ) 
+          at( source )
 
       method eval(ctxt) {
 
@@ -220,7 +221,7 @@ class jevalFamily {
          def mySelf = ctxt.getInternal("self").value
          def isSpecialRequest = mySelf.isInside(rcvr)
 
-         if (! (methodBody.isPublic || isSpecialRequest)  ) 
+         if (! (methodBody.isPublic || isSpecialRequest)  )
            then {error "External request for confidential attribute {name}"}
 
          //if (!methodBody.isPublic) then {error "External request for confidential attribute {name}"}
@@ -240,7 +241,7 @@ class jevalFamily {
       arguments' : Sequence[[Expression]])
           at ( source ) -> Parameter {
       inherit jImplicitRequestNode(name', typeArguments', arguments')
-          at( source ) 
+          at( source )
          
 
       method eval(ctxt) {
@@ -249,7 +250,7 @@ class jevalFamily {
 
          def types = safeFuckingMap { ta -> ta.eval(argCtxt) } over(typeArguments)
          def args = safeFuckingMap { a -> a.eval(argCtxt) } over(arguments)   
-         def methodBody = ctxt.lookupInternal(name) 
+         def methodBody = ctxt.lookupInternal(name)
          def rv = methodBody.invoke(ctxt) args(args) types(types) creatio(creatio)
          rv
       } 
@@ -263,7 +264,7 @@ class jevalFamily {
       method eval(ctxt) {
           def returnCreatio = ctxt.getInternal(RETURNCREATIO).value
           def returnBlock = ctxt.getInternal(RETURNBLOCK)
-          returnBlock.invoke(ctxt) 
+          returnBlock.invoke(ctxt)
                           args(list( value.eval(ctxt) ))
                           types(empty)                  
                           creatio(returnCreatio)
@@ -273,7 +274,7 @@ class jevalFamily {
   class objectConstructorNode(
       body' : Sequence[[ObjectStatement]])
           at ( source ) -> Parameter {
-      inherit jObjectConstructorNode(body') at(source) 
+      inherit jObjectConstructorNode(body') at(source)
 
       method eval(ctxt) { ng.objectContext(body,ctxt) }            
   }
@@ -319,10 +320,10 @@ class jevalFamily {
       name' : String,
       typeAnnotation' : Expression)
           at ( source ) -> Node {
-      inherit jImportNode(path',name',typeAnnotation') at ( source ) 
+      inherit jImportNode(path',name',typeAnnotation') at ( source )
 
       method build(ctxt) {
-          ctxt.declareDef(name) properties(utility.confidentialAnnotations) 
+          ctxt.declareDef(name) asType(typeAnnotation) properties(utility.confidentialAnnotations)
           }
 
       method eval(ctxt) { 

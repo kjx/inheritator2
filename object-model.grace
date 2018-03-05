@@ -99,15 +99,15 @@ class exports {
     } 
 
     //declare a Def which must later be initialised
-    method declareDef(name) properties(properties) {
-      def box = attributeDef(name) properties(properties) inContext(self)
+    method declareDef(name) asType(typeAnnotation) properties(properties) {
+      def box = attributeDef(name) asType(typeAnnotation) properties(properties) inContext(self)
       declareName(name) attribute(box) 
     }
 
     //declare a Var which must later be initialised
-    method declareVar(name) properties(properties) {
+    method declareVar(name) asType(typeAnnotation) properties(properties) {
       def setterName = name ++ ASSIGNMENT_TAIL
-      def box = attributeVar(name) properties(properties) inContext(self)
+      def box = attributeVar(name) asType(typeAnnotation) properties(properties) inContext(self)
       declareName(name) attribute(box) 
       declareName(setterName) attribute(box.setter) 
     }

@@ -23,13 +23,14 @@ class attributesFamily {
   }
 
 
-  class attributeDef(origin) properties(properties) inContext(ctxt) {
+  class attributeDef(origin) asType(typeAnnotation) properties(properties) inContext(ctxt) {
      use utility.annotationsTrait(properties)
      use changePrivacyAnnotations
      assert {!properties.isAbstract} because "A field can't be abstract"
      var boxValue := ngUninitialised
      method initialValue:= (initialValue) {
         if (boxValue != ngUninitialised) then { error "can't initialise initailsed box" }
+        //FUCKER check(initialValue) isType(typeAnnotation) inContext(ctxt)
         boxValue := initialValue
      }
      method invoke(this) args(args) types(typeArgs) creatio(_) {
@@ -42,8 +43,8 @@ class attributesFamily {
      method context { ctxt } 
   }
 
-  class attributeVar(origin) properties(properties) inContext(ctxt)  {
-     inherit attributeDef(origin) properties(properties.getter) inContext(ctxt)
+  class attributeVar(origin) asType(typeAnnotation) properties(properties) inContext(ctxt)  {
+     inherit attributeDef(origin) asType(typeAnnotation) properties(properties.getter) inContext(ctxt)
        alias defInvoke(_)args(_)types(_)creatio(_) = invoke(_)args(_)types(_)creatio(_)
 
      def setter is public = object {
