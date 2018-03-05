@@ -30,7 +30,7 @@ class attributesFamily {
      var boxValue := ngUninitialised
      method initialValue:= (initialValue) {
         if (boxValue != ngUninitialised) then { error "can't initialise initailsed box" }
-        //FUCKER check(initialValue) isType(typeAnnotation) inContext(ctxt)
+        check(initialValue) isType(typeAnnotation) inContext(ctxt)
         boxValue := initialValue
      }
      method invoke(this) args(args) types(typeArgs) creatio(_) {
@@ -45,7 +45,12 @@ class attributesFamily {
 
   class attributeVar(origin) asType(typeAnnotation) properties(properties) inContext(ctxt)  {
      inherit attributeDef(origin) asType(typeAnnotation) properties(properties.getter) inContext(ctxt)
-       alias defInvoke(_)args(_)types(_)creatio(_) = invoke(_)args(_)types(_)creatio(_)
+       alias varInitialValue:=(_) = initialValue:=(_)
+
+     method initialValue:=(initialValue) {
+       if (initialValue != ngUninitialised) 
+          then { varInitialValue:=(initialValue) }
+     }
 
      def setter is public = object {
        use utility.annotationsTrait(properties.setter)
@@ -53,7 +58,9 @@ class attributesFamily {
        method invoke(this) args(args) types(typeArgs) creatio(creatio) {
           assert {args.size == 1}
           assert {typeArgs.size == 0}
-          boxValue:= args.at(1)
+          def newValue = args.at(1)
+          check(newValue) isType(typeAnnotation) inContext(ctxt)
+          boxValue:= newValue
           ngDone
          }
        method context { ctxt } 
@@ -70,43 +77,46 @@ class attributesFamily {
      method invoke(this) args(args) types(typeArgs) creatio(creatio) {
        //print "invoke {methodNode.signature.name} on #{this.dbg} creatio:{creatio.isCreatio}"
 
-       def subtxt = ctxt.subcontextNamed(methodNode.signature.name)
-
-       def params = methodNode.signature.parameters.asList
-       if (args.size != params.size) then {error "arg mismatch"}
-       for (params.indices) do { i ->
-           //first attempt at typechecking.
-           //there is a subtle circularity here - this aught to be a Request of Match
-           //but we don't want to check the parameter type there!
-           //this version uses an internal match requestion, which
-           //will only work on built-in "types"
-           def par = params.at(i)
-           def arg = args.at(i)
-           if (par.typeAnnotation.eval(ctxt).match(arg))
-             then {subtxt.declareName(par.name) value(arg)}
-             else {error "argument type error: {methodnode.name} {par.name} {arg}"}
-       }
+       def typetxt = ctxt.subcontextNamed(methodNode.signature.name ++ "(types)")
 
        def typeParams = methodNode.signature.typeParameters.asList
 
        if (typeArgs.size == typeParams.size)
           then {
             for (typeParams.indices) do { i ->
-              subtxt.declareName(typeParams.at(i).name) value(typeArgs.at(i)) } }
+              typetxt.declareName(typeParams.at(i).name) value(typeArgs.at(i)) } }
           elseif {typeArgs.size == 0}
           then {
             for (typeParams.indices) do { i ->
-              subtxt.declareName(typeParams.at(i).name) value(ngImplicitUnknown) } }
+              typetxt.declareName(typeParams.at(i).name) value(ngImplicitUnknown) } }
           else {error "generic arg mismatch"}
+
+       def returnType = methodNode.signature.returnType
+
+       def subtxt = typetxt.subcontextNamed(methodNode.signature.name)
+
+       def params = methodNode.signature.parameters.asList
+       if (args.size != params.size) then {error "arg mismatch"}
+       for (params.indices) do { i ->
+           def par = params.at(i)
+           def arg = args.at(i)
+           check(arg) isType(par.typeAnnotation) inContext(typetxt)
+           subtxt.declareName(par.name) value(arg)
+       }
+
 
        subtxt.addLocal(CREATIO) value(creatio) 
        subtxt.addLocal(RETURNBLOCK) 
-                 slot (attributeLambda {rv, _ -> return rv} inContext(subtxt))
+          slot (attributeLambda {rv, _ ->
+                  check(rv) isType(returnType) inContext(typetxt)
+                  return rv} inContext(subtxt))
        subtxt.addLocal(RETURNCREATIO) value (creatio) 
 
        def prognBody = progn(methodNode.body)
        prognBody.build(subtxt)
-       prognBody.eval(subtxt)
+       def rv = prognBody.eval(subtxt)
+       check(rv) isType(returnType) inContext(typetxt)
+       rv
      }
      method context { ctxt } 
      method asString {"attributeMethod: {methodNode.signature.name} #{ctxt.dbg}"}
@@ -199,13 +209,11 @@ class attributesFamily {
   //Takes a typeExpression and a context, not a type object
   //  because it's mostly used to check against declared types
   method check(obj) isType(typeExpression) inContext(ctxt) {
-    def typeObject = typeExpression.eval(ctxt)
-    if (!typeObject.match(obj))
-      then { error "type check failed: {obj} isnt {typeObject} from {typeExpression}" }
-    obj
+       def typeObject = typeExpression.eval(ctxt)
+       if (!typeObject.match(obj))
+           then { error "type check failed: {obj} isnt {typeObject} from {typeExpression}" }
+       obj
   }
-  method check(o,t,c) { check(o) isType(t) inContext(c) } //abbreviation?
-
 
   //behaviour to change privacy annotations 
   trait changePrivacyAnnotations {
