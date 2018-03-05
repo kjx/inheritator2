@@ -209,7 +209,7 @@ class attributesFamily {
   //Takes a typeExpression and a context, not a type object
   //  because it's mostly used to check against declared types
   method check(obj) isType(typeExpression) inContext(ctxt) {
-       def typeObject = typeExpression.eval(ctxt)
+       def typeObject = typeExpression.eval(ctxt.contextWithoutCreatio)
        if (!typeObject.match(obj))
            then { error "type check failed: {obj} isnt {typeObject} from {typeExpression}" }
        obj

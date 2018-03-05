@@ -11,4 +11,4 @@ boxx
 
 method bar { }
 
-bar[[3]]
+//bar[[3]]

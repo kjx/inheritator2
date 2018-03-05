@@ -44,14 +44,14 @@ class exports {
 
   class progn (body) {
      method build(ctxt) {
-       def bodyContext = ctxt.subcontextWithoutCreatio
+       def bodyContext = ctxt.contextWithoutCreatio
        var rv := ngDone
        for (body) doWithLast {
           stmt, last -> rv := stmt.build( if (!last) then {bodyContext} else {ctxt} ) }
        rv
      }
      method eval(ctxt) { 
-       def bodyContext = ctxt.subcontextWithoutCreatio
+       def bodyContext = ctxt.contextWithoutCreatio
        var rv := ngDone
        for (body) doWithLast { 
          stmt, last -> rv := stmt.eval( if (!last) then {bodyContext} else {ctxt} ) }
@@ -190,7 +190,7 @@ class exports {
       if (crt.isMissing) then { ng.ngNotCreatio } else { crt.value }
     }
 
-    method subcontextWithoutCreatio {
+    method contextWithoutCreatio {
          if (creatio.isCreatio) 
            then {
              def noCreatioCtxt = subcontext
