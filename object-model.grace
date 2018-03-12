@@ -496,6 +496,18 @@ class exports {
                 else {print "pass: {l} notSubtypeOf {r}"}
             ngDone}
 
+    im.declareName("assert(_)isEqualsType(_)") 
+          lambda { l, r, _ -> 
+            if (l.isTypeEquals(r)) then {print "pass: {l} isEqualsTo {r}"}
+                else {print "fail: {l} NOT equals {r}"}
+            ngDone}
+
+    im.declareName("assert(_)notEqualsType(_)") 
+          lambda { l, r, _ -> 
+            if (l.isTypeEquals(r)) then {print "fail: {l} DOES equals {r}"}
+                else {print "pass: {l} notEqualsTo {r}"}
+            ngDone}
+
     return im
   }
 

@@ -384,7 +384,7 @@ class jastFamily {
     
       def signatures : Sequence[[Signature]] is public = signatures'
     
-      method asString {"interface: {signatures} size: {signatures.size}"}
+      method asStringBody {"interface: {signatures} size: {signatures.size}"}
 
       debug { print (asString)}
 

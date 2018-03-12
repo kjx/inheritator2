@@ -69,7 +69,7 @@ class primitivesFamily {
      method context { ctxt }
      method asString { 
         def sigs = safeFuckingMap { sig -> sig.name } over (value.signatures)
-        "ngInterface: #{dbg} {sigs}"}
+        "ngInterface: #{dbg} n{value.nodeID} {sigs}"}
      
      
      method match(other) {//assumes other is an NGO 
@@ -81,6 +81,10 @@ class primitivesFamily {
 
      method isSubtypeOf(other) {
         typechecker.check(self) isSubtypeOf(other)
+     }
+
+     method isTypeEquals(other) { 
+        typechecker.check(self) isTypeEquals(other)
      }
 
      declareName "match(_)" lambda { other, creatio -> 

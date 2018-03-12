@@ -44,6 +44,7 @@ type List = interface {
   cdr -> List
 }
 
+
 assert(List) isSubtypeOf(t0)
 assert(ta) notSubtypeOf(List)
 assert(List) isSubtypeOf(List)
