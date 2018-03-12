@@ -468,6 +468,7 @@ class exports {
 
     im.declareName("implicitUninitialised") value(ng.ngUninitialised)
     im.declareName("implicitUnknown") value(ng.ngImplicitUnknown)
+    im.declareName("implicitDone") value(ng.ngImplicitDone)
     im.declareName("Unknown") value(ng.ngUnknown)
 
     //privacy annotations
@@ -482,6 +483,18 @@ class exports {
 
     //basic methods
     im.declareName("print(_)") lambda { p, creatio -> print(p) }
+
+    im.declareName("assert(_)isSubtypeOf(_)") 
+          lambda { l, r, _ -> 
+            if (!l.isSubtypeOf(r)) then {print "fail: {l} isSubtypeOf {r}"}
+                else {print "pass: {l} isSubtypeOf {r}"}
+            ngDone}
+
+    im.declareName("assert(_)notSubtypeOf(_)") 
+          lambda { l, r, _ -> 
+            if (l.isSubtypeOf(r)) then {print "fail: {l} notSubtypeOf {r}"}
+                else {print "pass: {l} notSubtypeOf {r}"}
+            ngDone}
 
     return im
   }

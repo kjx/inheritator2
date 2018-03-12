@@ -37,6 +37,7 @@ import "loader" as loader
 
 //TODO refactor AST, redesign class names
 //TODO refactor progn out of runtime into jast - 
+//TODO AST returnType -> returnTypeAnnotation (all types here are annotations?)
 //TODO add sequence and statementsequence into the common AST
 
 //TODO add "provenacne" to methods, e.g. if they came from a class or type decln
@@ -201,6 +202,7 @@ class jevalFamily {
           at( source )
 
       method eval(ctxt) {
+         print "{name} {arguments.size}"
 
          def creatio = ctxt.creatio
          def argCtxt = ctxt.withoutCreatio

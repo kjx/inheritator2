@@ -6,5 +6,5 @@ for f in *.grace
     t=`grep trait $f | wc -l`
     o=`grep object $f | wc -l`
     let "ratio=((l*100)/(m+c+t+o))"
-    echo "$f: $ratio (methods: $m   classes: $c  traits $t  objects $o)"
+echo "$ratio (methods: $m   classes: $c  traits $t  objects $o)  $f"
 done 

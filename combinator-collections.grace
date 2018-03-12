@@ -1693,4 +1693,5 @@ class abbreviations {
    method key(k) value(v) { outer.key(k) value(v) }
    method pair(k,v) { outer.key(k) value(v) }
    method empty { emptySequence }
+   method set { outer.set.withAll [] }
 }

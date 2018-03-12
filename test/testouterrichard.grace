@@ -1,4 +1,4 @@
-def out = object {
+class out {
    method asString { "out" }
    method m { print "M {self}"} 
    method n { m }
@@ -9,10 +9,11 @@ def out = object {
    }
 }
 
-def in = object { 
-   method asString { "out" }
+class in { 
+   inherit out
+   method asString { "in" }
    class sub {
-     inherit out.sup
+     inherit sup
      method asString { "sub" }
      t 
      }

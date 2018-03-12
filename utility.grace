@@ -12,6 +12,8 @@ class exports {
 
   method map(f) over(col) { safeFuckingMap(f)over(col) }
 
+  method for(c) map(f) { map(f) over(c) }
+
   //should probably switch to keysAndValuesDo, last is key == size
   method for(col) doWithLast(block2) {
      def size = col.size
@@ -20,6 +22,29 @@ class exports {
        block2.apply(e, counter == size)
        counter := counter + 1 
      }
+  }
+
+  method for(a) and(b) do(f) -> Done { //thanks tim!
+    var i := 1
+    while { (i <= a.size) && (i <= b.size) } do {
+      f.apply(a.at(i), b.at(i))
+      i := i + 1
+    }
+  }
+
+  method valueOf( block ) { block.apply }
+
+
+  class cache (block) { 
+    var alreadyAssigned := false
+    var value 
+    method prefix ^ { 
+      if (!alreadyAssigned) then {
+         value := block.apply
+         alreadyAssigned := true
+      }
+      value
+    }
   }
 
   def CREATIO = "_creatio"
@@ -121,3 +146,4 @@ class default(initialValue) named (name) {
       alreadyAssigned := true
    }
 }
+

@@ -1,4 +1,4 @@
-
+import "typechecker" as typechecker
 
 class primitivesFamily {
   method context is abstract { }
@@ -53,7 +53,11 @@ class primitivesFamily {
      method value {value'}
      method asString { "ngBoolean: {value}"}
 
-     // needs some methods which will need the context
+     // needs some methods which will need the context -- or will it??
+
+     declareName "prefix!" lambda { creatio ->  
+                    def rv = ngBoolean(! value)
+                    rv }
   }  
 
 
@@ -62,11 +66,10 @@ class primitivesFamily {
      inherit ngPrimitive
      method kind {"ngInterface"}
      method value {value'}
+     method context { ctxt }
      method asString { 
         def sigs = safeFuckingMap { sig -> sig.name } over (value.signatures)
         "ngInterface: #{dbg} {sigs}"}
-
-
      
      
      method match(other) {//assumes other is an NGO 
@@ -76,8 +79,15 @@ class primitivesFamily {
         true
      }
 
+     method isSubtypeOf(other) {
+        typechecker.check(self) isSubtypeOf(other)
+     }
+
      declareName "match(_)" lambda { other, creatio -> 
                                        ngBoolean(match(other)) }
+
+     declareName "<:(_)" lambda { other, creatio -> 
+                                       ngBoolean(isSubtypeOf(other)) }
         
   }
 
@@ -111,6 +121,12 @@ class primitivesFamily {
      method asString { "ngDone"}
   }
 
+  def ngImplicitDone is public = object {
+     inherit ngPrimitive
+     method kind{"ngImplicitDone"}
+     method asString { "ngImplicitDone"}
+  }
+
   def ngBuild is public = object {
      inherit ngPrimitive
      method kind {"ngBuild"}
@@ -133,7 +149,7 @@ class primitivesFamily {
   def ngImplicitUnknown is public = object {
      inherit ngInterface(ngUninitialised,context)
      method match(other) {true}
-     method kind {"ngImplicitU"}
+     method kind {"ngImplicitUnknown"}
      method asString { "ngImplicitUnknown" } 
   }
 
