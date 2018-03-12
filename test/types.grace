@@ -35,6 +35,40 @@ assert(tb) notSubtypeOf(tab)
 assert(tab) isSubtypeOf(tab)
 
 
+type mUU = interface { m(_) } 
+type mUA = interface { m(_) -> ta }
+type mUB = interface { m(_) -> tb }
+type mUAB = interface { m(_) -> tab }
+
+type mAU = interface { m(_ : ta) }
+type mBU = interface { m(_ : tb) }
+type mABU = interface { m(_ : tab ) }
+
+type mAA = interface { m(_ : ta) -> ta }
+type mAB = interface { m(_ : ta) -> tb }
+type mAAB = interface { m(_ : ta) -> tab }
+
+assert(mUU) isSubtypeOf(mUU)
+assert(mUU) isSubtypeOf(mUA)
+assert(mUA) isSubtypeOf(mUU)
+assert(mUA) notSubtypeOf(mUB)
+assert(mUB) notSubtypeOf(mUA)
+assert(mUAB) isSubtypeOf(mUA)
+assert(mUAB) isSubtypeOf(mUAB)
+assert(mUA) notSubtypeOf(mUAB)
+
+assert(mAA) isSubtypeOf(mUU)
+assert(mUU) isSubtypeOf(mAA)
+
+assert(mAU) notSubtypeOf(mBU)
+assert(mBU) notSubtypeOf(mAU)
+assert(mABU) notSubtypeOf(mAU)
+assert(mABU) notSubtypeOf(mBU)
+assert(mAU) isSubtypeOf(mABU)
+assert(mABU) isSubtypeOf(mABU)
+assert(mAU) isSubtypeOf(mABU)
+
+
 print "about to Loop"
 
 type Object = interface { } 

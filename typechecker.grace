@@ -20,8 +20,8 @@ method check (left) isSubtypeOf (right) {
 method check (left) isTypeEquals (right) {
   def leftObjectType = makeObjectType(left)
   def rightObjectType = makeObjectType(right)
-  print "checking: {left} isTypeEquals {right}"
-  print "objectType: {leftObjectType} isTypeEquals {rightObjectType}"
+  //print "checking: {left} isTypeEquals {right}"
+  //print "objectType: {leftObjectType} isTypeEquals {rightObjectType}"
   leftObjectType == (rightObjectType)
 }
 
@@ -84,22 +84,22 @@ class abstractObjectType {
       if (oType.isStructural) then {
          if (methods.isEmpty && oType.methods.isEmpty) then {return true}}
 
-      print "OT/iStO self: {self} other: {oType}"
-      print "ass: {assumptions.size}"
+      //print "OT/iStO self: {self} other: {oType}"
+      //print "ass: {assumptions.size}"
 
       if (oType.isUnknown) then {return true}
    
-      if (assumptions.at(self) ifAbsent {
+      if ((assumptions.at(self) ifAbsent {
              def against = set[[ObjectType]]
              assumptions.at(self) put(against)
              against
-             }).contains(oType) then {
+             }).contains(oType)) then {
         return true
       }
 
       assumptions.at(self).do { assume -> assume.add(oType) }
 
-      print "ABOUT TOCHECK METHODS"
+      //print "ABOUT TOCHECK METHODS"
 
       for (oType.methods) do { oMeth ->
         def sMeth = methodNamed(oMeth.name) ifAbsent { return false }
@@ -139,7 +139,7 @@ class abstractObjectType {
 
    method !=(other) { !(self == other) }
    method ==(other) {
-     print "type=="
+     //print "type=="
      ////print "self: {self}"
      //print "self: {isUnknown} {isStructural} {hash}"
      //print "other: {other}"
