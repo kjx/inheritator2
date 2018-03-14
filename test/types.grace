@@ -1,6 +1,12 @@
-type Unknown = { }   //EVIL
-type ImplicitUnknown = { }  //EVIL
+type ImplicitUnknown = implicitUnknown
 
+type Done = { } 
+type Block = interface { apply -> Done }
+type Boolean = {
+     ifTrue(_: Block)
+     ifFalse(_:Block)
+     ifTrue(_:Block)false(_:Block)
+     }
 
 type t0 = interface { } 
 type t01 = interface { } 
@@ -15,6 +21,7 @@ type ta1 = interface { a }
 
 assert(ta) isSubtypeOf(ta1) 
 assert(ta1) isSubtypeOf(ta) 
+assert(ta) notEqualsType(ta1)
 
 assert(ta) isSubtypeOf(t0)
 assert(t0) notSubtypeOf(ta)
@@ -69,19 +76,59 @@ assert(mABU) isSubtypeOf(mABU)
 assert(mAU) isSubtypeOf(mABU)
 
 
-print "about to Loop"
+type Generic[[T,U]] = interface { m(_:T) -> U } 
+
+assert(Generic[[ta,tb]]) isSubtypeOf(mAB)
+assert(mAB) isSubtypeOf(Generic[[ta,tb]]) 
+assert(mAB) notEqualsType(Generic[[ta,tb]])  //equals e.g. defined on nodeID
+
+type TransformerOfAAB = interface { 
+   add(_: ta) -> Done
+   remove(_ : ta) -> Boolean
+   transform(_: ta) -> tab   
+}
+
+type Transformer[[T,U]] = interface {
+   add(_: T) -> Done
+   remove(_ : T) -> Boolean
+   transform(_: T) -> U
+}
+
+assert(TransformerOfAAB) isSubtypeOf(Transformer[[ta,tab]])
+assert(Transformer[[ta,tab]])  isSubtypeOf(TransformerOfAAB)
+
+
 
 type Object = interface { } 
+
+def o = Object
 
 type List = interface { 
   car -> Object
   cdr -> List
 }
 
+type List1 = interface { 
+  car -> Object
+  cdr -> List1
+}
 
+assert(o) isEqualsType(o)
+assert(Object) isEqualsType(Object)
+assert(List) isEqualsType(List)
+assert(Object) notEqualsType(List)
+assert(List) notEqualsType(Object)
+
+
+assert(Object) notSubtypeOf(List)
+assert(List) isSubtypeOf(Object)
+assert(List) isSubtypeOf(List)
 assert(List) isSubtypeOf(t0)
 assert(ta) notSubtypeOf(List)
 assert(List) isSubtypeOf(List)
 assert(List) isSubtypeOf(Object)
+
+assert(List) isSubtypeOf(List1)
+assert(List1) isSubtypeOf(List)
 
 print "done"

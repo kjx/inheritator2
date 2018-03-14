@@ -13,6 +13,6 @@ assert(Object) notEqualsType(List)
 assert(List) notEqualsType(Object)
 
 
-// assert(Object) notSubtypeOf(List)
-// assert(List) isSubtypeOf(Object)
-// assert(List) isSubtypeOf(List)
+assert(Object) notSubtypeOf(List)
+assert(List) isSubtypeOf(Object)
+assert(List) isSubtypeOf(List)

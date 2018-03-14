@@ -44,14 +44,21 @@ type ObjectType = interface {
     isSubtypeOf(other : ObjectType) -> Boolean
     // Used for redispatch in isSubtypeOf(), and does not actually represent a
     // calculation of whether this type is a supertype of the given one.
+    // KJX TODO rename to reverseSubtypeOf  - when done copying in tims code
     isSupertypeOf(other : ObjectType) -> Boolean
     |(other : ObjectType) -> ObjectType
     &(other : ObjectType) -> ObjectType
 }
 
 
+var otCount := 0 
+
 class abstractObjectType {
    def methods = empty
+
+   otCount := otCount + 1 
+   def otID is public = otCount
+
 
    method methodNamed(name) ifAbsent (block)  {
         for (methods) do { meth ->
@@ -78,26 +85,29 @@ class abstractObjectType {
 
    method isSubtypeOf(oType : ObjectType)
           withAssumptions(assumptions :
-            MutableDictionary[[ObjectType, MutableSet[[ObjectType]] ]]) -> Boolean {
-
-      ///whyt is this needed given James' fancy fucking code!!!
-      if (oType.isStructural) then {
-         if (methods.isEmpty && oType.methods.isEmpty) then {return true}}
-
-      //print "OT/iStO self: {self} other: {oType}"
-      //print "ass: {assumptions.size}"
+            MutableDictionary[[ObjectType, MutableSet[[ObjectType]] ]])
+              -> Boolean {
+      //print "OT/iStOWA self: {self} other: {oType}"
+      //print "OT/iStOWA self: {self.otID} other: {oType.otID}"
+      //print "ass: {assumptions}"
 
       if (oType.isUnknown) then {return true}
-   
-      if ((assumptions.at(self) ifAbsent {
-             def against = set[[ObjectType]]
-             assumptions.at(self) put(against)
-             against
-             }).contains(oType)) then {
-        return true
-      }
 
-      assumptions.at(self).do { assume -> assume.add(oType) }
+      def against = assumptions.at(self) 
+            ifAbsent { def newSet = list
+                       assumptions.at(self) put(newSet)
+                       newSet }
+            
+      //print "ass1: {assumptions}"
+      //print "agg1: {against}"
+
+      if (against.contains(oType)) then {return true}
+
+      //print "ass2: {assumptions}"
+      
+      //assumptions.at(self).do { assume -> assume.add(oType) }
+      against.add(oType)
+      //print "ass3: {assumptions}"
 
       //print "ABOUT TOCHECK METHODS"
 
@@ -140,7 +150,7 @@ class abstractObjectType {
    method !=(other) { !(self == other) }
    method ==(other) {
      //print "type=="
-     ////print "self: {self}"
+     //print "self: {self}"
      //print "self: {isUnknown} {isStructural} {hash}"
      //print "other: {other}"
      //print "other: {other.isUnknown} {other.isStructural} {other.hash}"
@@ -156,10 +166,13 @@ class abstractObjectType {
 }
 
 
+//build an object type from an interpreter level interface object
+//(which will be the result of an interface construcctor in the source)
+//
+
 class objectType( ngInterface ) {
    inherit abstractObjectType
-   
-   ////print "objectType {ngInterface}"
+
 
    method equalsOther(other) { 
      //print "ot=OTHER"
@@ -169,7 +182,12 @@ class objectType( ngInterface ) {
      //print "ctxt {ctxt.dbg}  other {other.ctxt.dbg} {ctxt == other.ctxt}" 
      //print "value {value} other {other.value}"
      //print "value {value.nodeID} other {other.value.nodeID} {(value == other.value)    }"
-     def rv = (ctxt == other.ctxt) && (value == other.value)    
+     //def rv = (ctxt == other.ctxt) && (value == other.value)    
+     //def rv = (value == other.value)  
+
+     assert { (value.nodeID == other.value.nodeID) == (value == other.value) }
+
+     def rv = (value == other.value)    
      //print "ot.eSOT rv = {rv}"
      rv
    }
@@ -188,9 +206,9 @@ class objectType( ngInterface ) {
    method asString { 
       match (methods.size)
         case { 0 -> return "interface \{\}"}
-        case { 1 -> return "interface \{ {methods.at(1)} \}" }
+        case { 1 -> return "interface ot:{otID} value:{value.nodeID} \{ {methods.at(1)} \}" }
         case { _ -> }
-      var rv := "interface \{\n  "
+      var rv := "interface ot:{otID} value:{value.nodeID} \{\n  "
       for (methods) do { meth -> 
         rv := rv ++ "{meth}" ++ "\n  "
       }
@@ -198,6 +216,8 @@ class objectType( ngInterface ) {
       rv
    }
 }
+
+
 
 class singletonObjectType {
   inherit abstractObjectType  
@@ -246,15 +266,13 @@ class methodType ( signatureNode, ctxt ) {
    method returnObjectType { 
            makeObjectType(signatureNode.returnType.eval(ctxt.withoutCreatio)) }
    method typeParameters { signatureNode.typeParameters }
-   method parametersObjectTypes {
-     for (signatureNode.parameters) 
-       map { p -> makeObjectType (p.typeAnnotation.eval(ctxt.withoutCreatio)) } }
    //def parametersObjectTypes is public = 
    // for (signatureNode.parameters) 
    //   map { p -> makeObjectType (p.typeAnnotation.eval(ctxt.withoutCreatio)) }    
+   method parametersObjectTypes {
+     for (signatureNode.parameters) 
+       map { p -> makeObjectType (p.typeAnnotation.eval(ctxt.withoutCreatio)) } }
    method asString { "method {name}  [[{typeParameters.size}]] ({parametersObjectTypes.size})" }
 
-   ////print "ZNK {signatureNode.name}"
-   ////print "tPars: {typeParameters}"
-   ////print "types: {parametersObjectTypes}"
+
 }
