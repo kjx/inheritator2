@@ -255,9 +255,16 @@ def doneType is public = object {
 
 
 
-
-
-
+//from tim, not sure this is right
+type MethodType = interface {
+    name -> String
+    typeParamters -> Sequence[[Parameter]]
+    parametersObjectTypes -> Sequence[[ObjectType]]
+    returnObjectType -> ObjectType
+    //isSpecialisationOf(other : MethodType) -> Boolean
+    //isPublic -> Boolean
+    //isPublic := (value : Boolean) -> Done
+}
 
 class methodType ( signatureNode, ctxt ) { 
    method name { signatureNode.name }
