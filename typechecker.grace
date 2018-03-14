@@ -196,7 +196,7 @@ class objectType( ngInterface ) {
    def ctxt is public = ngInterface.context  
    def value is public = ngInterface.value
 
-   def methods is public =  //rename as methodTypes sometime?
+   def methods is public =  //TODO rename as methodTypes sometime?
      for (ngInterface.value.signatures)
      map { sig -> methodType( sig, ctxt ) }
 
