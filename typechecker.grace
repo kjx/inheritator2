@@ -250,11 +250,6 @@ def doneType is public = object {
   method asString { "doneObjectType" }
 }
 
-
-
-
-
-
 //from tim, not sure this is right
 type MethodType = interface {
     name -> String

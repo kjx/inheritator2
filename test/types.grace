@@ -97,6 +97,7 @@ type Transformer[[T,U]] = interface {
 assert(TransformerOfAAB) isSubtypeOf(Transformer[[ta,tab]])
 assert(Transformer[[ta,tab]])  isSubtypeOf(TransformerOfAAB)
 
+print "HERE WE GO"
 
 
 type Object = interface { } 
@@ -112,6 +113,27 @@ type List1 = interface {
   car -> Object
   cdr -> List1
 }
+
+type ListA = interface { 
+  car -> Object
+  cdr -> ListB
+} 
+
+type ListB = interface { 
+  car -> Object
+  cdr -> ListC
+} 
+
+
+type ListC = interface { 
+  car -> Object
+  cdr -> ListD
+}
+
+type ListD = interface { 
+  car -> Object
+  cdr -> ListA
+} 
 
 assert(o) isEqualsType(o)
 assert(Object) isEqualsType(Object)
@@ -130,5 +152,11 @@ assert(List) isSubtypeOf(Object)
 
 assert(List) isSubtypeOf(List1)
 assert(List1) isSubtypeOf(List)
+
+assert(ListA) isSubtypeOf(ListC)
+assert(ListB) isSubtypeOf(ListD)
+
+assert(List) isSubtypeOf(ListA)
+assert(ListA) isSubtypeOf(List)
 
 print "done"
