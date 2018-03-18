@@ -97,7 +97,6 @@ type Transformer[[T,U]] = interface {
 assert(TransformerOfAAB) isSubtypeOf(Transformer[[ta,tab]])
 assert(Transformer[[ta,tab]])  isSubtypeOf(TransformerOfAAB)
 
-print "HERE WE GO"
 
 
 type Object = interface { } 
@@ -158,5 +157,23 @@ assert(ListB) isSubtypeOf(ListD)
 
 assert(List) isSubtypeOf(ListA)
 assert(ListA) isSubtypeOf(List)
+
+type GList[[T]] = interface {
+   car -> Object 
+   cdr -> T
+}
+
+assert(GList[[List]]) isSubtypeOf(List1)
+assert(List1) isSubtypeOf(GList[[List]]) 
+
+
+//type GListA = GList[[GList[[GList[[Glist[[GListA]] ]] ]] ]]
+type GListA = GList[[GListA]]
+
+print "HERE WE GO"
+
+assert(GListA) isSubtypeOf(List)
+assert(List) isSubtypeOf(GListA)
+
 
 print "done"
