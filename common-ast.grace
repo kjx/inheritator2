@@ -94,9 +94,8 @@ class jastFamily {
       method accept[[T]](visitor : Visitor[[T]]) -> T {
         visitor.visitParameter(self) }
     }
-    
-    //should be methodDeclarationNode. or remove "Declaration", "Literal" below
-    class methodNode(
+
+    class methodDeclarationNode(
       signature' : Signature,
       body' : Sequence[[Statement]],
       annotations' : Sequence[[Expression]])
@@ -112,9 +111,8 @@ class jastFamily {
       method asStringBody { "methodNode {signature.name}..." } 
     
       method accept[[T]](visitor : Visitor[[T]]) -> T {
-        visitor.visitMethod(self) }
+        visitor.visitMethodDeclaration(self) }
     }
-
 
     class inheritNode(
       kind' : String,
@@ -125,31 +123,8 @@ class jastFamily {
       inherit nodeAt( source ) 
     
       def kind : String is public = kind'
-      def request : Request is public = request'
-      def excludes : List[[String]] is public = excludes'
-      def aliases : Dictionary[[String,String]] is public = dictionary
-      
-      for (aliases') do { a -> 
-         aliases.at(a.at(1)) put(a.at(2)) 
-         //note ignoring annotations
-      }
-
-      method asStringBody { "inheritNode {kind} {request.name} ..." } 
-              
-      method accept[[T]](visitor : Visitor[[T]]) -> T {
-        visitor.visitInherit(self) }
-    }
-    
-
-    class inheritNode(
-      kind' : String,
-      request' : Request,
-      excludes' : List[[String]],
-      aliases' : Dictionary[[String,String]])
-          at ( source ) -> Parameter {
-      inherit nodeAt( source ) 
-    
-      def kind : String is public = kind'
+      method isUse { "use" == kind }
+      method isInherit { "inherit" == kind }
       def request : Request is public = request'
       def excludes : List[[String]] is public = excludes'
       def aliases : Dictionary[[String,String]] is public = dictionary
@@ -165,7 +140,6 @@ class jastFamily {
         visitor.visitInherit(self) }
     }
 
-    
     class importNode(
       path' : String,
       name' : String,
@@ -206,12 +180,11 @@ class jastFamily {
     
     
     class defDeclarationNode(
-      name' : String,
-      typeAnnotation' : Expression,
-      annotations' : Sequence[[Expression]],
-      value' : Expression)
-          at ( source ) -> Parameter {
-      inherit declarationNode(name', typeAnnotation', annotations', value') 
+        name' : String,
+        typeAnnotation' : Expression,
+        annotations' : Sequence[[Expression]],
+        value' : Expression) at ( source ) -> Parameter {
+      inherit declarationNode(name', typeAnnotation', annotations', value')
            at( source ) 
       debug { print "DEF: {name} type {typeAnnotation} is {annotations} = {value}"}
 
@@ -236,8 +209,6 @@ class jastFamily {
       method accept[[T]](visitor : Visitor[[T]]) -> T {
         visitor.visitVarDeclaration(self) }
     }
-    
-    
 
     class returnNode(
       value' : Expression)
@@ -284,7 +255,7 @@ class jastFamily {
     
     
     class requestNode(
-      name' : String,
+      name' : String,       // canonical name
       typeArguments' : Sequence[[Expression]],
       arguments' : Sequence[[Expression]])
           at ( source ) -> Parameter {
@@ -331,7 +302,7 @@ class jastFamily {
       method asStringBody { "explicitRequestNode {name}..." } 
     
       method accept[[T]](visitor : Visitor[[T]]) -> T {
-        visitor.visitExplicitReceiverRequest(self) }
+        visitor.visitExplicitRequest(self) }
     }
     
     
@@ -392,37 +363,94 @@ class jastFamily {
       method accept[[T]](visitor : Visitor[[T]]) -> T {
         visitor.visitInterface(self) }
     }
-    
-    
-    
-    
-    
-    
+
     
     type Visitor[[T]] = interface {
-      visitExpression(node : Expression) -> T
-      visitSignature(node : Signature) -> T
-      visitSignaturePart(node : SignaturePart) -> T
-      visitOrdinarySignaturePart(node : OrdinarySignaturePart) -> T
-      visitParameter(node : Parameter) -> T
-      visitMethod(node : Method) -> T
-      visitDialect(node : Dialect) -> T
-      visitImport(node : Import) -> T
-      visitInherit(node : Inherit) -> T
-      visitDeclaration(node : Declaration) -> T
-      visitDefDeclaration(node : DefDeclaration) -> T
-      visitVarDeclaration(node : VarDeclaration) -> T
-      visitReturn(node : Return) -> T
-      visitObjectConstructor(node : ObjectConstructor) -> T
-      visitRequest(node : Request) -> T
-      visitImplicitReceiverRequest(node : ImplicitReceiverRequest) -> T
-      visitExplicitReceiverRequest(node : ExplicitReceiverRequest) -> T
-      visitRequestPart(node : RequestPart) -> T
-      visitNumberLiteral(node : NumberLiteral) -> T
-      visitStringLiteral(node : StringLiteral) -> T
-      visitBlock(node : Block) -> T
-      visitInterface(node : Interface) -> T
+        visitModule(node: Module) -> T
+        visitSignature(node : Signature) -> T
+        visitParameter(node : Parameter) -> T
+        visitMethodDeclaration(node : Method) -> T
+        visitDialect(node : Dialect) -> T
+        visitImport(node : Import) -> T
+        visitInherit(node : Inherit) -> T
+        visitDeclaration(node : Declaration) -> T
+        visitDefDeclaration(node : DefDeclaration) -> T
+        visitVarDeclaration(node : VarDeclaration) -> T
+        visitReturn(node : Return) -> T
+        visitObjectConstructor(node : ObjectConstructor) -> T
+        visitRequest(node : Request) -> T
+        visitImplicitRequest(node : ImplicitReceiverRequest) -> T
+        visitExplicitRequest(node : ExplicitReceiverRequest) -> T
+        visitNumberLiteral(node : NumberLiteral) -> T
+        visitStringLiteral(node : StringLiteral) -> T
+        visitBlock(node : Block) -> T
+        visitInterface(node : Interface) -> T
     }
-    
-}    
-    
+}
+
+trait baseVisitor[[T]] {
+    method visitSignature(node : Signature) -> T {
+        node.typeParameters.do { each -> each.accept(self) }
+        node.parameters.do { each -> each.accept(self) }
+        node.returnType.accept(self)
+    }
+    method visitParameter(node : Parameter) -> T {
+        node.typeAnnotation.accept(self)
+    }
+    method visitMethodDeclaration(node : Method) -> T {
+        node.signature.accept(self)
+        node.body.do { each -> each.accept(self) }
+        node.accept(self)
+    }
+    method visitImport(node : Import) -> T {
+        node.path.accept(self)
+        node.typeAnnotation.accept(self)
+    }
+    method visitInherit(node : Inherit) -> T {
+        node.request.accept(self)
+        node.excludes.accept(self)
+        node.aliases.accept(self)
+    }
+    method visitDeclaration(node : Declaration) -> T {
+        node.typeAnnotation.accept(self)
+        node.annotations.do { each -> each.accept(self) }
+        node.value.accept(self)
+    }
+    method visitDefDeclaration(node : DefDeclaration) -> T {
+        self.visitDeclaration(node)
+    }
+    method visitVarDeclaration(node : VarDeclaration) -> T {
+        self.visitDeclaration(node)
+    }
+    method visitReturn(node : Return) -> T {
+        node.value.accept(self)
+    }
+    method visitObjectConstructor(node : ObjectConstructor) -> T {
+        node.body.do { each -> each.accept(self) }
+    }
+    method visitModule(node : Module) -> T {
+        self.visitObjectConstructor(node)
+    }
+    method visitRequest(node : Request) -> T {
+        node.typeArguments.do { each -> each.accept(self) }
+        node.arguments.do { each -> each.accept(self) }
+    }
+    method visitImplicitRequest(node : ImplicitRequest) -> T {
+        self.visitRequest(node)
+    }
+    method visitExplicitRequest(node : ExplicitRequest) -> T {
+        self.visitRequest(node)
+        node.receiver.accept(self)
+    }
+    method visitNumberLiteral(node : NumberLiteral) -> T { }
+    method visitStringLiteral(node : StringLiteral) -> T { }
+    method visitBlock(node : Block) -> T {
+        node.parameters.do { each -> each.accept(self) }
+        node.body.do { each -> each.accept(self) }
+    }
+    method visitInterface(node : Interface) -> T {
+        node.signatures.do { each -> each.accept(self) }
+    }
+}
+
+

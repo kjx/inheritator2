@@ -45,7 +45,7 @@ type ObjectType = interface {
     // Used for redispatch in isSubtypeOf(), and does not actually represent a
     // calculation of whether this type is a supertype of the given one.
     // KJX TODO rename to reverseSubtypeOf  - when done copying in tims code
-    isSupertypeOf(other : ObjectType) -> Boolean
+    reverseSubtypeOf(other : ObjectType) -> Boolean
     |(other : ObjectType) -> ObjectType
     &(other : ObjectType) -> ObjectType
 }
@@ -69,14 +69,14 @@ class abstractObjectType {
         block.apply
    }
 
-   method isSupertypeOf(_ : ObjectType) -> Boolean {
+   method reverseSubtypeOf(_ : ObjectType) -> Boolean {
         isStructural && methods.isEmpty
    }
 
    method isSubtypeOf(oType : ObjectType) -> Boolean {
         if (self == oType) then {return true}
         // Let the given type have a say.
-        oType.isSupertypeOf(self).orElse {
+        oType.reverseSubtypeOf(self).orElse {
           oType.isStructural.andAlso {
             isSubtypeOf(oType) withAssumptions(dictionary)
           }
@@ -220,46 +220,65 @@ class objectType( ngInterface ) {
 
 
 class singletonObjectType {
-  inherit abstractObjectType  
-  method equalsOther(other) { other.equalsSingletonObjectType(self) }
-  method equalsSingletonObjectType(other) { asString == other.asString }
+    inherit abstractObjectType
+    method equalsOther(other) { other.equalsSingletonObjectType(self) }
+    method equalsSingletonObjectType(other) { asString == other.asString }
 }
 
 def unknownObjectType is public = object {
-  inherit singletonObjectType
+    inherit singletonObjectType
 
-  def methods = empty
-  method isUnknown { true }  
-  method isStructural { false }
-  method isSubtypeOf(_ : ObjectType) -> Boolean { true }
-  method isSubtypeOf(_ : ObjectType) withAssumptions(_)-> Boolean { true }
-  method isSupertypeOf(_ : ObjectType) -> Boolean { true }
-  method asString { "unknownObjectType" }
+    def methods = empty
+    method isUnknown { true }  
+    method isStructural { false }
+    method isSubtypeOf(_ : ObjectType) -> Boolean { true }
+    method isSubtypeOf(_ : ObjectType) withAssumptions(_)-> Boolean { true }
+    method reverseSubtypeOf(_ : ObjectType) -> Boolean { true }
+    method asString { "type Unknown" }
 }
-
 
 def doneType is public = object { 
-  inherit singletonObjectType
-  
-  def methods = empty
-  method isUnknown { true }  
-  method isStructural { false }
-  method isSubtypeOf(other : ObjectType) -> Boolean { // Let other have a say.
-        other.isSupertypeOf(self).orElse { self == other } }
-  method isSupertypeOf(other : ObjectType) -> Boolean { self == other }
-  method asString { "doneObjectType" }
+    inherit singletonObjectType
+
+    def methods = empty
+    method isUnknown { false }
+    method isStructural { false }
+    method isSubtypeOf(other : ObjectType) -> Boolean {
+        if (self == other) then { return true }
+        other.reverseSubtypeOf(self)
+    }
+    method reverseSubtypeOf(other : ObjectType) -> Boolean { self == other }
+    method asString { "type Done" }
+}
+
+def numberType is public = object {
+    inherit singletonObjectType
+
+    def methods = empty
+    method isUnknown { false }
+    method isStructural { false }
+    method isSubtypeOf(other : ObjectType) -> Boolean {
+        if (self == other) then { return true }
+    }
+    method reverseSubtypeOf(other : ObjectType) -> Boolean { self == other }
+    method asString { "type Number" }
+}
+
+def stringType is public = object {
+    inherit singletonObjectType
+
+    def methods = empty
+    method isUnknown { false }
+    method isStructural { false }
+    method isSubtypeOf(other : ObjectType) -> Boolean {
+        if (self == other) then { return true }
+    }
+    method reverseSubtypeOf(other : ObjectType) -> Boolean { self == other }
+    method asString { "type String" }
 }
 
 
-
-
-
-
-
-
-
-
-class methodType ( signatureNode, ctxt ) { 
+class methodType ( signatureNode, ctxt ) {
    method name { signatureNode.name }
    //def returnObjectType is public = 
    //        makeObjectType(signatureNode.returnType.eval(ctxt.withoutCreatio))

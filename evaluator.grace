@@ -67,7 +67,7 @@ class jevalFamily {
       alias jImplicitRequestNode(_,_,_) at(_) = implicitRequestNode(_,_,_) at(_)
       alias jDefDeclarationNode(_,_,_,_) at(_) = defDeclarationNode(_,_,_,_) at(_)
       alias jVarDeclarationNode(_,_,_,_) at(_) = varDeclarationNode(_,_,_,_) at(_)
-      alias jMethodNode(_,_,_) at(_) = methodNode(_,_,_) at(_)
+      alias jMethodDeclarationNode(_,_,_) at(_) = methodDeclarationNode(_,_,_) at(_)
       alias jBlockNode(_,_) at(_) = blockNode(_,_) at(_)
       alias jReturnNode(_) at(_) = returnNode(_) at (_)
       alias jObjectConstructorNode(_) at(_) = objectConstructorNode(_) at(_)
@@ -175,12 +175,12 @@ class jevalFamily {
           }
   }
 
-  class methodNode(
+  class methodDeclarationNode(
       signature' : Signature,
       body' : Sequence[[Statement]],
       annotations' : Sequence[[Expression]])
           at( source )  -> Method { 
-      inherit jMethodNode(signature', body', annotations') at(source)
+      inherit jMethodDeclarationNode(signature', body', annotations') at(source)
 
       method build(ctxt) { 
           def annots = safeFuckingMap { a -> a.eval(ctxt) } over(annotations)
