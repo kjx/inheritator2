@@ -45,7 +45,7 @@ type ObjectType = interface {
     // Used for redispatch in isSubtypeOf(), and does not actually represent a
     // calculation of whether this type is a supertype of the given one.
     // KJX TODO rename to reverseSubtypeOf  - when done copying in tims code
-    reverseSubtypeOf(other : ObjectType) -> Boolean
+    isSupertypeOf(other : ObjectType) -> Boolean
     |(other : ObjectType) -> ObjectType
     &(other : ObjectType) -> ObjectType
 }
@@ -69,14 +69,14 @@ class abstractObjectType {
         block.apply
    }
 
-   method reverseSubtypeOf(_ : ObjectType) -> Boolean {
+   method isSupertypeOf(_ : ObjectType) -> Boolean {
         isStructural && methods.isEmpty
    }
 
    method isSubtypeOf(oType : ObjectType) -> Boolean {
         if (self == oType) then {return true}
         // Let the given type have a say.
-        oType.reverseSubtypeOf(self).orElse {
+        oType.isSupertypeOf(self).orElse {
           oType.isStructural.andAlso {
             isSubtypeOf(oType) withAssumptions(dictionary)
           }
@@ -87,6 +87,9 @@ class abstractObjectType {
           withAssumptions(assumptions :
             MutableDictionary[[ObjectType, MutableSet[[ObjectType]] ]])
               -> Boolean {
+      //print "OT/iStOWA self: {self} other: {oType}"
+      //print "OT/iStOWA self: {self.otID} other: {oType.otID}"
+      //print "ass: {assumptions}"
 
       if (oType.isUnknown) then {return true}
 
@@ -95,9 +98,18 @@ class abstractObjectType {
                        assumptions.at(self) put(newSet)
                        newSet }
             
+      //print "ass1: {assumptions}"
+      //print "agg1: {against}"
+
       if (against.contains(oType)) then {return true}
 
+      //print "ass2: {assumptions}"
+      
+      //assumptions.at(self).do { assume -> assume.add(oType) }
       against.add(oType)
+      //print "ass3: {assumptions}"
+
+      //print "ABOUT TOCHECK METHODS"
 
       for (oType.methods) do { oMeth ->
         def sMeth = methodNamed(oMeth.name) ifAbsent { return false }
@@ -108,8 +120,8 @@ class abstractObjectType {
         def sParamTypes = sMeth.parametersObjectTypes
         def oParamTypes = oMeth.parametersObjectTypes
 
-        assert {sParamTypes.size == oParamTypes.size} 
-            because "two methods have the same name but different numbers of parameters"
+        if (sParamTypes.size != oParamTypes.size)
+          then { return false }
 
         for (sParamTypes) and(oParamTypes) do { sParam, oParam ->
             if (!oParam.isSubtypeOf(sParam)
@@ -221,7 +233,7 @@ def unknownObjectType is public = object {
   method isStructural { false }
   method isSubtypeOf(_ : ObjectType) -> Boolean { true }
   method isSubtypeOf(_ : ObjectType) withAssumptions(_)-> Boolean { true }
-  method reverseSubtypeOf(_ : ObjectType) -> Boolean { true }
+  method isSupertypeOf(_ : ObjectType) -> Boolean { true }
   method asString { "unknownObjectType" }
 }
 
@@ -233,8 +245,8 @@ def doneType is public = object {
   method isUnknown { true }  
   method isStructural { false }
   method isSubtypeOf(other : ObjectType) -> Boolean { // Let other have a say.
-        other.reverseSubtypeOf(self).orElse { self == other } }
-  method reverseSubtypeOf(other : ObjectType) -> Boolean { self == other }
+        other.isSupertypeOf(self).orElse { self == other } }
+  method isSupertypeOf(other : ObjectType) -> Boolean { self == other }
   method asString { "doneObjectType" }
 }
 
