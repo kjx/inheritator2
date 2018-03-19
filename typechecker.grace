@@ -87,9 +87,6 @@ class abstractObjectType {
           withAssumptions(assumptions :
             MutableDictionary[[ObjectType, MutableSet[[ObjectType]] ]])
               -> Boolean {
-      //print "OT/iStOWA self: {self} other: {oType}"
-      //print "OT/iStOWA self: {self.otID} other: {oType.otID}"
-      //print "ass: {assumptions}"
 
       if (oType.isUnknown) then {return true}
 
@@ -98,18 +95,9 @@ class abstractObjectType {
                        assumptions.at(self) put(newSet)
                        newSet }
             
-      //print "ass1: {assumptions}"
-      //print "agg1: {against}"
-
       if (against.contains(oType)) then {return true}
 
-      //print "ass2: {assumptions}"
-      
-      //assumptions.at(self).do { assume -> assume.add(oType) }
       against.add(oType)
-      //print "ass3: {assumptions}"
-
-      //print "ABOUT TOCHECK METHODS"
 
       for (oType.methods) do { oMeth ->
         def sMeth = methodNamed(oMeth.name) ifAbsent { return false }
@@ -120,8 +108,8 @@ class abstractObjectType {
         def sParamTypes = sMeth.parametersObjectTypes
         def oParamTypes = oMeth.parametersObjectTypes
 
-        if (sParamTypes.size != oParamTypes.size)
-          then { return false }
+        assert {sParamTypes.size == oParamTypes.size} 
+            because "two methods have the same name but different numbers of parameters"
 
         for (sParamTypes) and(oParamTypes) do { sParam, oParam ->
             if (!oParam.isSubtypeOf(sParam)
