@@ -438,11 +438,11 @@ class exports {
     }
 
 
-    def brands is public = list
- 
     def annotations is public = list    //kind of evil.
 
-    method asString { "{kind}#{dbg}:({status}) [[{brands}]]  {locals.keys}\n!!{ctxt.asString}" }
+    method hash {dbg} //particularly evil. needed for brands
+    
+    method asString { "{kind}#{dbg}:({status})  {locals.keys}\n!!{ctxt.asString}" }
   }
 
   // represents a module 
@@ -491,7 +491,8 @@ class exports {
     im.declareName("print(_)") lambda { p, creatio -> print(p) }
 
     //evil brand support
-    im.declareName("primitiveBrandMatch(_,_)") lambda { b, o, _ -> ng.ngBoolean(o.brands.contains(b)) }
+    im.declareName("primitiveBrandMatch(_,_)") lambda { b, o, _ -> 
+         ng.ngBoolean(! o.lookupExternal(b).isMissing) }
 
     im.declareName("assert(_)isSubtypeOf(_)") 
           lambda { l, r, _ -> 

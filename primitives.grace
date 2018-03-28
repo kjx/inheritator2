@@ -19,8 +19,6 @@ class primitivesFamily {
 
     method asString { "ngPrimitive (should be abstract)"}
 
-    method brands { empty }
-
     declareName "asString" lambda { creatio ->
                     def rv = ngString(asString)
                     rv }

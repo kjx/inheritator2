@@ -297,9 +297,9 @@ class jevalFamily {
                 print "brandObject {brandObject}"
                 if (brandObject.lookupExternal("iAmBrand").isMissing) 
                    then { print "NOT A BRAND" }
-                   else { print "ADDING BRAND {ret.brands}" 
-                          ret.brands.add(brandObject) 
-                          print "BRNDS {ret.brands}"}
+                   else { print "ADDING BRAND" 
+                          ret.declareName(brandObject) lambda { error: "FUCKED" }
+                          print "BRNDS.."}
              }
              ret
        }
