@@ -437,10 +437,12 @@ class exports {
          else {attributeAmbiguous(name) inContext(self)}
     }
 
+
+    def brands is public = list
  
     def annotations is public = list    //kind of evil.
 
-    method asString { "{kind}#{dbg}:({status}) {locals.keys}\n!!{ctxt.asString}" }
+    method asString { "{kind}#{dbg}:({status}) [[{brands}]]  {locals.keys}\n!!{ctxt.asString}" }
   }
 
   // represents a module 
@@ -487,6 +489,9 @@ class exports {
 
     //basic methods
     im.declareName("print(_)") lambda { p, creatio -> print(p) }
+
+    //evil brand support
+    im.declareName("primitiveBrandMatch(_,_)") lambda { b, o, _ -> ng.ngBoolean(o.brands.contains(b)) }
 
     im.declareName("assert(_)isSubtypeOf(_)") 
           lambda { l, r, _ -> 

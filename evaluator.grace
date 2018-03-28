@@ -70,7 +70,7 @@ class jevalFamily {
       alias jMethodNode(_,_,_,_) at(_) = methodNode(_,_,_,_) at(_)
       alias jBlockNode(_,_) at(_) = blockNode(_,_) at(_)
       alias jReturnNode(_) at(_) = returnNode(_) at (_)
-      alias jObjectConstructorNode(_) at(_) = objectConstructorNode(_) at(_)
+      alias jObjectConstructorNode(_,_) at(_) = objectConstructorNode(_,_) at(_)
       alias jModuleNode(_,_) at(_) = moduleNode(_,_) at(_)
       alias jInheritNode(_,_,_,_) at(_) = inheritNode(_,_,_,_) at(_)
       alias jImportNode(_,_,_) at(_) = importNode(_,_,_) at(_)
@@ -175,10 +175,6 @@ class jevalFamily {
           }
   }
 
-  var methodKind := ""
-  var methodBody := ""
-  var methodAnnotations := ""
-  var methodName := ""
 
   class methodNode(
       signature' : Signature,
@@ -189,7 +185,8 @@ class jevalFamily {
       inherit jMethodNode(signature', body', annotations', kind') at(source)
 
       method build(ctxt) { 
-          //def annots = safeFuckingMap { a -> a.eval(ctxt) } over(annotations)
+          //doesn't work with brands
+          // def annots = safeFuckingMap { a -> a.eval(ctxt) } over(annotations)
           def annots = list
           def properties = utility.processAnnotations(annots,true)
           ctxt.declareName(signature.name)
@@ -197,18 +194,6 @@ class jevalFamily {
           ng.ngDone
       }      
       method eval(_) { 
-             //method annotations shojld be processed in BUILD
-             //but these twill turn into Oobject Constrceutor anntations
-             methodAnnotations := annotations
-
-             //if (sizeOfVariadicList(body) == 1) then { 
-                        //record this shit in case the body is an O/C
-                        //which comes from a class!!!
-             print "mungung {kind} {signature.name}"
-             methodKind := kind
-             methodName := signature.name
-             safeFuckingMap { e -> methodBody := e } over(body)
-             //         }
              ng.ngDone }
   }
   
@@ -294,19 +279,28 @@ class jevalFamily {
  }
 
   class objectConstructorNode(
-      body' : Sequence[[ObjectStatement]])
+      body' : Sequence[[ObjectStatement]],
+      origin' : Unknown)
           at ( source ) -> Parameter {
-      inherit jObjectConstructorNode(body') at(source)
+      inherit jObjectConstructorNode(body',origin') at(source)
 
       method eval(ctxt) { 
              def ret = ng.objectContext(body,ctxt)
-             print "OC {self}"
-             print "{methodKind} {methodName}"
-             if (("class" == methodKind) && (self == methodBody)) then {
-                print "CLASS {methodName}"
-            
-                for (methodAnnotations) do { a -> ret.annotations.add(a.eval(ctxt)) }
-              }
+             if (self.origin.KJXOrigin.KJXHasAnnotations) then {
+                def annotName = self.origin.KJXOrigin.KJXAnnotationOne.KJXName
+                //def argCtxt = ctxt.withoutCreatio
+                //def creatio = argCtxt.creatio 
+                //def annotAttribute = ctxt.lookupInternal(annotName)
+                //def annotObject = annotAttribute.invoke(ctxt) args(list) types(list) creatio(creatio)
+                def annotImplicit = implicitRequestNode(annotName,empty,empty) at(source)
+                def brandObject = annotImplicit.eval(ctxt.withoutCreatio)
+                print "brandObject {brandObject}"
+                if (brandObject.lookupExternal("iAmBrand").isMissing) 
+                   then { print "NOT A BRAND" }
+                   else { print "ADDING BRAND {ret.brands}" 
+                          ret.brands.add(brandObject) 
+                          print "BRNDS {ret.brands}"}
+             }
              ret
        }
   }

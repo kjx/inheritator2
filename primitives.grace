@@ -19,6 +19,8 @@ class primitivesFamily {
 
     method asString { "ngPrimitive (should be abstract)"}
 
+    method brands { empty }
+
     declareName "asString" lambda { creatio ->
                     def rv = ngString(asString)
                     rv }
@@ -55,8 +57,12 @@ class primitivesFamily {
 
      // needs some methods which will need the context -- or will it??
 
-     declareName "prefix!" lambda { creatio ->  
+     declareName "prefix!" lambda { _ ->  
                     def rv = ngBoolean(! value)
+                    rv }
+
+     declareName "&&(_)" lambda { other, _ ->  
+                    def rv = ngBoolean(value && other.value)
                     rv }
   }  
 

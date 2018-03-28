@@ -210,8 +210,16 @@ class attributesFamily {
   //  because it's mostly used to check against declared types
   method check(obj) isType(typeExpression) inContext(ctxt) {
        def typeObject = typeExpression.eval(ctxt.withoutCreatio)
-       if (!typeObject.match(obj))
+       //if (!typeObject.match(obj))
+       //    then { error "type check failed: {obj} isnt {typeObject} from {typeExpression}" }
+       
+       def argCtxt = ctxt.withoutCreatio
+       def creatio = argCtxt.creatio 
+       def matchAttribute = typeObject.lookupExternal("match(_)")
+       def matchResult = matchAttribute.invoke(ctxt) args(list(obj)) types(empty) creatio(creatio)
+       if (!matchResult.value)
            then { error "type check failed: {obj} isnt {typeObject} from {typeExpression}" }
+
        obj
   }
 

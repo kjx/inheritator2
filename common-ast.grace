@@ -256,11 +256,13 @@ class jastFamily {
     
     //partial. needs more to handle inheritance. tomorrow.
     class objectConstructorNode(
-      body' : Sequence[[ObjectStatement]])
+      body' : Sequence[[ObjectStatement]],
+      origin' : Unknown)
           at ( source ) -> Parameter {
       inherit nodeAt( source ) 
 
       def body : Sequence[[ObjectStatement]]   is public = body'
+      method origin { origin' }
 
       method asStringBody { "objectConstructorNode ..." } 
       
@@ -273,7 +275,7 @@ class jastFamily {
       moduleDialect' : String,
       body' : Sequence[[ObjectStatement]] )
           at ( source ) -> Parameter {
-      inherit objectConstructorNode(body') at ( source )
+      inherit objectConstructorNode(body', source) at ( source )
     
       def moduleDialect : String   is public = moduleDialect'
       def body is public = body'
