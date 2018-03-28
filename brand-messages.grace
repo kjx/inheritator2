@@ -1,24 +1,3 @@
-//systems defs
-
-class brand {
-  print "WHOOPEE"
-  method iAmBrand { }
-  method Type { brandType(self) }
-}
-
-class brandType(underlyingBrand) {
-  method asString {"brandType"}
-  method match(other) {primitiveBrandMatch(underlyingBrand,other)}
-  method & (otherType) {AndPattern(self,otherType)}
-}
-
-
-class AndPattern(l,r) {
-  method asString {"ANDY"}
-  method match(other) {l.match(other) && r.match(other) }}
-
-
-
 
 def secure = brand
 
@@ -46,10 +25,39 @@ def l = listener
 def m = message
 def s = secureMessage
 
-print "++++++++++++++++++++++++++++++++++++++++++++++++++++"
 l.accept(m)
 l.accept(s)
 l.secure(s)
 l.secure(m)
+
+
+
+
+
+
+
+
+
+////////////////////////////////////////////////////////////
+//code below here belongs in a dialect
+//but that would mean refactoring the existing definitions
+//which was too much work last night.
+//just ignore them...
+
+class brand {
+  method iAmBrand { }
+  method Type { brandType(self) }
+}
+
+class brandType(underlyingBrand) {
+  method asString {"brandType"}
+  method match(other) {primitiveBrandMatch(underlyingBrand,other)}
+  method & (otherType) {AndPattern(self,otherType)}
+}
+
+
+class AndPattern(l,r) {
+  method asString {"ANDY"}
+  method match(other) {l.match(other) && r.match(other) }}
 
 
