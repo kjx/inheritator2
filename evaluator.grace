@@ -67,7 +67,7 @@ class jevalFamily {
       alias jImplicitRequestNode(_,_,_) at(_) = implicitRequestNode(_,_,_) at(_)
       alias jDefDeclarationNode(_,_,_,_) at(_) = defDeclarationNode(_,_,_,_) at(_)
       alias jVarDeclarationNode(_,_,_,_) at(_) = varDeclarationNode(_,_,_,_) at(_)
-      alias jMethodNode(_,_,_) at(_) = methodNode(_,_,_) at(_)
+      alias jMethodNode(_,_,_,_) at(_) = methodNode(_,_,_,_) at(_)
       alias jBlockNode(_,_) at(_) = blockNode(_,_) at(_)
       alias jReturnNode(_) at(_) = returnNode(_) at (_)
       alias jObjectConstructorNode(_) at(_) = objectConstructorNode(_) at(_)
@@ -175,21 +175,41 @@ class jevalFamily {
           }
   }
 
+  var methodKind := ""
+  var methodBody := ""
+  var methodAnnotations := ""
+  var methodName := ""
+
   class methodNode(
       signature' : Signature,
       body' : Sequence[[Statement]],
-      annotations' : Sequence[[Expression]])
+      annotations' : Sequence[[Expression]],
+      kind' : String)
           at( source )  -> Method { 
-      inherit jMethodNode(signature', body', annotations') at(source)
+      inherit jMethodNode(signature', body', annotations', kind') at(source)
 
       method build(ctxt) { 
-          def annots = safeFuckingMap { a -> a.eval(ctxt) } over(annotations)
+          //def annots = safeFuckingMap { a -> a.eval(ctxt) } over(annotations)
+          def annots = list
           def properties = utility.processAnnotations(annots,true)
           ctxt.declareName(signature.name)
                  attribute (ng.attributeMethod(self) properties(properties) inContext(ctxt) )
           ng.ngDone
       }      
-      method eval(_) { ng.ngDone }
+      method eval(_) { 
+             //method annotations shojld be processed in BUILD
+             //but these twill turn into Oobject Constrceutor anntations
+             methodAnnotations := annotations
+
+             //if (sizeOfVariadicList(body) == 1) then { 
+                        //record this shit in case the body is an O/C
+                        //which comes from a class!!!
+             print "mungung {kind} {signature.name}"
+             methodKind := kind
+             methodName := signature.name
+             safeFuckingMap { e -> methodBody := e } over(body)
+             //         }
+             ng.ngDone }
   }
   
   class explicitRequestNode(
@@ -202,7 +222,7 @@ class jevalFamily {
           at( source )
 
       method eval(ctxt) {
-         print "{name} {arguments.size}"
+         //print "{name} {arguments.size}"
 
          def creatio = ctxt.creatio
          def argCtxt = ctxt.withoutCreatio
@@ -278,7 +298,17 @@ class jevalFamily {
           at ( source ) -> Parameter {
       inherit jObjectConstructorNode(body') at(source)
 
-      method eval(ctxt) { ng.objectContext(body,ctxt) }            
+      method eval(ctxt) { 
+             def ret = ng.objectContext(body,ctxt)
+             print "OC {self}"
+             print "{methodKind} {methodName}"
+             if (("class" == methodKind) && (self == methodBody)) then {
+                print "CLASS {methodName}"
+            
+                for (methodAnnotations) do { a -> ret.annotations.add(a.eval(ctxt)) }
+              }
+             ret
+       }
   }
 
 

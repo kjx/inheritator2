@@ -42,6 +42,9 @@ class exports {
   //    use the new one for each stmt until the last
   //    then use the original one...
 
+  //also needs a more straghtforward sequence that doesn't distinguish 
+  // (for object bodies, annotations and paramaeter lists etc) 
+  
   class progn (body) {
      method build(ctxt) {
        def bodyContext = ctxt.withoutCreatio
@@ -434,7 +437,8 @@ class exports {
          else {attributeAmbiguous(name) inContext(self)}
     }
 
-    
+ 
+    def annotations is public = list    //kind of evil.
 
     method asString { "{kind}#{dbg}:({status}) {locals.keys}\n!!{ctxt.asString}" }
   }

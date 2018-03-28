@@ -32,6 +32,12 @@ class exports {
     }
   }
 
+  method sizeOfVariadicList( l ) { 
+    var s := 0
+    for (l) do { _ -> s := s + 1 } 
+    return s
+  }
+
   method valueOf( block ) { block.apply }
 
 

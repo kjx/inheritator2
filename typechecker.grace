@@ -238,6 +238,33 @@ def doneType is public = object {
   method asString { "doneObjectType" }
 }
 
+
+def numberType is public = object { 
+  inherit singletonObjectType
+  
+  def methods = empty
+  method isUnknown { false }  
+  method isStructural { false }
+  method isSubtypeOf(other : ObjectType) -> Boolean { // Let other have a say.
+        other.isSupertypeOf(self).orElse { self == other } }
+  method isSupertypeOf(other : ObjectType) -> Boolean { self == other }
+  method asString { "numberType" }
+}
+
+
+def stringType is public = object { 
+  inherit singletonObjectType
+  
+  def methods = empty
+  method isUnknown { true }  
+  method isStructural { false }
+  method isSubtypeOf(other : ObjectType) -> Boolean { // Let other have a say.
+        other.isSupertypeOf(self).orElse { self == other } }
+  method isSupertypeOf(other : ObjectType) -> Boolean { self == other }
+  method asString { "stringType" }
+}
+
+
 //from tim, not sure this is right
 type MethodType = interface {
     name -> String

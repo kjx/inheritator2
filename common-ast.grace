@@ -99,13 +99,15 @@ class jastFamily {
     class methodNode(
       signature' : Signature,
       body' : Sequence[[Statement]],
-      annotations' : Sequence[[Expression]])
+      annotations' : Sequence[[Expression]],
+      kind' : String)
           at( source )  -> Method { 
       inherit nodeAt( source ) 
     
       def signature : Signature is public = signature'
       def body : Sequence[[Statement]] is public = body'
       def annotations : Sequence[[Expression]] is public = annotations'
+      def kind : String is public = kind'
     
       debug { print "method {signature.name} is {annotations} body {body}"}
 

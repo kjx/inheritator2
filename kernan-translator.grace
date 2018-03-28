@@ -149,7 +149,8 @@ def visitor = object {  //be careful here. someimes need to refer to visitor
     method visitMethod(m) {        
         jast.methodNode( common(m.signature),
                          mapCommon(m.body),
-                         mapCommon(m.annotations)) at(0) 
+                         mapCommon(m.annotations),
+                         m.kind) at(0) 
         }
 
 
