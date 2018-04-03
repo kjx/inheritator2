@@ -3,7 +3,8 @@ import "typechecker" as typechecker
 class primitivesFamily {
   method context is abstract { }
   method lexicalContext(_) is abstract { }
-  method attributeBlockMethod(_) inContext(_) is abstract { }   
+  method attributeBlockApplyMethod(_) inContext(_) is abstract { }   
+  method attributeBlockMatchMethod(_) inContext(_) is abstract { }   
 
   /////////////////////////////////////////////////////////////
   ////
@@ -62,7 +63,17 @@ class primitivesFamily {
      declareName "&&(_)" lambda { other, _ ->  
                     def rv = ngBoolean(value && other.value)
                     rv }
-  }  
+
+     declareName "ifTrue(_)" lambda2 { block, creatio, ctxt -> 
+         if (value) then { 
+           def argCtxt = ctxt.withoutCreatio
+           def creatio = argCtxt.creatio 
+           def matchAttribute = block.lookupExternal("apply")
+           def matchResult = matchAttribute.invoke(ctxt) args(empty) types(empty) creatio(creatio)
+           matchResult
+         } else {ngDone} 
+      }
+  }
 
 
   class ngInterface( value', ctxt ) {   
@@ -96,7 +107,6 @@ class primitivesFamily {
 
      declareName "<:(_)" lambda { other, creatio -> 
                                        ngBoolean(isSubtypeOf(other)) }
-        
   }
 
   class ngBlock(blockNode,ctxt) {
@@ -104,16 +114,23 @@ class primitivesFamily {
      method asString { "\{a ngBlock\} #{dbg}" }
      method kind {"ngBlock"}
      def p = blockNode.parameters.asList
-     def name = match (p.size)
-       case { 0 -> "apply" }
-       case { 1 -> "apply(_)" }
-       case { 2 -> "apply(_,_)" }
-       case { 3 -> "apply(_,_,_)" }
-       case { 4 -> "apply(_,_,_,_)" }
-       case { 5 -> "apply(_,_,_,_,_)" }
+     def suffix = match (p.size)
+       case { 0 -> "" }
+       case { 1 -> "(_)" }
+       case { 2 -> "(_,_)" }
+       case { 3 -> "(_,_,_)" }
+       case { 4 -> "(_,_,_,_)" }
+       case { 5 -> "(_,_,_,_,_)" }
        case { _ -> error "CANT BE BOTHERED TO APPLY MORE VARARGS" }
 
-     declareName(name) attribute (attributeBlockMethod(blockNode) inContext(ctxt))
+     declareName("apply" ++ suffix) 
+         attribute (attributeBlockApplyMethod(blockNode) inContext(ctxt))
+     declareName("match" ++ suffix) 
+        attribute (attributeBlockMatchMethod(blockNode) inContext(ctxt))
+     declareName "asString" lambda { creatio ->
+                    def rv = ngString(asString)
+                    rv }
+
   }
 
   /////////////////////////////////////////////////////////////

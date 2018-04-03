@@ -16,7 +16,12 @@ class secureMessage is secure {
 }
 
 class listener {
-    method accept (m : Message) {print "listener accepts {m}" }
+    method accept (m : Message) {
+         print "listener accepts {m}" 
+         match (m) 
+           case { sm : Secure -> print "({sm} is actually secure)" }
+           case { _ -> print "({m} really isn't secure)" }
+      }
     method secure (m : Secure & Message) {print "listener securely accepts {m}" }
     
 }
@@ -45,7 +50,7 @@ l.secure(m)
 //just ignore them...
 
 class brand {
-  method iAmBrand { }
+  method retainedAnnotation { } 
   method Type { brandType(self) }
 }
 
@@ -61,3 +66,9 @@ class AndPattern(l,r) {
   method match(other) {l.match(other) && r.match(other) }}
 
 
+
+method match(x) case(b1) case (b2) {
+   b1.match(x).ifTrue { return b1.apply(x) }
+   b2.match(x).ifTrue { return b2.apply(x) }
+   error "match/case falls through"
+}

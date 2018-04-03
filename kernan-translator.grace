@@ -117,10 +117,6 @@ def visitor = object {  //be careful here. someimes need to refer to visitor
     }
     
     method visitObjectConstructor(e) is override {
-        print "visitOC {e}"
-        print "visitOC {e.origin}"
-        print "visitOC {e.origin.KJXOrigin}"
-        print "visitOC {e.origin.KJXKind}"
         jast.objectConstructorNode(mapCommon(e.body),e.origin) at(0)
     }
 

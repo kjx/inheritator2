@@ -8,6 +8,7 @@ class attributesFamily {
   method ngDone is abstract { }   
   method ngImplicitUnknown is abstract { }
   method progn(_) is abstract { } 
+  method ngBoolean(_) is abstract { }
 
 
   type O = Unknown
@@ -77,6 +78,7 @@ class attributesFamily {
      method invoke(this) args(args) types(typeArgs) creatio(creatio) {
        //print "invoke {methodNode.signature.name} on #{this.dbg} creatio:{creatio.isCreatio}"
 
+       //should this not have a creation??
        def typetxt = ctxt.subcontextNamed(methodNode.signature.name ++ "(types)")
 
        def typeParams = methodNode.signature.typeParameters.asList
@@ -104,7 +106,6 @@ class attributesFamily {
            subtxt.declareName(par.name) value(arg)
        }
 
-
        subtxt.addLocal(CREATIO) value(creatio) 
        subtxt.addLocal(RETURNBLOCK) 
           slot (attributeLambda {rv, _ ->
@@ -122,7 +123,26 @@ class attributesFamily {
      method asString {"attributeMethod: {methodNode.signature.name} #{ctxt.dbg}"}
   }
 
-  class attributeBlockMethod(blockNode) inContext(ctxt) {
+  class attributeBlockMatchMethod(blockNode) inContext(ctxt) {
+     use utility.publicAnnotations
+     use changePrivacyAnnotations
+     method invoke(this) args(args) types(typeArgs) creatio(creatio) {
+       def params = blockNode.parameters.asList
+       def prognBody = progn(blockNode.body)
+       if (args.size != params.size) then {error "arg mismatch"}
+       for (params.indices) do { i ->
+           def par = params.at(i)
+           def arg = args.at(i)
+           if (!test(arg) isType(par.typeAnnotation) inContext(ctxt))
+              then {return ngBoolean(false)}
+           }
+       return ngBoolean(true)
+       }
+     method context { ctxt } 
+     method asString {"attributeBlockMethod"}
+  }
+
+  class attributeBlockApplyMethod(blockNode) inContext(ctxt) {
      use utility.publicAnnotations
      use changePrivacyAnnotations
      method invoke(this) args(args) types(typeArgs) creatio(creatio) {
@@ -130,7 +150,12 @@ class attributesFamily {
        def prognBody = progn(blockNode.body)
        def subtxt = ctxt.subcontext
        if (args.size != params.size) then {error "arg mismatch"}
-       for (params.indices) do { i -> subtxt.declareName(params.at(i).name) value(args.at(i)) }
+       for (params.indices) do { i ->
+           def par = params.at(i)
+           def arg = args.at(i)
+           check(arg) isType(par.typeAnnotation) inContext(ctxt)
+           subtxt.declareName(par.name) value(arg)
+       }
        subtxt.addLocal(CREATIO) value(creatio) 
        prognBody.build(subtxt)
        prognBody.eval(subtxt)
@@ -138,6 +163,7 @@ class attributesFamily {
      method context { ctxt } 
      method asString {"attributeBlockMethod"}
   }
+
 
 
   //a ng value bound to a name in a context. already initialised! 
@@ -205,10 +231,37 @@ class attributesFamily {
   }
 
 
+  //old style attribute that wraps a lambda block; 
+  //blocks takes arguments plus creatio. 
+  //use for primitives but otherwise avoid
+  class attributeLambda2(lambda) inContext(ctxt) {
+    use utility.publicAnnotations
+    use changePrivacyAnnotations
+    method invoke(this) args(args) types(typeArgs) creatio(creatio) {
+      applyVarargs2(lambda,args,creatio)
+    }
+    //apply the block to the LIST of arguments from the interpreter
+    //args are already evaluated
+    method applyVarargs2(block,args,creatio) {
+      def a = args.asList
+      match (args.size)
+        case { 0 -> block.apply(creatio,ctxt)}
+        case { 1 -> block.apply(a.at(1),creatio,ctxt)}
+        case { 2 -> block.apply(a.at(1),a.at(2),creatio,ctxt)}
+        case { 3 -> block.apply(a.at(1),a.at(2),a.at(3),creatio,ctxt)}
+        case { 4 -> block.apply(a.at(1),a.at(2),a.at(3),a.at(4),creatio,ctxt)}
+        case { 5 -> block.apply(a.at(1),a.at(2),a.at(3),a.at(4),a.at(5),creatio,ctxt)}
+        case { _ -> error "CANT BE BOTHERED TO APPLY MORE VARARGS" }
+    }
+    method context { ctxt } 
+    method asString { "attributeLambda {lambda}" }
+  }
+
+
   //dynamic type check.
   //Takes a typeExpression and a context, not a type object
   //  because it's mostly used to check against declared types
-  method check(obj) isType(typeExpression) inContext(ctxt) {
+  method test(obj) isType(typeExpression) inContext(ctxt) {
        def typeObject = typeExpression.eval(ctxt.withoutCreatio)
        //if (!typeObject.match(obj))
        //    then { error "type check failed: {obj} isnt {typeObject} from {typeExpression}" }
@@ -217,11 +270,17 @@ class attributesFamily {
        def creatio = argCtxt.creatio 
        def matchAttribute = typeObject.lookupExternal("match(_)")
        def matchResult = matchAttribute.invoke(ctxt) args(list(obj)) types(empty) creatio(creatio)
-       if (!matchResult.value)
-           then { error "type check failed: {obj} isnt {typeObject} from {typeExpression}" }
+       return matchResult.value
+  }
 
+  method check(obj) isType(typeExpression) inContext(ctxt) {
+       if (!test(obj) isType(typeExpression) inContext(ctxt))
+           then { 
+               def typeObject = typeExpression.eval(ctxt.withoutCreatio)
+               error "type check failed: {obj} isnt {typeObject} from {typeExpression}" }
        obj
   }
+
 
   //behaviour to change privacy annotations 
   trait changePrivacyAnnotations {

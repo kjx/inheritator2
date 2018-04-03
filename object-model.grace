@@ -125,6 +125,9 @@ class exports {
     method declareName(name) lambda(lambda) {
         declareName(name) attribute(attributeLambda(lambda) inContext(self))
     }
+    method declareName(name) lambda2(lambda) {
+        declareName(name) attribute(attributeLambda2(lambda) inContext(self))
+    }
 
     ////////////////////////////////////////////////////////////
     //// setting and accessing local declarations
@@ -489,11 +492,13 @@ class exports {
 
     //basic methods
     im.declareName("print(_)") lambda { p, creatio -> print(p) }
+    im.declareName("error(_)") lambda { e, creatio -> error("program: {e}") }
 
     //evil brand support
     im.declareName("primitiveBrandMatch(_,_)") lambda { b, o, _ -> 
          ng.ngBoolean(! o.lookupExternal(b).isMissing) }
 
+    //assertions
     im.declareName("assert(_)isSubtypeOf(_)") 
           lambda { l, r, _ -> 
             if (!l.isSubtypeOf(r)) then {print "fail: {l} isSubtypeOf {r}"}

@@ -286,7 +286,8 @@ class jevalFamily {
 
       method eval(ctxt) { 
              def ret = ng.objectContext(body,ctxt)
-             if (self.origin.KJXOrigin.KJXHasAnnotations) then {
+             if ((!origin.KJXOrigin.isNull).andAlso 
+                  {origin.KJXOrigin.KJXHasAnnotations}) then {
                 def annotName = self.origin.KJXOrigin.KJXAnnotationOne.KJXName
                 //def argCtxt = ctxt.withoutCreatio
                 //def creatio = argCtxt.creatio 
@@ -294,12 +295,9 @@ class jevalFamily {
                 //def annotObject = annotAttribute.invoke(ctxt) args(list) types(list) creatio(creatio)
                 def annotImplicit = implicitRequestNode(annotName,empty,empty) at(source)
                 def brandObject = annotImplicit.eval(ctxt.withoutCreatio)
-                print "brandObject {brandObject}"
-                if (brandObject.lookupExternal("iAmBrand").isMissing) 
+                if (brandObject.lookupExternal("retainedAnnotation").isMissing) 
                    then { print "NOT A BRAND" }
-                   else { print "ADDING BRAND" 
-                          ret.declareName(brandObject) lambda { error: "FUCKED" }
-                          print "BRNDS.."}
+                   else { ret.declareName(brandObject) lambda { error: "FUCKED" } }
              }
              ret
        }

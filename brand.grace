@@ -4,7 +4,7 @@ class rectangle is aRectangle { }
 
 class brand {
   print "WHOOPEE"
-  method iAmBrand { }
+  method retainedAnnotation { }
   method Type { brandType(self) }
 }
 

@@ -4,7 +4,7 @@ MODULE SIZE   : 103
 ngString: one
 ngNumber: 2
 ngNumber: 4
-ngInterface: #25 [foo, bar, baz(_,_)]
+ngInterface: #26 n19 [foo, bar, baz(_,_)]
 ngString: here
 ngNumber: 2
 ngString: there
@@ -14,8 +14,8 @@ ngString: hello
 ngString: oneone
 ngNumber: 22
 ngString: foomethod
-{a ngBlock} #38
-{a ngBlock} #39
+{a ngBlock} #44
+{a ngBlock} #45
 ngString: barreturn
 ngString: ping
 ngString: blockescapeOK
