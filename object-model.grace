@@ -376,7 +376,7 @@ class exports {
       assert {useCandidates.size == 0}
 
       if (inheritCandidates.size == 1) then {return inheritCandidates.at(1) }
-      if (inheritCandidates.size > 1) then {return attributeAmbiguous(name) inContext(self) between(inheritCandidates)}
+      if (inheritCandidates.size > 1) then {return attributeAmbiguous(name) between(inheritCandidates)  inContext(self)}
       assert {inheritCandidates.size == 0}
 
       attributeMissing(name) inContext(self)
