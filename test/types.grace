@@ -172,8 +172,8 @@ type GListA = GList[[GListA]]
 
 print "HERE WE GO"
 
-assert(GListA) isSubtypeOf(List)
-assert(List) isSubtypeOf(GListA)
+//assert(GListA) isSubtypeOf(List)
+//assert(List) isSubtypeOf(GListA)
 
 
 print "done"
