@@ -117,7 +117,13 @@ def visitor = object {  //be careful here. someimes need to refer to visitor
     }
     
     method visitObjectConstructor(e) is override {
-        jast.objectConstructorNode(mapCommon(e.body),e.origin) at(0)
+        var origin := "missing"
+
+        match (e) 
+           case { _ : interface { origin } -> origin := e.origin} 
+           case { _ -> } 
+
+        jast.objectConstructorNode(mapCommon(e.body),origin) at(0)
     }
 
     method visitBlock(b) {
@@ -146,10 +152,16 @@ def visitor = object {  //be careful here. someimes need to refer to visitor
     }
 
     method visitMethod(m) {        
+        var kind := "method"
+
+        match (m) 
+           case { _ : interface { kind } -> kind := m.kind} 
+           case { _ -> } 
+
         jast.methodNode( common(m.signature),
                          mapCommon(m.body),
                          mapCommon(m.annotations),
-                         m.kind) at(0) 
+                         kind) at(0) 
         }
 
 

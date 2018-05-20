@@ -286,8 +286,9 @@ class jevalFamily {
 
       method eval(ctxt) { 
              def ret = ng.objectContext(body,ctxt)
-             if ((!origin.KJXOrigin.isNull).andAlso 
-                  {origin.KJXOrigin.KJXHasAnnotations}) then {
+             if ( (origin != "missing").andAlso
+                  {(!origin.get_Origin.isNull).andAlso 
+                   {origin.get_Origin.KJXHasAnnotations}}) then {
                 def annotName = self.origin.KJXOrigin.KJXAnnotationOne.KJXName
                 //def argCtxt = ctxt.withoutCreatio
                 //def creatio = argCtxt.creatio 

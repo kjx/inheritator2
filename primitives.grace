@@ -27,6 +27,7 @@ class primitivesFamily {
   
   class ngNumber( value' ) {
      inherit ngPrimitive
+
      method kind {"ngNumber"}
      method value {value'}
      method asString { "ngNumber: {value}"}

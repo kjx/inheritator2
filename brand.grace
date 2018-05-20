@@ -31,8 +31,8 @@ def r = rectangle
 def SquareType = aSquare.Type
 def RectangleType = aRectangle.Type
 print "GOING"
-print( primitiveBrandMatch(23, 12) )
-print( primitiveBrandMatch(23, s) )
+print( primitiveBrandMatch(aRectangle, 12) )
+print( primitiveBrandMatch(aRectangle, s) )
 print( primitiveBrandMatch(aSquare, 12) )
 print( primitiveBrandMatch(aSquare, s) )
 
