@@ -1,0 +1,29 @@
+jast.jast instantiated GraceObject[-]
+MODULE DIALECT: 
+MODULE SIZE   : 17
+ngString: listener accepts I am a message
+ngString: (I am a message really isn't secure)
+ngString: listener accepts I am a SECURE message
+ngString: (I am a SECURE message is actually secure)
+ngString: listener securely accepts I am a SECURE message
+Uncaught exception:
+interpreterError: type check failed: objectContext#35:(cooked)  ⟨self, outer, asString⟩ !!lexicalContext:message#34 ⟨_creatio, _returnCreatio, _returnBlock⟩ !!lexicalContext:message(types)#33 ⟨⟩ !!moduleObject#19 ⟨m, secureMessage, Message, Secure, l, message, brandType(_), listener, s, outer, secure, self, match(_)case(_)case(_), AndPattern(_,_), brand⟩ !!moduleObject#10 ⟨confidential, readable, implicitUninitialised, assert(_)notSubtypeOf(_), Unknown, public, assert(_)isSubtypeOf(_), abstract, writable, primitiveBrandMatch(_,_), print(_), implicitDone, assert(_)notEqualsType(_), implicitUnknown, self, override, error(_), assert(_)isEqualsType(_)⟩ !!context#9 ⟨trump⟩ isnt objectContext#284:(cooked)  ⟨self, match(_), outer, asString⟩ !!lexicalContext:AndPattern(_,_)#281 ⟨r, l, _creatio, _returnCreatio, _returnBlock⟩ !!lexicalContext:AndPattern(_,_)(types)#280 ⟨⟩ !!moduleObject#19 ⟨m, secureMessage, Message, Secure, l, message, brandType(_), listener, s, outer, secure, self, match(_)case(_)case(_), AndPattern(_,_), brand⟩ !!moduleObject#10 ⟨confidential, readable, implicitUninitialised, assert(_)notSubtypeOf(_), Unknown, public, assert(_)isSubtypeOf(_), abstract, writable, primitiveBrandMatch(_,_), print(_), implicitDone, assert(_)notEqualsType(_), implicitUnknown, self, override, error(_), assert(_)isEqualsType(_)⟩ !!context#9 ⟨trump⟩ from jeval.explicitRequestNode &(_)...
+    from «raise(_)», at line 8 of errors
+    from «error(_)», at line 280 of attributes
+    from «check(_) isType(_) inContext(_)», at line 105 of attributes
+    from «apply(_)», at line 1545 of combinator-collections
+    from «_base_while_do(_,_)», at line 99 of prelude
+    from «while(_) do(_)», at line 1544 of combinator-collections
+    from «invoke(_) args(_) types(_) creatio(_)», at line 240 of evaluator
+    from «eval(_)», at line 323 of object-model
+    from «apply(_)», at line 808 of combinator-collections
+    from «_base_while_do(_,_)», at line 99 of prelude
+    from «while(_) do(_)», at line 807 of combinator-collections
+    from «initialize», at line 309 of object-model
+    from «moduleObject(_,_)», at line 322 of evaluator
+    from «eval(_)», at line 23 of loader
+    from «apply», at line 1205 of combinator-collections
+    from «at(_) ifAbsent(_)», at line 19 of loader
+    from «loadModule(_)», at line 13 of main
+    from «do(_)», at line 123 of prelude
+    from «for(_) do(_)», at line 7 of main
