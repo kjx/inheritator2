@@ -286,20 +286,26 @@ class jevalFamily {
 
       method eval(ctxt) { 
              def ret = ng.objectContext(body,ctxt)
-             if ( (origin != "missing").andAlso
-                  {(!origin.get_Origin.isNull).andAlso 
-                   {origin.get_Origin.KJXHasAnnotations}}) then {
-                def annotName = self.origin.KJXOrigin.KJXAnnotationOne.KJXName
+
+             //doing this with andalso just didn't work - no idea why
+             if ("missing" == origin) then {return ret}
+             if (origin.get_Origin.isNull) then {return ret}
+             if (!origin.get_Origin.KJXHasAnnotations) then {return ret}
+
+             //if ( ("missing" != origin).andAlso
+             //     {(!origin.get_Origin.isNull).andAlso
+             //      {origin.get_Origin.KJXHasAnnotations}}) then {
+             def annotName = self.origin.KJXOrigin.KJXAnnotationOne.KJXName
                 //def argCtxt = ctxt.withoutCreatio
                 //def creatio = argCtxt.creatio 
                 //def annotAttribute = ctxt.lookupInternal(annotName)
                 //def annotObject = annotAttribute.invoke(ctxt) args(list) types(list) creatio(creatio)
-                def annotImplicit = implicitRequestNode(annotName,empty,empty) at(source)
-                def brandObject = annotImplicit.eval(ctxt.withoutCreatio)
-                if (brandObject.lookupExternal("retainedAnnotation").isMissing) 
+             def annotImplicit = implicitRequestNode(annotName,empty,empty) at(source)
+             def brandObject = annotImplicit.eval(ctxt.withoutCreatio)
+             if (brandObject.lookupExternal("retainedAnnotation").isMissing) 
                    then { print "NOT A BRAND" }
                    else { ret.declareName(brandObject) lambda { error: "FUCKED" } }
-             }
+             // }
              ret
        }
   }
