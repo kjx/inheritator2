@@ -75,11 +75,13 @@ class jevalFamily {
       alias jInheritNode(_,_,_,_) at(_) = inheritNode(_,_,_,_) at(_)
       alias jImportNode(_,_,_) at(_) = importNode(_,_,_) at(_)
 
+
+  method asStringPrefix { "jeval." }
+
   var nodeCounter := 0
 
   class nodeAt( source ) -> Node { 
     inherit jNodeAt(source)
-    def asStringPrefix = "jeval."
     
     def nodeID is public = nodeCounter
     nodeCounter := nodeCounter + 1 
@@ -372,4 +374,4 @@ class jevalFamily {
 
 
 def singleton is public = jevalFamily
-//loader.commonASTFactory:= singleton
+//translator.commonASTFactory := singleton

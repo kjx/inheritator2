@@ -3,8 +3,10 @@
 
 //method error(arg) is required { } 
 
-class jastFamily {    
-    print "jast.jast instantiated {self}"        
+class jastFamily {
+    method asStringPrefix { "jast." }
+
+    print "{asStringPrefix} instantiated {self}"        
 
     //REALLY BIG DESIGN QUESTION - SHOULD WE HAVE A CLASS NODE??
     //answer - yes but it just delegates to internal method and object nodes?
@@ -44,7 +46,6 @@ class jastFamily {
     
     class nodeAt( source ) -> Unknown { 
        method asString { asStringPrefix ++ asStringBody }
-       method asStringPrefix { "jast." }
        method asStringBody { "Node" }
        method accept[[T]](visitor : Visitor[[T]]) -> T { }
     }
