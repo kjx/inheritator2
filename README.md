@@ -12,10 +12,13 @@ operational semantics and type system of the whole language.
 To avoid re-writing a parser, inheritator2 is currently parasitc on
 Kernan's parser. You need to install the "KernanCompiler.cs" module 
 in the "modules/platform" directory to expose the compiler.
+(You currently need to run on a hacked version of Kernan
+to expose more of the parse tree via the execution tree:
+this will change when we switch to using the parse tree)
 
-Kernan's execution tree is transformed into more abstract "common" AST
+Kernan's execution tree is transformed into a more abstract "common" AST
 --- ideally this AST would be common across different Grace
-implementations for implementing type checkers etc. To port
+implementations (ha!) for implementing type checkers etc. To port
 inheritator2 to another Grace system, either that system should export
 the common AST; we write a wedge that converts the native AST to the
 common AST; or we write or get a Grace parser that produces the common
@@ -66,6 +69,7 @@ More than that: it's interface is ugly and horrible and needs to be fixed.
 
 - oldtests - deprecated tests
 
+- misc - at some point move msic examples out of tests into here
 
 
 
