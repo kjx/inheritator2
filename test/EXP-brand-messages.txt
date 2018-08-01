@@ -1,4 +1,4 @@
-jast.jast instantiated GraceObject[-]
+jeval. instantiated GraceObject[-]
 MODULE DIALECT: 
 MODULE SIZE   : 17
 ngString: listener accepts I am a message
@@ -14,13 +14,13 @@ interpreterError: type check failed: objectContext#35:(cooked)  ⟨self, outer, 
     from «apply(_)», at line 1545 of combinator-collections
     from «_base_while_do(_,_)», at line 99 of prelude
     from «while(_) do(_)», at line 1544 of combinator-collections
-    from «invoke(_) args(_) types(_) creatio(_)», at line 240 of evaluator
+    from «invoke(_) args(_) types(_) creatio(_)», at line 242 of evaluator
     from «eval(_)», at line 323 of object-model
     from «apply(_)», at line 808 of combinator-collections
     from «_base_while_do(_,_)», at line 99 of prelude
     from «while(_) do(_)», at line 807 of combinator-collections
     from «initialize», at line 309 of object-model
-    from «moduleObject(_,_)», at line 322 of evaluator
+    from «moduleObject(_,_)», at line 324 of evaluator
     from «eval(_)», at line 23 of loader
     from «apply», at line 1205 of combinator-collections
     from «at(_) ifAbsent(_)», at line 19 of loader
