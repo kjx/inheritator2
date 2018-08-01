@@ -1,4 +1,4 @@
-import "typechecker" as typechecker
+import "subtyping" as subtyping
 
 class primitivesFamily {
   method context is abstract { }
@@ -96,11 +96,11 @@ class primitivesFamily {
      }
 
      method isSubtypeOf(other) {
-        typechecker.check(self) isSubtypeOf(other)
+        subtyping.check(self) isSubtypeOf(other)
      }
 
      method isTypeEquals(other) { 
-        typechecker.check(self) isTypeEquals(other)
+        subtyping.check(self) isTypeEquals(other)
      }
 
      declareName "match(_)" lambda { other, creatio -> 
