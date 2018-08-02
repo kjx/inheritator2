@@ -41,7 +41,8 @@ class exports {
   method valueOf( block ) { block.apply }
 
 
-  class cache (block) { 
+  class cache (block) {
+    method asString { "a cache {alreadyAssigned} {block}" }
     var alreadyAssigned := false
     var value 
     method prefix ^ { 

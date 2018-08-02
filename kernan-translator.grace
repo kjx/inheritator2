@@ -158,10 +158,29 @@ def visitor = object {  //be careful here. someimes need to refer to visitor
            case { _ : interface { kind } -> kind := m.kind} 
            case { _ -> } 
 
-        jast.methodNode( common(m.signature),
+
+        print "{kind}: {common(m.signature).name}"
+
+
+        //for now treat types like any other method
+        if (kind == "KJXNOTtype")
+           then {
+                jast.methodNode( common(m.signature),
+                    list(jast.implicitRequestNode(
+                                "magicTypeMemoiser(_)",
+                                empty,  //ignoring type parasm for now
+                                list(jast.blockNode(empty, mapCommon(m.body)) at(0)))
+                              at(0)),
+                    mapCommon(m.annotations),
+                    "type") at(0)
+
+                }
+           else { 
+                jast.methodNode( common(m.signature),
                          mapCommon(m.body),
                          mapCommon(m.annotations),
-                         kind) at(0) 
+                         kind) at(0)
+                }
         }
 
 

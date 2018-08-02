@@ -8,7 +8,7 @@ def ng is public = runtime.singleton
 import "utility" as utility
 use utility.exports
 import "loader" as loader
-
+import "subtyping" as subtyping
 
 //method jdebug(block) {block.apply}
 method jdebug(block) { } 
@@ -74,7 +74,7 @@ class jcheckFamily {
           at ( source ) -> Parameter {
       inherit eStringLiteralNode( value' ) at( source )
       
-      method eval(ctxt) { ng.ngString( value ) } 
+      method eval(ctxt) { subtyping.stringType }
   }
 
   class numberLiteralNode(
@@ -82,7 +82,7 @@ class jcheckFamily {
           at ( source ) -> Parameter {
       inherit eNumberLiteralNode( value' ) at( source )
       
-      method eval(ctxt) { ng.ngNumber( value ) } 
+      method eval(ctxt) { subtyping.numberType }
   }
 
   class interfaceNode(
@@ -116,8 +116,8 @@ class jcheckFamily {
           def properties = utility.processAnnotations(annots,false)
           ctxt.declareDef(name) asType(typeAnnotation) properties(properties)
           }
-      method eval(ctxt) { 
-          ctxt.getLocal(name).initialValue:= value.eval(ctxt)
+      method eval(ctxt) {
+          assert (typeAnnotation.eval(ctxt)) equals (value.eval(ctxt))
           ng.ngDone          
       }
   }

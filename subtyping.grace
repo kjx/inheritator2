@@ -55,10 +55,11 @@ var otCount := 0
 
 class abstractObjectType {
    def methods = empty
-
    otCount := otCount + 1 
    def otID is public = otCount
 
+
+   method asString {error "abstract!!!!!"}
 
    method methodNamed(name) ifAbsent (block)  {
         for (methods) do { meth ->
@@ -137,11 +138,11 @@ class abstractObjectType {
 
    method !=(other) { !(self == other) }
    method ==(other) {
-     //print "type=="
-     //print "self: {self}"
-     //print "self: {isUnknown} {isStructural} {hash}"
-     //print "other: {other}"
-     //print "other: {other.isUnknown} {other.isStructural} {other.hash}"
+     // print "type=="
+     // print "self: {self}"
+     // print "self: {isUnknown} {isStructural} {hash}"
+     // print "other: {other}"
+     // print "other: {other.isUnknown} {other.isStructural} {other.hash}"
      if (isUnknown && other.isUnknown) then {return true}
      if (isStructural != other.isStructural) then {return false}
      if (hash != other.hash) then {return false}
@@ -210,7 +211,19 @@ class objectType( ngInterface ) {
 class singletonObjectType {
   inherit abstractObjectType  
   method equalsOther(other) { other.equalsSingletonObjectType(self) }
-  method equalsSingletonObjectType(other) { asString == other.asString }
+  method equalsSingletonObjectType(other) {
+         // print "TRUUUUUUMMMMMMMMMMMMP"
+         // print (numberType.asString == numberType.asString)
+         // print (asString)
+         // print (other.asString)
+         // def a = asString
+         // def s = self.asString
+         // def o = other.asString
+         // print "SOT {a == s} {a == o}"
+         asString == other.asString }
+
+  //def hashCache = cache { asString.hash }
+  method hash { 42 } 
 }
 
 def unknownObjectType is public = object {
@@ -230,7 +243,7 @@ def doneType is public = object {
   inherit singletonObjectType
   
   def methods = empty
-  method isUnknown { true }  
+  method isUnknown { false }  
   method isStructural { false }
   method isSubtypeOf(other : ObjectType) -> Boolean { // Let other have a say.
         other.reverseSubtypeOf(self).orElse { self == other } }
@@ -256,7 +269,7 @@ def stringType is public = object {
   inherit singletonObjectType
   
   def methods = empty
-  method isUnknown { true }  
+  method isUnknown { false }  
   method isStructural { false }
   method isSubtypeOf(other : ObjectType) -> Boolean { // Let other have a say.
         other.isSupertypeOf(self).orElse { self == other } }

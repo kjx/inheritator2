@@ -6,6 +6,7 @@ import "attributes" as attributes
 import "primitives" as primitives
 import "utility" as utility
 use utility.exports
+import "subtyping" as subtyping
 
 def singleton is public = exports
 def ng = singleton
@@ -494,9 +495,6 @@ class exports {
     im.declareName("print(_)") lambda { p, creatio -> print(p) }
     im.declareName("error(_)") lambda { e, creatio -> error("program: {e}") }
 
-    //evil brand support
-    im.declareName("primitiveBrandMatch(_,_)") lambda { b, o, _ -> 
-         ng.ngBoolean(! o.lookupExternal(b).isMissing) }
 
     //assertions
     im.declareName("assert(_)isSubtypeOf(_)") 
@@ -522,6 +520,19 @@ class exports {
             if (l.isTypeEquals(r)) then {print "fail: {l} DOES equals {r}"}
                 else {print "pass: {l} notEqualsTo {r}"}
             ngDone}
+
+    //evil brand support
+    im.declareName("primitiveBrandMatch(_,_)") lambda { b, o, _ -> 
+         ng.ngBoolean(! o.lookupExternal(b).isMissing) }
+
+
+    //MORE evil type support
+    im.declareName("Number") value(subtyping.numberType)
+    im.declareName("String") value(subtyping.stringType)
+
+    im.declareName("magicTypeMemoiser(_)") lambda { b, o, _ -> 
+         ng.ngBoolean(! o.lookupExternal(b).isMissing) }
+
 
     return im
   }
