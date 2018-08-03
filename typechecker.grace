@@ -4,7 +4,6 @@ use c.abbreviations
 import "errors" as errors
 use errors.exports
 import "object-model" as runtime
-def ng is public = runtime.singleton
 import "utility" as utility
 use utility.exports
 import "loader" as loader
@@ -16,7 +15,7 @@ method jdebug(block) { }
 method DEBUG(block) {block.apply}
 method debugPrint(string) { } 
 
-
+var ng is public //evil evil dep injection. should be some kind of import
 
 class jcheckFamily {
   inherit e.jevalFamily

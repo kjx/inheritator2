@@ -3,11 +3,11 @@ import "combinator-collections" as c
 use c.abbreviations
 import "errors" as errors
 use errors.exports
-import "object-model" as runtime
-def ng is public = runtime.singleton
-import "utility" as utility
+import "utility" as utility 
 use utility.exports
 import "loader" as loader
+
+var ng is public //evil evil dependency inversion
 
 
 

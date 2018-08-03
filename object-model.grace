@@ -8,6 +8,7 @@ import "utility" as utility
 use utility.exports
 import "subtyping" as subtyping
 
+
 def singleton is public = exports
 def ng = singleton
 
@@ -525,13 +526,9 @@ class exports {
     im.declareName("primitiveBrandMatch(_,_)") lambda { b, o, _ -> 
          ng.ngBoolean(! o.lookupExternal(b).isMissing) }
 
-
-    //MORE evil type support
-    im.declareName("Number") value(subtyping.numberType)
-    im.declareName("String") value(subtyping.stringType)
-
-    im.declareName("magicTypeMemoiser(_)") lambda { b, o, _ -> 
-         ng.ngBoolean(! o.lookupExternal(b).isMissing) }
+    //???
+    //im.declareName("magicTypeMemoiser(_)") lambda { b, o, _ -> 
+    //    ng.ngBoolean(! o.lookupExternal(b).isMissing) }
 
 
     return im
