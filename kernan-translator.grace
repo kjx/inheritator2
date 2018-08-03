@@ -159,7 +159,7 @@ def visitor = object {  //be careful here. someimes need to refer to visitor
            case { _ -> } 
 
 
-        print "{kind}: {common(m.signature).name}"
+        //print "{kind}: {common(m.signature).name}"
 
 
         //for now treat types like any other method

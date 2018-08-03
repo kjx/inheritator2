@@ -205,7 +205,7 @@ class attributesFamily {
   }
 
   //old style attribute that wraps a lambda block; 
-  //blocks takes arguments plus creatio. 
+  //blocks takes arguments plus creatio. BUT NO CONTEXT
   //use for primitives but otherwise avoid
   class attributeLambda(lambda) inContext(ctxt) {
     use utility.publicAnnotations
@@ -231,9 +231,9 @@ class attributesFamily {
   }
 
 
-  //old style attribute that wraps a lambda block; 
-  //blocks takes arguments plus creatio. 
-  //use for primitives but otherwise avoid
+  //new style attribute that wraps a lambda block; 
+  //blocks takes arguments plus creatio and context. 
+  //should use this one rather than the other one
   class attributeLambda2(lambda) inContext(ctxt) {
     use utility.publicAnnotations
     use changePrivacyAnnotations
