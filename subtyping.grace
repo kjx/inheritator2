@@ -10,6 +10,7 @@ use errors.exports
 import "utility" as utility
 use utility.exports
 
+
 method check (left) isSubtypeOf (right) {
   def leftObjectType = makeObjectType(left)
   def rightObjectType = makeObjectType(right)
@@ -151,8 +152,10 @@ class abstractObjectType {
    method equalsOther(other) { other.equalsAbstractObjectType(self) }
    method equalsAbstractObjectType(other) { error "shouldn't happen" }   
    method equalsStructuralObjectType(other) { false }   
-   method equalsSingletonObjectType(other) { false }   
+   method equalsSingletonObjectType(other) { false }
 }
+
+
 
 
 //build an object type from an interpreter level interface object
@@ -262,6 +265,10 @@ def numberType is public = object {
         other.isSupertypeOf(self).orElse { self == other } }
   method isSupertypeOf(other : ObjectType) -> Boolean { self == other }
   method asString { "numberType" }
+
+
+
+
 }
 
 

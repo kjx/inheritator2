@@ -3,7 +3,7 @@ import "combinator-collections" as c
 use c.abbreviations
 import "errors" as errors
 use errors.exports
-import "object-model" as runtime
+import "type-model" as runtime
 import "utility" as utility
 use utility.exports
 import "loader" as loader
@@ -73,7 +73,7 @@ class jcheckFamily {
           at ( source ) -> Parameter {
       inherit eStringLiteralNode( value' ) at( source )
       
-      method eval(ctxt) { subtyping.stringType }
+      method eval(ctxt) { ng.ngType(subtyping.stringType) }
   }
 
   class numberLiteralNode(
@@ -81,7 +81,7 @@ class jcheckFamily {
           at ( source ) -> Parameter {
       inherit eNumberLiteralNode( value' ) at( source )
       
-      method eval(ctxt) { subtyping.numberType }
+      method eval(ctxt) { ng.ngType(subtyping.numberType) }
   }
 
   class interfaceNode(
@@ -169,13 +169,15 @@ class jcheckFamily {
           at( source )
 
       method eval(ctxt) {
-         //print "{name} {arguments.size}"
-
+         print "{name} {arguments.size}"
          def creatio = ctxt.creatio
          def argCtxt = ctxt.withoutCreatio
          def rcvr = receiver.eval(argCtxt)
          def types = safeFuckingMap { ta -> ta.eval(argCtxt) } over(typeArguments)
          def args = safeFuckingMap { a -> a.eval(argCtxt) } over(arguments)       
+
+         print "RCVR {rcvr}"
+
          def methodBody = rcvr.lookupExternal(name)
 
          if (rcvr != rcvr.whole) then {

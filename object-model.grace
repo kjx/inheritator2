@@ -6,7 +6,6 @@ import "attributes" as attributes
 import "primitives" as primitives
 import "utility" as utility
 use utility.exports
-import "subtyping" as subtyping
 
 
 def singleton is public = exports

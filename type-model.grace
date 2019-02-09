@@ -16,12 +16,10 @@ class exports {
      method value {value'}
      method asString { "ngType: {value}"}
 
-     declareName "+(_)" lambda { other, creatio ->  
-                    def rv = ngNumber(value' + other.value)
+     declareName "+(_)" lambda { other, creatio ->
+                    def rv = self
                     rv } 
   }
-
-  
   
   method intrinsicModuleObject {
     print "type model intrinsic"
