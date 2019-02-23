@@ -277,7 +277,7 @@ class attributesFamily {
        if (!test(obj) isType(typeExpression) inContext(ctxt))
            then { 
                def typeObject = typeExpression.eval(ctxt.withoutCreatio)
-               error "type check failed: {obj} isnt {typeObject} from {typeExpression}" }
+               print "type check failed: {obj} isnt {typeObject} from {typeExpression}" }
        obj
   }
 

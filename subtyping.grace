@@ -28,6 +28,7 @@ method check (left) isTypeEquals (right) {
 
 
 method makeObjectType(obj) {
+  print "mOT:{obj}"
   match (obj.kind)
     case { "ngUnknown" -> unknownObjectType } 
     case { "ngImplicitUnknown" -> unknownObjectType } 
@@ -177,7 +178,8 @@ class objectType( ngInterface ) {
      //def rv = (ctxt == other.ctxt) && (value == other.value)    
      //def rv = (value == other.value)  
 
-     assert { (value.nodeID == other.value.nodeID) == (value == other.value) }
+     print "removed assertion is evil"
+     ///assert { (value.nodeID == other.value.nodeID) == (value == other.value) }
 
      def rv = (value == other.value)    
      //print "ot.eSOT rv = {rv}"
@@ -190,7 +192,7 @@ class objectType( ngInterface ) {
 
    def methods is public =  //TODO rename as methodTypes sometime?
      for (ngInterface.value.signatures)
-     map { sig -> methodType( sig, ctxt ) }
+       map { sig -> methodType( sig, ctxt ) }
 
    def isStructural : Boolean is public = true
    def isUnknown : Boolean is public = false
@@ -210,6 +212,66 @@ class objectType( ngInterface ) {
 }
 
 
+class objectConstructorType( ngObjectContext, body', ctxt' ) {
+   inherit abstractObjectType
+
+   //VERY VERY BROKEN. DOESN"T DEAL WITH INHERITANCE!!
+
+   method equalsOther(other) { 
+     //print "ot=OTHER"
+     other.equalsStructuralObjectType(self) }
+   method equalsStructuralObjectType(other) {
+     //print "ot.eSOT"
+     //print "ctxt {ctxt.dbg}  other {other.ctxt.dbg} {ctxt == other.ctxt}" 
+     //print "value {value} other {other.value}"
+     //print "value {value.nodeID} other {other.value.nodeID} {(value == other.value)    }"
+     //def rv = (ctxt == other.ctxt) && (value == other.value)    
+     //def rv = (value == other.value)  
+
+     assert { (value.nodeID == other.value.nodeID) == (value == other.value) }
+
+     def rv = (value == other.value)    
+     //print "ot.eSOT rv = {rv}"
+     rv
+   }
+
+
+   def ctxt is public = ctxt'
+   def value is public = body'
+
+   def methods is public = list //TODO rename as methodTypes sometime?
+     //the most broken of the broken shit...
+     //for now: just dumps in  all methods /  no fields!!!
+
+   for (value) do { node ->
+
+         def MightBeMethodNode = interface {
+            signature -> Signature
+         }
+
+         match (node)
+           case { m : MightBeMethodNode ->
+                    // print "DJT got method {m}"
+                    methods.add( methodType( m.signature, ctxt ) ) }
+           case { _ -> }
+   }
+
+   def isStructural : Boolean is public = true
+   def isUnknown : Boolean is public = false
+
+   method asString { 
+      match (methods.size)
+        case { 0 -> return "objectCX \{\}"}
+        case { 1 -> return "objectCX ot:{otID}  \{ {methods.at(1)} \}" }
+        case { _ -> }
+      var rv := "objectCX ot:{otID} \{\n  "
+      for (methods) do { meth -> 
+        rv := rv ++ "{meth}" ++ "\n  "
+      }
+      rv := rv ++ "}"
+      rv
+   }
+}
 
 class singletonObjectType {
   inherit abstractObjectType  

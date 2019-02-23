@@ -9,7 +9,7 @@ class exports {
   inherit om.exports
      alias oldintrinsicModuleObject = intrinsicModuleObject 
 
-  class ngType ( value' ) {
+  class ngType ( value' ) { //the type of a "normal" value
      inherit ngPrimitive
 
      method kind {"ngType"}
@@ -20,12 +20,33 @@ class exports {
                     def rv = self
                     rv } 
   }
-  
+
+  class ngTypeType ( value' ) { //the type of a type, mostly an interface
+     //Or should this actually override ngInterface?  Does it havce a ctxt?
+     inherit ngType( value' )
+
+     method kind {"ngTypeType"}
+     method asString { "ngTypeType: {value}"}
+
+     //DUNNO what should be declared here if anything?
+     declareName "match(_)" lambda2 { other, creatio, ctxt ->
+                    ngBoolean(staticTypeCheck(other))
+                     } 
+
+
+     method staticTypeCheck( other ) {
+            //print "STCself  {self} {value}"
+            //print "STCother {other} {other.value}"
+            (other.value).isSubtypeOf(value)
+     }
+  }
+
+
   method intrinsicModuleObject {
     print "type model intrinsic"
     def im = oldintrinsicModuleObject
-    im.declareName("Number") value(ngType(subtyping.numberType))
-    im.declareName("String") value(ngType(subtyping.stringType))
+    im.declareName("Number") value(ngTypeType(subtyping.numberType))
+    im.declareName("String") value(ngTypeType(subtyping.stringType))
     // print (im)
     im
   }

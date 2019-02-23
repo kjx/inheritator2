@@ -89,7 +89,7 @@ class jcheckFamily {
           at ( source ) -> Parameter {
       inherit eInterfaceNode(signatures') at( source )
 
-      method eval(ctxt ) { ng.ngInterface( self, ctxt ) }
+      method eval(ctxt ) { ng.ngTypeType( subtyping.objectType( ng.ngInterface( self, ctxt ) ) ) }
   }
 
   class blockNode(
@@ -116,7 +116,13 @@ class jcheckFamily {
           ctxt.declareDef(name) asType(typeAnnotation) properties(properties)
           }
       method eval(ctxt) {
-          assert (typeAnnotation.eval(ctxt)) equals (value.eval(ctxt))
+          def tat = typeAnnotation.eval(ctxt)
+          def vt  = value.eval(ctxt)
+          //print "about to sTC:{tat}\nAGAINST:{vt}"
+          if (!tat.staticTypeCheck(vt)) then {
+             print "TYPE ERROR in def: {vt} does not have type {tat}"
+          }
+          ctxt.getLocal(name).initialValue:= value.eval(ctxt)
           ng.ngDone          
       }
   }
@@ -249,27 +255,9 @@ class jcheckFamily {
       inherit eObjectConstructorNode(body',origin') at(source)
 
       method eval(ctxt) { 
-             def ret = ng.objectContext(body,ctxt)
-
-             //doing this with andalso just didn't work - no idea why
-             if ("missing" == origin) then {return ret}
-             if (origin.get_Origin.isNull) then {return ret}
-             if (!origin.get_Origin.KJXHasAnnotations) then {return ret}
-
-             //if ( ("missing" != origin).andAlso
-             //     {(!origin.get_Origin.isNull).andAlso
-             //      {origin.get_Origin.KJXHasAnnotations}}) then {
-             def annotName = self.origin.KJXOrigin.KJXAnnotationOne.KJXName
-                //def argCtxt = ctxt.withoutCreatio
-                //def creatio = argCtxt.creatio 
-                //def annotAttribute = ctxt.lookupInternal(annotName)
-                //def annotObject = annotAttribute.invoke(ctxt) args(list) types(list) creatio(creatio)
-             def annotImplicit = implicitRequestNode(annotName,empty,empty) at(source)
-             def brandObject = annotImplicit.eval(ctxt.withoutCreatio)
-             if (brandObject.lookupExternal("retainedAnnotation").isMissing) 
-                   then { print "NOT A BRAND" }
-                   else { ret.declareName(brandObject) lambda { error: "FUCKED" } }
-             // }
+             def ret = ng.ngType(
+                 subtyping.objectConstructorType(
+                        ng.objectContext(body,ctxt), body, ctxt ) )
              ret
        }
   }
@@ -280,7 +268,8 @@ class jcheckFamily {
       body' : Sequence[[ObjectStatement]] )
           at ( source ) -> Parameter {
       inherit eModuleNode(moduleDialect', body') at(source)
-    
+
+      print "making TC module size {body.size} dialect{moduleDialect}"
       method eval(ctxt) {
         def dialectModuleObject = loader.loadModule(moduleDialect)
         ng.moduleObject(body,dialectModuleObject) }            

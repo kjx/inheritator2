@@ -289,6 +289,9 @@ class jevalFamily {
       method eval(ctxt) { 
              def ret = ng.objectContext(body,ctxt)
 
+
+             //SHIT below here is solely to handle brands
+
              //doing this with andalso just didn't work - no idea why
              if ("missing" == origin) then {return ret}
              if (origin.get_Origin.isNull) then {return ret}
@@ -307,6 +310,11 @@ class jevalFamily {
              if (brandObject.lookupExternal("retainedAnnotation").isMissing) 
                    then { print "NOT A BRAND" }
                    else { ret.declareName(brandObject) lambda { error: "FUCKED" } }
+                   //the above else clause
+                   //inserts the objectContext of the brand object
+                   //in as a **method name** on the object being branded
+                   //usually method names are strings :-)
+
              // }
              ret
        }
