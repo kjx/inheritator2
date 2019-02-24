@@ -97,6 +97,30 @@ type Transformer[[T,U]] = interface {
 assert(TransformerOfAAB) isSubtypeOf(Transformer[[ta,tab]])
 assert(Transformer[[ta,tab]])  isSubtypeOf(TransformerOfAAB)
 
+type String = interface {
+ iamString
+}
+
+type Number = interface {
+ iamNumber
+}
+
+type XString = interface {
+  x -> String 
+}
+
+type XNumber = interface {
+  x -> Number
+}
+
+
+assert(String) notSubtypeOf(Number)
+assert(Number) notSubtypeOf(String)
+
+assert(XString) notSubtypeOf(XNumber)
+assert(XNumber) notSubtypeOf(XString)
+
+
 
 
 type Object = interface { } 

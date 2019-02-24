@@ -3,14 +3,14 @@ print 1
 
 def a : String = "A"
 
-def b : Number = "A"
+def b : Number = "A"  //ERROR
 
 type A = interface { 
   x 
   y
 }
 
-def o : A = object {
+def o : A = object {   //ERROR
    method x { } 
 }
 
@@ -24,7 +24,7 @@ def p : A = object {
 
 print "x"
 
-def q : A = o 
+def q : A = o       //ERROR
 
 print "x"
 
@@ -46,11 +46,13 @@ def w : B = object {
   method x -> String { "x" }
 }
 
-def x : B = object {
+def x : B = object {  //SHOUDL ERROR, DOESNT
   method x -> Number { 1 }
 }
 
-
+print(B)
+print(w)
+print(x)
 
 print 2
 print "done"

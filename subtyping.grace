@@ -28,10 +28,11 @@ method check (left) isTypeEquals (right) {
 
 
 method makeObjectType(obj) {
-  print "mOT:{obj}"
+  //print "mOT:{obj}"
   match (obj.kind)
     case { "ngUnknown" -> unknownObjectType } 
-    case { "ngImplicitUnknown" -> unknownObjectType } 
+    case { "ngImplicitUnknown" -> unknownObjectType }
+    case { "ngTypeType" -> obj.value }
     case { _ -> objectType(obj) }
 }
 
@@ -46,17 +47,20 @@ type ObjectType = interface {
     isSubtypeOf(other : ObjectType) -> Boolean
     // Used for redispatch in isSubtypeOf(), and does not actually represent a
     // calculation of whether this type is a supertype of the given one.
-    // KJX TODO rename to reverseSubtypeOf  - when done copying in tims code
+    // b.reverseSubtypeOf(a) IMPLIES b.issubtypeOf(a )
     reverseSubtypeOf(other : ObjectType) -> Boolean
+    // b.reverseNotSubtypeOf(a) IMPLIES NOT b.issubtypeOf(a)
+    reverseNotSubtypeOf(other : ObjectType) -> Boolean
     |(other : ObjectType) -> ObjectType
     &(other : ObjectType) -> ObjectType
 }
 
 
+
 var otCount := 0 
 
 class abstractObjectType {
-   def methods = empty
+   def methods is public = empty
    otCount := otCount + 1 
    def otID is public = otCount
 
@@ -72,8 +76,14 @@ class abstractObjectType {
         block.apply
    }
 
-   method reverseSubtypeOf(_ : ObjectType) -> Boolean {
-        isStructural && methods.isEmpty
+   method reverseSubtypeOf(other : ObjectType) -> Boolean {
+        def rv = isStructural && methods.isEmpty
+        //print "ABST {self} {other}"
+        //print "ABST REV {rv}"
+        rv
+   }
+   method reverseNotSubtypeOf(other : ObjectType) -> Boolean {
+        false  
    }
 
    method isSubtypeOf(oType : ObjectType) -> Boolean {
@@ -81,7 +91,10 @@ class abstractObjectType {
         // Let the given type have a say.
         oType.reverseSubtypeOf(self).orElse {
           oType.isStructural.andAlso {
-            isSubtypeOf(oType) withAssumptions(dictionary)
+            //print "sub: {self} {oType}"
+            def rv = isSubtypeOf(oType) withAssumptions(dictionary)
+            //print "SUB: {self} {oType} {rv}"
+            rv
           }
         }
    }
@@ -91,7 +104,14 @@ class abstractObjectType {
             MutableDictionary[[ObjectType, MutableSet[[ObjectType]] ]])
               -> Boolean {
 
+      //print "ISTOWA {self} {oType}"
+
+      if (oType.reverseSubtypeOf(self)) then {return true}
+      if (oType.reverseNotSubtypeOf(self)) then {return false}
+
       if (oType.isUnknown) then {return true}
+
+      //print "ISTOWA got this far"
 
       def against = assumptions.at(self) 
             ifAbsent { def newSet = list
@@ -103,6 +123,7 @@ class abstractObjectType {
       against.add(oType)
 
       for (oType.methods) do { oMeth ->
+        //print "METH {oMeth.name}"
         def sMeth = methodNamed(oMeth.name) ifAbsent { return false }
 
         if (sMeth.typeParameters.size != oMeth.typeParameters.size) 
@@ -121,6 +142,7 @@ class abstractObjectType {
             }
           }
 
+        //print "METH RET {sMeth.returnObjectType} {oMeth.returnObjectType}"
         if (!sMeth.returnObjectType.isSubtypeOf(oMeth.returnObjectType)
                 withAssumptions(assumptions)  )
           then { return false }
@@ -178,7 +200,7 @@ class objectType( ngInterface ) {
      //def rv = (ctxt == other.ctxt) && (value == other.value)    
      //def rv = (value == other.value)  
 
-     print "removed assertion is evil"
+     ///print "removed assertion is evil"
      ///assert { (value.nodeID == other.value.nodeID) == (value == other.value) }
 
      def rv = (value == other.value)    
@@ -216,6 +238,9 @@ class objectConstructorType( ngObjectContext, body', ctxt' ) {
    inherit abstractObjectType
 
    //VERY VERY BROKEN. DOESN"T DEAL WITH INHERITANCE!!
+
+   method reverseSubtypeOf(_) {print "FUCKWITT"}
+   method reverseNotSubtypeOf(_) {print "FUCKWITT TOO"}
 
    method equalsOther(other) { 
      //print "ot=OTHER"
@@ -294,12 +319,13 @@ class singletonObjectType {
 def unknownObjectType is public = object {
   inherit singletonObjectType
 
-  def methods = empty
+  def methods is public = empty
   method isUnknown { true }  
   method isStructural { false }
   method isSubtypeOf(_ : ObjectType) -> Boolean { true }
   method isSubtypeOf(_ : ObjectType) withAssumptions(_)-> Boolean { true }
   method reverseSubtypeOf(_ : ObjectType) -> Boolean { true }
+  method reverseNotSubtypeOf(_ : ObjectType) -> Boolean { false }
   method asString { "unknownObjectType" }
 }
 
@@ -307,12 +333,13 @@ def unknownObjectType is public = object {
 def doneType is public = object { 
   inherit singletonObjectType
   
-  def methods = empty
+  def methods is public = empty
   method isUnknown { false }  
   method isStructural { false }
   method isSubtypeOf(other : ObjectType) -> Boolean { // Let other have a say.
         other.reverseSubtypeOf(self).orElse { self == other } }
   method reverseSubtypeOf(other : ObjectType) -> Boolean { self == other }
+  method reverseNotSubtypeOf(other : ObjectType) -> Boolean { self != other }
   method asString { "doneObjectType" }
 }
 
@@ -320,30 +347,36 @@ def doneType is public = object {
 def numberType is public = object { 
   inherit singletonObjectType
   
-  def methods = empty
+  def methods is public = empty
   method isUnknown { false }  
   method isStructural { false }
   method isSubtypeOf(other : ObjectType) -> Boolean { // Let other have a say.
+        //print "Number ISTO {other}"        
         other.isSupertypeOf(self).orElse { self == other } }
   method isSupertypeOf(other : ObjectType) -> Boolean { self == other }
   method asString { "numberType" }
 
 
 
-
+  method reverseSubtypeOf(other : ObjectType) -> Boolean { self == other }
+  method reverseNotSubtypeOf(other : ObjectType) -> Boolean { self != other }
 }
 
 
 def stringType is public = object { 
   inherit singletonObjectType
   
-  def methods = empty
+  def methods is public = empty
   method isUnknown { false }  
   method isStructural { false }
   method isSubtypeOf(other : ObjectType) -> Boolean { // Let other have a say.
+        //print "String ISTO {other}"
         other.isSupertypeOf(self).orElse { self == other } }
   method isSupertypeOf(other : ObjectType) -> Boolean { self == other }
   method asString { "stringType" }
+
+  method reverseSubtypeOf(other : ObjectType) -> Boolean { self == other }
+  method reverseNotSubtypeOf(other : ObjectType) -> Boolean { self != other }
 }
 
 
@@ -371,7 +404,7 @@ class methodType ( signatureNode, ctxt ) {
    method parametersObjectTypes {
      for (signatureNode.parameters) 
        map { p -> makeObjectType (p.typeAnnotation.eval(ctxt.withoutCreatio)) } }
-   method asString { "method {name}  [[{typeParameters.size}]] ({parametersObjectTypes.size})" }
+   method asString { "method {name}  [[{typeParameters.size}]] ({parametersObjectTypes.size}) {returnObjectType}" }
 
 
 }

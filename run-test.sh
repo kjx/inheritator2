@@ -6,5 +6,7 @@ $KERNAN main.grace test/test.grace | sed 's/\[[A-Z0-9]*\]/[-]/g' &> test/OUT-tes
 diff test/EXP-test.txt test/OUT-test.txt
 
 $KERNAN main.grace test/brand-messages.grace 2>&1 | sed 's/\[[A-Z0-9]*\]/[-]/g' &> test/OUT-brand-messages.txt
-
 diff test/EXP-brand-messages.txt test/OUT-brand-messages.txt
+
+$KERNAN main.grace test/types.grace | grep fail:
+
