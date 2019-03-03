@@ -1226,7 +1226,7 @@ class dictionary[[K,T]] {
                 return self
             }
             method removeKey(keys) {
-                removeAllKey [ keys ]
+                removeAllKeys [ keys ]
             }
             method removeAllValues(removals) {
                 mods := mods + 1
