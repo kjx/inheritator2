@@ -136,8 +136,9 @@ class exports {
     //// add does not do shadowing or multiple declaration checks
     //// has - test if present
     //// get - error if not present
-    //// lookup - return a missing sentinel if not presentx
-    ////
+    //// lookup - return a missing sentinel if not present
+    //// remove - should barely ever call this
+    
     method addLocal(name) slot(m) { locals.at(name) put(m) }
     method addLocal(name) value(m) { locals.at(name) put(attributeValue(m) inContext(self)) }
     method hasLocal(name) { locals.containsKey(name) }
@@ -145,6 +146,7 @@ class exports {
     method lookupLocal(name) ifAbsent(block) { locals.at(name) ifAbsent(block) }
     method lookupLocal(name) {
        lookupLocal(name) ifAbsent { attributeMissing(name) inContext(self) } }
+    method removeLocal(name) {locals.removeKey(name) }
 
     ////////////////////////////////////////////////////////////
     //// lookups - external interface
