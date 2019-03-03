@@ -279,6 +279,8 @@ class objectConstructorType( ngObjectContext, body', ctxt' ) {
                     // print "DJT got method {m}"
                     methods.add( methodType( m.signature, ctxt ) ) }
            case { _ -> }
+
+         //TODO other kinds of attributes in methods
    }
 
    def isStructural : Boolean is public = true
@@ -297,6 +299,64 @@ class objectConstructorType( ngObjectContext, body', ctxt' ) {
       rv
    }
 }
+
+class blockType( ngBlock, parameters, inferredReturnType, ctxt ) {
+   inherit abstractObjectType
+
+   //VERY VERY BROKEN. DOESN"T DEAL WITH INHERITANCE!!
+
+   method reverseSubtypeOf(_) {print "FUCKWITT"}
+   method reverseNotSubtypeOf(_) {print "FUCKWITT TOO"}
+
+   method equalsOther(other) { 
+     //print "ot=OTHER"
+     other.equalsStructuralObjectType(self) }
+   method equalsStructuralObjectType(other) {
+     //print "ot.eSOT"
+     //print "ctxt {ctxt.dbg}  other {other.ctxt.dbg} {ctxt == other.ctxt}" 
+     //print "value {value} other {other.value}"
+     //print "value {value.nodeID} other {other.value.nodeID} {(value == other.value)    }"
+     //def rv = (ctxt == other.ctxt) && (value == other.value)    
+     //def rv = (value == other.value)  
+
+     assert { (value.nodeID == other.value.nodeID) == (value == other.value) }
+
+     def rv = (value == other.value)    
+     //print "ot.eSOT rv = {rv}"
+     rv
+   }
+
+   def ctxt is public = ctxt'
+   def value is public = body'
+
+   def methods is public = list //TODO rename as methodTypes sometime?
+     //the most broken of the broken shit...
+     //for now: just dumps in  all methods /  no fields!!!
+
+
+   // HEREHEREH
+
+   def suffix = match (parameters.size)
+           case { 0 -> "" }
+           case { 1 -> "(_)" }
+           case { 2 -> "(_,_)" }
+           case { 3 -> "(_,_,_)" }
+           case { 4 -> "(_,_,_,_)" }
+           case { 5 -> "(_,_,_,_,_)" }
+           case { _ -> error "CANT BE BOTHERED TO APPLY MORE VARARGS" }
+
+
+
+   //KJX work backwards from here!   methods.add( blockMethodType("apply" ++ suffix, pots, inferredReturnType) )
+   methods.add( blockMethodType("match" ++ suffix, "allUnknown", "Boolean") )
+
+   def isStructural : Boolean is public = true
+   def isUnknown : Boolean is public = false
+
+   method asString { "blockCX [[{params.size}]]" }
+}
+
+
 
 class singletonObjectType {
   inherit abstractObjectType  
@@ -406,5 +466,11 @@ class methodType ( signatureNode, ctxt ) {
        map { p -> makeObjectType (p.typeAnnotation.eval(ctxt.withoutCreatio)) } }
    method asString { "method {name}  [[{typeParameters.size}]] ({parametersObjectTypes.size}) {returnObjectType}" }
 
+}
 
+class blockMethodType(name', parametersObjectTypes', returnObjectType') {
+   method name { name' }
+   method typeParameters { empty }
+   method returnObjectType { returnObjectType' }
+   method parametersObjectTypes { parametersObjectTypes' }
 }

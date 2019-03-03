@@ -98,8 +98,34 @@ class jcheckFamily {
           at ( source ) -> Parameter {
       inherit eBlockNode( parameters', body' ) at( source )
       
-      method eval(ctxt) { ng.ngBlock(self,ctxt) }
+      method eval(ctxt) {
+         //seems to come from block attributes??
+         def params = parameters.asList
+         def prognBody = progn(body)
+         def subtxt = ctxt.subcontext
+
+
+         def suffix = match (params.size)
+           case { 0 -> "" }
+           case { 1 -> "(_)" }
+           case { 2 -> "(_,_)" }
+           case { 3 -> "(_,_,_)" }
+           case { 4 -> "(_,_,_,_)" }
+           case { 5 -> "(_,_,_,_,_)" }
+           case { _ -> error "CANT BE BOTHERED TO APPLY MORE VARARGS" }
+
+
+         prognBody.build(subtxt)
+         def returnType = prognBody.eval(subtxt)
+
+         def ret = ng.ngType(
+                 subtyping.objectConstructorType(
+                        ng.ngBlock(self,ctxt), self, ctxt ) )
+         ret
+       }
   }
+
+
 
   class defDeclarationNode(
       name' : String,
