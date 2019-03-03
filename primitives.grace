@@ -114,8 +114,8 @@ class primitivesFamily {
      inherit lexicalContext(ctxt)
      method asString { "\{a ngBlock\} #{dbg}" }
      method kind {"ngBlock"}
-     def p = blockNode.parameters.asList
-     def suffix = match (p.size)
+     def params = blockNode.parameters.asList
+     def suffix = match (params.size)
        case { 0 -> "" }
        case { 1 -> "(_)" }
        case { 2 -> "(_,_)" }
