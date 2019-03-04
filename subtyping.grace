@@ -300,7 +300,7 @@ class objectConstructorType( ngObjectContext, body', ctxt' ) {
    }
 }
 
-class blockType( ngBlock, parameters, inferredReturnType, ctxt ) {
+class blockType( ngBlock, parameters, inferredReturnObjectType, ctxt' ) {
    inherit abstractObjectType
 
    //VERY VERY BROKEN. DOESN"T DEAL WITH INHERITANCE!!
@@ -327,7 +327,7 @@ class blockType( ngBlock, parameters, inferredReturnType, ctxt ) {
    }
 
    def ctxt is public = ctxt'
-   def value is public = body'
+   def value is public = ngBlock //????almost certainly wrong...
 
    def methods is public = list //TODO rename as methodTypes sometime?
      //the most broken of the broken shit...
@@ -346,14 +346,19 @@ class blockType( ngBlock, parameters, inferredReturnType, ctxt ) {
            case { _ -> error "CANT BE BOTHERED TO APPLY MORE VARARGS" }
 
 
+   def pots = for (parameters) 
+       map { p -> makeObjectType (p.typeAnnotation.eval(ctxt.withoutCreatio)) } 
 
-   //KJX work backwards from here!   methods.add( blockMethodType("apply" ++ suffix, pots, inferredReturnType) )
-   methods.add( blockMethodType("match" ++ suffix, "allUnknown", "Boolean") )
+   //KJX work backwards from here!
+   methods.add( blockMethodType("apply" ++ suffix, pots, inferredReturnObjectType) )
+   methods.add( blockMethodType("match" ++ suffix,
+                                list(unknownObjectType) repeated(parameters.size),
+                                booleanType) )
 
    def isStructural : Boolean is public = true
    def isUnknown : Boolean is public = false
 
-   method asString { "blockCX [[{params.size}]]" }
+   method asString { "blockCX [[{parameters.size}]] {methods}" }
 }
 
 
@@ -390,6 +395,10 @@ def unknownObjectType is public = object {
 }
 
 
+//TODO - almost all of the below types should go away
+//I'm not sure why Tim started with them
+//and then I kept on - kjx
+
 def doneType is public = object { 
   inherit singletonObjectType
   
@@ -416,8 +425,6 @@ def numberType is public = object {
   method isSupertypeOf(other : ObjectType) -> Boolean { self == other }
   method asString { "numberType" }
 
-
-
   method reverseSubtypeOf(other : ObjectType) -> Boolean { self == other }
   method reverseNotSubtypeOf(other : ObjectType) -> Boolean { self != other }
 }
@@ -434,6 +441,24 @@ def stringType is public = object {
         other.isSupertypeOf(self).orElse { self == other } }
   method isSupertypeOf(other : ObjectType) -> Boolean { self == other }
   method asString { "stringType" }
+
+  method reverseSubtypeOf(other : ObjectType) -> Boolean { self == other }
+  method reverseNotSubtypeOf(other : ObjectType) -> Boolean { self != other }
+}
+
+
+
+def booleanType is public = object { 
+  inherit singletonObjectType
+  
+  def methods is public = empty
+  method isUnknown { false }  
+  method isStructural { false }
+  method isSubtypeOf(other : ObjectType) -> Boolean { // Let other have a say.
+        //print "String ISTO {other}"
+        other.isSupertypeOf(self).orElse { self == other } }
+  method isSupertypeOf(other : ObjectType) -> Boolean { self == other }
+  method asString { "booleanType" }
 
   method reverseSubtypeOf(other : ObjectType) -> Boolean { self == other }
   method reverseNotSubtypeOf(other : ObjectType) -> Boolean { self != other }
@@ -473,4 +498,5 @@ class blockMethodType(name', parametersObjectTypes', returnObjectType') {
    method typeParameters { empty }
    method returnObjectType { returnObjectType' }
    method parametersObjectTypes { parametersObjectTypes' }
+   method asString {"bM {name} [[{parametersObjectTypes.size}]]"}
 }
