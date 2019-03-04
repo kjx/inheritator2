@@ -1689,6 +1689,13 @@ class abbreviations {
    method list(a) { outer.list.withAll [a] }
    method list(a,b) { outer.list.withAll [a,b] }
    method list(a,b,c) { outer.list.withAll [a,b,c] }
+   method list(a) repeated(n) {
+          def rv = outer.list.empty
+          for (1 .. n) do { _ ->
+            rv.add(a)
+            }
+          rv
+          }
    method dictionary { outer.dictionary.empty }
    method key(k) value(v) { outer.key(k) value(v) }
    method pair(k,v) { outer.key(k) value(v) }
