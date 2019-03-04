@@ -56,6 +56,7 @@ class exports {
     def im = oldintrinsicModuleObject
     im.declareName("Number") value(ngTypeType(subtyping.numberType))
     im.declareName("String") value(ngTypeType(subtyping.stringType))
+    im.declareName("Boolean") value(ngTypeType(subtyping.stringType))
 
     //this is EVIL. there must be a better option
     im.removeLocal("implicitUnknown") 
