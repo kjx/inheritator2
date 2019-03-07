@@ -73,7 +73,7 @@ class jcheckFamily {
           at ( source ) -> Parameter {
       inherit eStringLiteralNode( value' ) at( source )
       
-      method eval(ctxt) { ng.ngType(subtyping.stringType) }
+      method eval(ctxt) { (ctxt.lookupLexical "stringLiteral").value }
   }
 
   class numberLiteralNode(
@@ -81,7 +81,7 @@ class jcheckFamily {
           at ( source ) -> Parameter {
       inherit eNumberLiteralNode( value' ) at( source )
       
-      method eval(ctxt) { ng.ngType(subtyping.numberType) }
+      method eval(ctxt) { (ctxt.lookupLexical "numberLiteral").value }
   }
 
   class interfaceNode(
@@ -275,11 +275,13 @@ class jcheckFamily {
           at ( source ) -> Parameter {
       inherit eObjectConstructorNode(body',origin') at(source)
 
-      method eval(ctxt) { 
-             def ret = ng.ngType(
-                 subtyping.objectConstructorType(
-                        ng.objectContext(body,ctxt), body, ctxt ) )
-             ret
+      method eval(ctxt) {
+        ng.objectContext(body,ctxt)
+
+        //             def ret = ng.ngType(
+        //                 subtyping.objectConstructorType(
+        //                        ng.objectContext(body,ctxt), body, ctxt ) )
+        //             ret
        }
   }
 
