@@ -37,9 +37,13 @@ class attributesFamily {
      method invoke(this) args(args) types(typeArgs) creatio(_) {
         assert {args.size == 0}
         assert {typeArgs.size == 0}
-        if (ngUninitialised == boxValue) then { error "can't access uninitailsed box" }
-        boxValue
+        value
      }
+     method value {
+       if (ngUninitialised == boxValue)
+         then { error "can't access uninitailsed box" }
+       boxValue }
+
      method asString {"attributeDef: {origin} = {boxValue}"}
      method context { ctxt } 
   }
