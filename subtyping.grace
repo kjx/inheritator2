@@ -28,12 +28,13 @@ method check (left) isTypeEquals (right) {
 
 
 method makeObjectType(obj) {
-  //print "mOT:{obj}"
+  //print "MAKEOBJYEPE:{obj}"
   match (obj.kind)
     case { "ngUnknown" -> unknownObjectType } 
     case { "ngImplicitUnknown" -> unknownObjectType }
     case { "ngTypeType" -> obj.value }
-    case { _ -> objectType(obj) }
+    case { "ngInterface" -> objectType(obj) }
+    case { "objectContext" -> objectConstructorType(obj,obj.body,obj.evilCtxt) }
 }
 
 
@@ -226,7 +227,7 @@ class objectType( ngInterface ) {
         case { _ -> }
       var rv := "interface ot:{otID} value:{value.nodeID} \{\n  "
       for (methods) do { meth -> 
-        rv := rv ++ "{meth}" ++ "\n  "
+        rv := rv ++ "{meth.name}" ++ "\n  "
       }
       rv := rv ++ "}"
       rv
