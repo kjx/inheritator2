@@ -40,7 +40,8 @@ class exports {
      method staticTypeCheck( other ) {
             //print "STCself  {self} {value}"
             //print "STCother {other} {other.value}"
-            (other.value).isSubtypeOf(value)
+            //(other.value).isSubtypeOf(value) // new dispensation
+            subtyping.check(other) isSubtypeOf(self)
      }
   }
 
@@ -54,9 +55,9 @@ class exports {
     //TODO just replace the old one with everything lifted to types?
 
     def im = oldintrinsicModuleObject
-    im.declareName("Number") value(ngTypeType(subtyping.numberType))
-    im.declareName("String") value(ngTypeType(subtyping.stringType))
-    im.declareName("Boolean") value(ngTypeType(subtyping.stringType))
+    //im.declareName("Number") value(ngTypeType(subtyping.numberType))
+    //im.declareName("String") value(ngTypeType(subtyping.stringType))
+    //im.declareName("Boolean") value(ngTypeType(subtyping.stringType))
 
     //this is EVIL. there must be a better option
     im.removeLocal("implicitUnknown") 
