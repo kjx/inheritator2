@@ -263,9 +263,11 @@ class exports {
   // only objectContexts that represent "whole" objects 
   // should ever be accessible to the interpreted programs.
   //
-  class objectContext(body,ctxt) {
+  class objectContext(body',ctxt) {
     inherit lexicalContext(ctxt)
     method kind{"objectContext"}
+    method body{ body' }
+    method evilCtxt {ctxt}
 
     var status is readable := "embryo"
 
@@ -297,7 +299,7 @@ class exports {
     //to "declareName (var, def, invokaeanle, etc)"   for vars and methods
     //and "addParent" for inheritance and use
     //build() doesn't do anyting for inline code or initialisation
-    for (body) do { e -> e.build(self) } 
+    for (body') do { e -> e.build(self) }
 
     status := "built"
 
@@ -322,7 +324,7 @@ class exports {
     // beceause parent parts can only be initialised once the whole
     // object of which they are a part has been built
     method initialize {   
-      for (body) do { e ->
+      for (body') do { e ->
         e.eval(self)
       }
     }
