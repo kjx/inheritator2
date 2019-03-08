@@ -1,5 +1,23 @@
 import "subtyping" as subtyping
 
+
+trait abstractPrimitives {
+  method ngPrimitive is abstract { } 
+  method ngNumber( value' ) is abstract { } 
+  method ngString( value' ) is abstract { } 
+  method ngBoolean( value' ) is abstract { } 
+  method ngInterface( value', ctxt ) is abstract { }    
+  method ngBlock(blockNode,ctxt) is abstract { } 
+  method ngBuiltinAnnotation(description' : String) is abstract { } 
+  method ngDone is abstract { } 
+  method ngImplicitDone is abstract { } 
+  method ngBuild is abstract { } 
+  method ngUninitialised is abstract { } 
+  method ngUnknown is abstract { } 
+  method ngImplicitUnknown is abstract { } 
+  method ngNotCreatio is abstract { } 
+}
+
 class primitivesFamily {
   method context is abstract { }
   method lexicalContext(_) is abstract { }

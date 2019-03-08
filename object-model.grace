@@ -28,13 +28,15 @@ class exports {
     exclude ngUninitialised
     exclude ngDone
     exclude ngImplicitUnknown
+  inherit primitives.primitivesFamily
+    //exclude context
+    //exclude lexicalContext(_)
+
 }
 
 class objectModelTrait {
   inherit earlyDefinitions
-  inherit primitives.primitivesFamily
-    exclude context
-    exclude lexicalContext(_)
+  use primitives.abstractPrimitives
   use attributes.abstractAttributes
   
   /////////////////////////////////////////////////////////////
