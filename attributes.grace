@@ -3,6 +3,21 @@ use c.abbreviations
 import "errors" as errors
 use errors.exports
 
+trait abstractAttributes {
+  method attributeDef(origin) asType(typeAnnotation) properties(properties) inContext(ctxt) is abstract { }
+  method attributeVar(origin) asType(typeAnnotation) properties(properties) inContext(ctxt)  is abstract { } 
+  method attributeMethod(methodNode) properties(properties) inContext(ctxt) is abstract { } 
+  method attributeBlockMatchMethod(blockNode) inContext(ctxt) is abstract { } 
+  method attributeBlockApplyMethod(blockNode) inContext(ctxt) is abstract { } 
+  method attributeValue(value') inContext(ctxt) is abstract { } 
+  method attributeMissing(name) inContext(ctxt)  is abstract { } 
+  method attributeAmbiguous(name) between(possibilities) inContext(ctxt) is abstract { } 
+  method attributeLambda(lambda) inContext(ctxt) is abstract { } 
+  method attributeLambda2(lambda) inContext(ctxt) is abstract { } 
+  method attributeWrapper(subject) privacy(shouldBePublic)  is abstract { }
+  method Attribute is abstract { }  //abstract type :-)
+}
+
 class attributesFamily { 
   method ngUninitialised is abstract { } 
   method ngDone is abstract { }   

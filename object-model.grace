@@ -22,16 +22,21 @@ class earlyDefinitions {
 }
 
 class exports {
-  inherit earlyDefinitions
-  inherit primitives.primitivesFamily
-    //exclude context
-    //exclude lexicalContext(_)
-    //exclude attributeBlockMethod(_) inContext(_)
+  inherit objectModelTrait
   inherit attributes.attributesFamily
+    exclude context
     exclude ngUninitialised
     exclude ngDone
     exclude ngImplicitUnknown
+}
 
+class objectModelTrait {
+  inherit earlyDefinitions
+  inherit primitives.primitivesFamily
+    exclude context
+    exclude lexicalContext(_)
+  use attributes.abstractAttributes
+  
   /////////////////////////////////////////////////////////////
 
   //this is a proxy for a statementseuqnce that should be in the AST
