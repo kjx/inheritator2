@@ -1,12 +1,29 @@
 import "object-model" as om
 import "subtyping" as subtyping
+import "attributes" as attributes
+import "primitives" as primitives
 
 def singleton is public = exports
 def ng = singleton
 
+
 class exports {
+  inherit typeModelTrait
+  inherit attributes.attributesFamily
+    exclude context
+    exclude ngUninitialised
+    exclude ngDone
+    exclude ngImplicitUnknown
+  inherit primitives.primitivesFamily
+}
+  
+
+class typeModelTrait {
+  use primitives.abstractPrimitives
+  use attributes.abstractAttributes
+  
   print "type model exports"
-  inherit om.exports
+  inherit om.objectModelTrait
      alias oldintrinsicModuleObject = intrinsicModuleObject 
 
   class ngType ( value' ) { //the type of a "normal" value
