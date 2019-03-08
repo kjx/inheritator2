@@ -24,3 +24,52 @@ def numberLiteral = object {
 }
 
 
+
+def a : String = "A"
+
+def b : Number = "A"  //ERROR
+
+type A = interface { 
+  x 
+  y
+}
+
+def o : A = object {   //ERROR
+   method x { } 
+}
+
+
+
+def p : A = object {
+   method x { }
+   method y { } 
+}
+
+
+
+def q : A = o       //ERROR
+
+
+
+
+def r : A = p
+
+def s : A = object {
+    method x { }
+    method y { }
+    method z { } 
+}
+
+
+type B = interface {
+  x -> String 
+}
+
+def w : B = object {
+  method x -> String { "x" }
+}
+
+def x : B = object {  //ERROR
+  method x -> Number { 1 }
+}
+

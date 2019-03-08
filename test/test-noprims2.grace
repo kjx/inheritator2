@@ -24,3 +24,8 @@ def numberLiteral = object {
 }
 
 
+
+method foo -> String { 4 }   //SHOULD ERROR DOESN'T
+
+//foo //DYNAMIC ERROR
+
