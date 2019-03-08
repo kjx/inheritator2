@@ -29,9 +29,6 @@ class exports {
     exclude ngDone
     exclude ngImplicitUnknown
   inherit primitives.primitivesFamily
-    //exclude context
-    //exclude lexicalContext(_)
-
 }
 
 class objectModelTrait {
