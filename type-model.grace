@@ -1,7 +1,7 @@
 import "object-model" as om
 import "subtyping" as subtyping
-import "attributes" as attributes
 import "primitives" as primitives
+import "type-attributes" as attributes
 
 def singleton is public = exports
 def ng = singleton

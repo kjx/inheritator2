@@ -2,6 +2,8 @@ import "combinator-collections" as c
 use c.abbreviations
 import "errors" as errors
 use errors.exports
+import "utility" as utility
+use utility.exports
 
 trait abstractAttributes {
   method attributeDef(origin) asType(typeAnnotation) properties(properties) inContext(ctxt) is abstract { }
@@ -24,7 +26,7 @@ class attributesFamily {
   method ngImplicitUnknown is abstract { }
   method progn(_) is abstract { } 
   method ngBoolean(_) is abstract { }
-
+  method ngUnknown is abstract { } 
 
   type O = Unknown
   type Context = Unknown
@@ -52,7 +54,8 @@ class attributesFamily {
      method invoke(this) args(args) types(typeArgs) creatio(_) {
         assert {args.size == 0}
         assert {typeArgs.size == 0}
-        value
+        //value
+        typeAnnotation.eval(ctxt.withoutCreatio)
      }
      method value {
        if (ngUninitialised == boxValue)
@@ -102,15 +105,9 @@ class attributesFamily {
 
        def typeParams = methodNode.signature.typeParameters.asList
 
-       if (typeArgs.size == typeParams.size)
-          then {
-            for (typeParams.indices) do { i ->
-              typetxt.declareName(typeParams.at(i).name) value(typeArgs.at(i)) } }
-          elseif {typeArgs.size == 0}
-          then {
-            for (typeParams.indices) do { i ->
-              typetxt.declareName(typeParams.at(i).name) value(ngImplicitUnknown) } }
-          else {error "generic arg mismatch"}
+       //bind type arguments to Unknown (should be their bounds I guess)
+       for (typeParams.indices) do { i ->
+         typetxt.declareName(typeParams.at(i).name) value(ngUnknown) }
 
        def returnType = methodNode.signature.returnType
 
@@ -121,22 +118,20 @@ class attributesFamily {
        for (params.indices) do { i ->
            def par = params.at(i)
            def arg = args.at(i)
-           check(arg) isType(par.typeAnnotation) inContext(typetxt)
-           subtxt.declareName(par.name) value(arg)
+           //check(arg) isType() inContext(typetxt)  //not sure this makes sense left in
+           subtxt.declareName(par.name) value(par.typeAnnotation.eval(typetxt))
        }
 
        subtxt.addLocal(CREATIO) value(creatio) 
-       subtxt.addLocal(RETURNBLOCK) 
+       subtxt.addLocal(RETURNBLOCK) //invoke return block to check type of "return"
           slot (attributeLambda {rv, _ ->
                   check(rv) isType(returnType) inContext(typetxt)
-                  return rv} inContext(subtxt))
+                  return returnType.eval(subtxt)} inContext(subtxt))
        subtxt.addLocal(RETURNCREATIO) value (creatio) 
 
-       def prognBody = progn(methodNode.body)
-       prognBody.build(subtxt)
-       def rv = prognBody.eval(subtxt)
-       check(rv) isType(returnType) inContext(typetxt)
-       rv
+       //don't run the method: just return the return type
+       //return type may mention type params (and apparently params)
+       returnType.eval(subtxt)
      }
      method context { ctxt } 
      method asString {"attributeMethod: {methodNode.signature.name} #{ctxt.dbg}"}
@@ -146,16 +141,11 @@ class attributesFamily {
      use utility.publicAnnotations
      use changePrivacyAnnotations
      method invoke(this) args(args) types(typeArgs) creatio(creatio) {
+       error "shouldn't happen in typechecker(aBMM)"
        def params = blockNode.parameters.asList
        def prognBody = progn(blockNode.body)
        if (args.size != params.size) then {error "arg mismatch"}
-       for (params.indices) do { i ->
-           def par = params.at(i)
-           def arg = args.at(i)
-           if (!test(arg) isType(par.typeAnnotation) inContext(ctxt))
-              then {return ngBoolean(false)}
-           }
-       return ngBoolean(true)
+       return (ctxt.lookupLexical "booleanLiteral").value
        }
      method context { ctxt } 
      method asString {"attributeBlockMethod"}
@@ -165,6 +155,7 @@ class attributesFamily {
      use utility.publicAnnotations
      use changePrivacyAnnotations
      method invoke(this) args(args) types(typeArgs) creatio(creatio) {
+       error "shouldn't happen in typechecker(aBAM)"
        def params = blockNode.parameters.asList
        def prognBody = progn(blockNode.body)
        def subtxt = ctxt.subcontext
@@ -177,7 +168,7 @@ class attributesFamily {
        }
        subtxt.addLocal(CREATIO) value(creatio) 
        prognBody.build(subtxt)
-       prognBody.eval(subtxt)
+       prognBody.eval(subtxt) //GOD KNOWS WHAT TO DO HERE!!!
       }
      method context { ctxt } 
      method asString {"attributeBlockMethod"}
@@ -230,6 +221,7 @@ class attributesFamily {
     use utility.publicAnnotations
     use changePrivacyAnnotations
     method invoke(this) args(args) types(typeArgs) creatio(creatio) {
+      error "shouldn't happen in typechecker(aL)"
       applyVarargs(lambda,args,creatio)
     }
     //apply the block to the LIST of arguments from the interpreter
@@ -257,6 +249,7 @@ class attributesFamily {
     use utility.publicAnnotations
     use changePrivacyAnnotations
     method invoke(this) args(args) types(typeArgs) creatio(creatio) {
+      error "shouldn't happen in typechecker(aL2)"
       applyVarargs2(lambda,args,creatio)
     }
     //apply the block to the LIST of arguments from the interpreter
@@ -284,12 +277,14 @@ class attributesFamily {
        def typeObject = typeExpression.eval(ctxt.withoutCreatio)
        //if (!typeObject.match(obj))
        //    then { error "type check failed: {obj} isnt {typeObject} from {typeExpression}" }
+
+       typeObject.staticTypeCheck(obj)
        
-       def argCtxt = ctxt.withoutCreatio
-       def creatio = argCtxt.creatio 
-       def matchAttribute = typeObject.lookupExternal("match(_)")
-       def matchResult = matchAttribute.invoke(ctxt) args(list(obj)) types(empty) creatio(creatio)
-       return matchResult.value
+       //def argCtxt = ctxt.withoutCreatio
+       //def creatio = argCtxt.creatio 
+       //def matchAttribute = typeObject.lookupExternal("match(_)")
+       //def matchResult = matchAttribute.invoke(ctxt) args(list(obj)) types(empty) creatio(creatio)
+       //return matchResult.value
   }
 
   method check(obj) isType(typeExpression) inContext(ctxt) {
