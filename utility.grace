@@ -40,6 +40,7 @@ class exports {
 
   method valueOf( block ) { block.apply }
 
+  method done { } 
 
   class cache (block) {
     method asString { "a cache {alreadyAssigned} {block}" }
@@ -153,4 +154,3 @@ class default(initialValue) named (name) {
       alreadyAssigned := true
    }
 }
-
