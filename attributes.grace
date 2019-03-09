@@ -2,6 +2,8 @@ import "combinator-collections" as c
 use c.abbreviations
 import "errors" as errors
 use errors.exports
+import "utility" as utility
+use utility.exports
 
 trait abstractAttributes {
   method attributeDef(origin) asType(typeAnnotation) properties(properties) inContext(ctxt) is abstract { }
