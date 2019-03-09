@@ -47,7 +47,7 @@ def p : A = object {
 
 
 
-def q : A = o       //ERROR
+def q : A = o       //statically correct,  incorrect dynamically/inferred
 
 
 
