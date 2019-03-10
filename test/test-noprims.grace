@@ -1,3 +1,6 @@
+///NOTE wsith al lthis fuckiung about
+//couldn't stringLiteral just be equal to type String???
+
 type String = interface {
   ++ (_ : String ) -> String
   size -> Number
@@ -10,14 +13,14 @@ type Number = interface {
   asString -> String
 }
 
-def stringLiteral = object {
+def stringLiteral : String = object {
   method ++ (_ : String ) -> String { stringLiteral }
   method size -> Number { numberLiteral }
   method asString -> String { "stringLiteral" }
 }
 
 
-def numberLiteral = object {
+def numberLiteral : String = object {
   method + (_:Number) -> Number { numberLiteral }
   method - (_:Number) -> Number { numberLiteral }
   method asString -> String { "numberLiteral" }

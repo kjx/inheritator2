@@ -35,9 +35,9 @@ class typeModelTrait {
   class ngPrimitive {
      inherit oldPrimitive
 
-     method staticTypeCheck( other ) {
-            print "TOPSTC  {self} {other}"
-            //print "STCother {other} {other.value}"
+     method staticTypeCheckXXX( other ) {
+            print "TOPSTC\nSELF:{self}\nOTHER:{other}"
+
             //(other.value).isSubtypeOf(value) // new dispensation
             subtyping.check(other) isSubtypeOf(self)
      }
@@ -62,7 +62,7 @@ class typeModelTrait {
   }
 
   class ngTypeType ( value' ) { //the type of a type, mostly an interface
-     //Or should this actually override ngInterface?  Does it havce a ctxt?
+     //That value' MUST be an OBJETTYPE obtained from SUBTYPING!!!
      inherit ngType( value' )
 
      method kind {"ngTypeType"}
@@ -75,10 +75,11 @@ class typeModelTrait {
 
 
      method staticTypeCheck( other ) {
+            print "xxxSTC\nSELF:{self}\nOTHER:{other}"
             //print "STCself  {self} {value}"
             //print "STCother {other} {other.value}"
             //(other.value).isSubtypeOf(value) // new dispensation
-            subtyping.check(other) isSubtypeOf(self)
+            subtyping.check(other) isSubtypeOf(self.value)
      }
   }
 

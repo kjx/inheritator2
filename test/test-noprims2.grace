@@ -10,14 +10,13 @@ type Number = interface {
   asString -> String
 }
 
-def stringLiteral = object {
+def stringLiteral : String = object {
   method ++ (_ : String ) -> String { stringLiteral }
   method size -> Number { numberLiteral }
   method asString -> String { "stringLiteral" }
 }
 
-
-def numberLiteral = object {
+def numberLiteral : Number = object {
   method + (_:Number) -> Number { numberLiteral }
   method - (_:Number) -> Number { numberLiteral }
   method asString -> String { "numberLiteral" }

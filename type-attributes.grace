@@ -5,10 +5,11 @@ use errors.exports
 import "utility" as utility
 use utility.exports
 
+//reall reall really should borrow/inherit from attributes.
 trait abstractAttributes {
   method attributeDef(origin) asType(typeAnnotation) properties(properties) inContext(ctxt) is abstract { }
   method attributeVar(origin) asType(typeAnnotation) properties(properties) inContext(ctxt)  is abstract { } 
-  method attributeMethod(methodNode) properties(properties) inContext(ctxt) is abstract { } 
+  method attributeMethod(methodNode) properties(properties) inContext(ctxt) is abstract { }
   method attributeBlockMatchMethod(blockNode) inContext(ctxt) is abstract { } 
   method attributeBlockApplyMethod(blockNode) inContext(ctxt) is abstract { } 
   method attributeValue(value') inContext(ctxt) is abstract { } 
@@ -18,6 +19,8 @@ trait abstractAttributes {
   method attributeLambda2(lambda) inContext(ctxt) is abstract { } 
   method attributeWrapper(subject) privacy(shouldBePublic)  is abstract { }
   method Attribute is abstract { }  //abstract type :-)
+
+  method attributeSignature(signature) properties(properties) inContext(ctxt) is abstract { }//THIS ONE IS EXTRA
 }
 
 class attributesFamily { 
@@ -150,6 +153,42 @@ class attributesFamily {
      method context { ctxt } 
      method asString {"attributeMethod: {methodNode.signature.name} #{ctxt.dbg}"}
   }
+
+
+
+
+  //types only. make a fake method from a signa
+  class attributeSignature(signature) properties(properties) inContext(ctxt) {
+     use utility.annotationsTrait(properties)
+     use changePrivacyAnnotations
+     method invoke(this) args(args) types(typeArgs) creatio(creatio) {
+       //print "invoke {signature.name} on #{this.dbg} creatio:{creatio.isCreatio}"
+
+       //should this not have a creation??
+       def typetxt = ctxt.subcontextNamed(signature.name ++ "(types)")
+
+       def typeParams = signature.typeParameters.asList
+
+       if (typeArgs.size == typeParams.size)
+          then {
+            for (typeParams.indices) do { i ->
+              typetxt.declareName(typeParams.at(i).name) value(typeArgs.at(i)) } }
+          elseif {typeArgs.size == 0}
+          then {
+            for (typeParams.indices) do { i ->
+              typetxt.declareName(typeParams.at(i).name) value(ngImplicitUnknown) } }
+          else {error "generic arg mismatch"}
+
+       def returnType = signature.returnType
+
+       returnType.eval(typetxt)
+     }
+     method context { ctxt } 
+     method asString {"attributeSignature: {signature.name} #{ctxt.dbg}"}
+  }
+
+
+
 
 
 
