@@ -58,9 +58,8 @@ class attributesFamily {
         typeAnnotation.eval(ctxt.withoutCreatio)
      }
      method value {
-       if (ngUninitialised == boxValue)
-         then { error "can't access uninitailsed box" }
-       boxValue }
+        typeAnnotation.eval(ctxt.withoutCreatio)
+        }
 
      method asString {"attributeDef: {origin} = {boxValue}"}
      method context { ctxt } 
@@ -105,21 +104,36 @@ class attributesFamily {
 
        def typeParams = methodNode.signature.typeParameters.asList
 
-       //bind type arguments to Unknown (should be their bounds I guess)
-       for (typeParams.indices) do { i ->
-         typetxt.declareName(typeParams.at(i).name) value(ngUnknown) }
+       //print "type-invoke method {methodNode.signature.name}"
+       //print "typeParams: {typeParams}"
+       //print "typeArgs: {typeArgs}"
+
+       if (typeArgs.size == typeParams.size)
+          then {
+            for (typeParams.indices) do { i ->
+              typetxt.declareName(typeParams.at(i).name) value(typeArgs.at(i)) } }
+          elseif {typeArgs.size == 0}
+          then {
+            for (typeParams.indices) do { i ->
+              typetxt.declareName(typeParams.at(i).name) value(ngImplicitUnknown) } }
+          else {error "generic arg mismatch"}
+
 
        def returnType = methodNode.signature.returnType
 
        def subtxt = typetxt.subcontextNamed(methodNode.signature.name)
 
        def params = methodNode.signature.parameters.asList
+
+       //print "params: {params.size}\nargs: {args.size}"
+
        if (args.size != params.size) then {error "arg mismatch"}
        for (params.indices) do { i ->
            def par = params.at(i)
            def arg = args.at(i)
-           //check(arg) isType() inContext(typetxt)  //not sure this makes sense left in
-           subtxt.declareName(par.name) value(par.typeAnnotation.eval(typetxt))
+           def pta = par.typeAnnotation
+           check(arg) isType(pta) inContext(typetxt)  //not sure this makes sense left in
+           subtxt.declareName(par.name) value(pta.eval(typetxt))
        }
 
        subtxt.addLocal(CREATIO) value(creatio) 
@@ -136,6 +150,9 @@ class attributesFamily {
      method context { ctxt } 
      method asString {"attributeMethod: {methodNode.signature.name} #{ctxt.dbg}"}
   }
+
+
+
 
   class attributeBlockMatchMethod(blockNode) inContext(ctxt) {
      use utility.publicAnnotations
