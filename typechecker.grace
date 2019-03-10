@@ -102,6 +102,7 @@ class jcheckFamily {
              inherit ng.objectContext(empty, ctxt)
              method kind {"fakeObject"}
              method body {fakeBody}
+             method fakeID {self} //evil and wrong
              
              method staticTypeCheck( other ) {
                print "FAKE STC\nSELF:{self}\nOTHER:{other}"
