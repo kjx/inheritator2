@@ -34,6 +34,7 @@ class jcheckFamily {
       alias eModuleNode(_,_) at(_) = moduleNode(_,_) at(_)
       alias eInheritNode(_,_,_,_) at(_) = inheritNode(_,_,_,_) at(_)
       alias eImportNode(_,_,_) at(_) = importNode(_,_,_) at(_)
+      alias eParameterNode(_,_,_) at(_) =  parameterNode(_,_,_) at(_)
 
   method asStringPrefix { "jcheck." }
 
@@ -89,7 +90,9 @@ class jcheckFamily {
           at ( source ) -> Parameter {
       inherit eInterfaceNode(signatures') at( source )
 
-      method eval(ctxt ) { ng.ngTypeType( subtyping.objectType( ng.ngInterface( self, ctxt ) ) ) }
+      //method eval(ctxt ) { ng.ngTypeType( subtyping.objectType( ng.ngInterface( self, ctxt ) ) ) }
+      method eval(ctxt ) {  ng.ngInterface( self, ctxt ) }
+
   }
 
   class blockNode(
@@ -108,13 +111,13 @@ class jcheckFamily {
          //TODO - haven't built any parameters!!!!
 
          prognBody.build(subtxt)
-         prognBody.eval(subtxt)
+         def returnType = prognBody.eval(subtxt) //I think this is right
 
          def ret = ng.ngType(
                  subtyping.blockType(
                         ng.ngBlock(self,ctxt),
                         parameters,
-                        subtyping.unknownObjectType, //should be returnType
+                        subtyping.makeObjectType(returnType), //hmm
                         ctxt))
          ret
        }
@@ -137,13 +140,19 @@ class jcheckFamily {
           ctxt.declareDef(name) asType(typeAnnotation) properties(properties)
           }
       method eval(ctxt) {
+          print "eval def {name}"
           def tat = typeAnnotation.eval(ctxt)
           def vt  = value.eval(ctxt)
-          //print "about to sTC:{tat}\nAGAINST:{vt}"
-          if (!tat.staticTypeCheck(vt)) then {
-             print "TYPE ERROR in def: {vt} does not have type {tat}"
+          //print "CHECKDF:{tat}\nAGAINST:{vt}"
+          if ((vt == ng.ngUninitialised))
+             then {error "value cant be uninit"}
+             elseif {!tat.staticTypeCheck(vt)} then {
+               //we need to check this here because the value being initialised
+               //(if there is one) doesn't get as far as the attribute
+               //because we've lifted the attribute to types
+               print "type check failed: in def: {vt} does not have type {tat}"
           }
-          ctxt.getLocal(name).initialValue:= value.eval(ctxt)
+          ctxt.getLocal(name).initialValue:= tat
           ng.ngDone          
       }
   }
@@ -178,11 +187,29 @@ class jcheckFamily {
           // def annots = safeFuckingMap { a -> a.eval(ctxt) } over(annotations)
           def annots = list
           def properties = utility.processAnnotations(annots,true)
-          ctxt.declareName(signature.name)
-                 attribute (ng.attributeMethod(self) properties(properties) inContext(ctxt) )
+
+          match(kind) 
+            case { "method" ->
+               ctxt.declareName(signature.name)
+                 attribute (ng.attributeMethod(self) properties(properties) inContext(ctxt) ) }
+            case { "type" ->
+                     print "treating {signature.name} as type"
+
+                     def typeSignature = signatureNode(signature.name,
+                                          signature.typeParameters,
+                                          signature.parameters,
+                                          body.first,  //treat body as returnType
+                                          empty) at (source)
+                                          
+                     def typeMethod =
+                       methodNode(typeSignature,body,annotations,"type") at(source)
+                     ctxt.declareName(signature.name)
+                       attribute (ng.attributeMethod(typeMethod) properties(properties) inContext(ctxt) ) }
+
           ng.ngDone
       }      
-      method eval(_) { 
+      method eval(ctxt) {
+             print "EVAL {kind} METHOD {signature.name}"
              ng.ngDone }
   }
   
@@ -341,6 +368,10 @@ class jcheckFamily {
   }
 
 
+  class parameterNode(n,t,i) at(s) {
+    inherit eParameterNode(n,t,i) at(s)
+  }
+ 
   method context { ng.context }
   method lexicalContext(c) { ng.lexicalContext(c) }
   method moduleObject(b,c) { ng.moduleObject(b, c) }

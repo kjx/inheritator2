@@ -29,6 +29,7 @@ method check (left) isTypeEquals (right) {
 
 method makeObjectType(obj) {
   //print "MAKEOBJYEPE:{obj}"
+  //print "{obj.kind}"
   match (obj.kind)
     case { "ngDone" -> doneObjectType } 
     case { "ngUnknown" -> unknownObjectType } 

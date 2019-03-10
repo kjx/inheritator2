@@ -9,22 +9,42 @@ def ng = singleton
 
 class exports {
   inherit typeModelTrait
+    exclude ngUnknown //Kernan bug?
   inherit attributes.attributesFamily
     exclude context
     exclude ngUninitialised
     exclude ngDone
+    exclude ngUnknown
     exclude ngImplicitUnknown
   inherit primitives.primitivesFamily
+    alias oldPrimitive = ngPrimitive
+    exclude ngPrimitive
 }
   
 
 class typeModelTrait {
   use primitives.abstractPrimitives
   use attributes.abstractAttributes
-  
+
   print "type model exports"
   inherit om.objectModelTrait
      alias oldintrinsicModuleObject = intrinsicModuleObject 
+
+  method oldPrimitive is abstract { } 
+
+  class ngPrimitive {
+     inherit oldPrimitive
+
+     method staticTypeCheck( other ) {
+            print "TOPSTC  {self} {other}"
+            //print "STCother {other} {other.value}"
+            //(other.value).isSubtypeOf(value) // new dispensation
+            subtyping.check(other) isSubtypeOf(self)
+     }
+
+  }
+
+
 
   class ngType ( value' ) { //the type of a "normal" value
                             //but the value argument here is

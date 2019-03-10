@@ -25,51 +25,33 @@ def numberLiteral : Number = object {
 
 
 
-def a : String = "A"
-
-def b : Number = "A"  //ERROR
-
-type A = interface { 
-  x 
-  y
+type StringBlock = interface {
+  apply -> String
 }
 
-def o : A = object {   //ERROR
-   method x { } 
+type NumberBlock = interface {
+  apply -> Number
 }
 
-
-
-def p : A = object {
-   method x { }
-   method y { } 
+type GenericBlock[[T]] = interface {
+  apply -> T
 }
 
+def a : StringBlock = object { method apply -> String { "hello" } }
+
+def b : StringBlock = a
+
+def c : GenericBlock[[String]] = a
+
+def y : NumberBlock = a //ERROR
+
+def z : GenericBlock[[Number]] = a //ERROR
 
 
-def q : A = o       //statically correct,  incorrect dynamically/inferred
+method ss( in : String ) -> String { "42" } 
 
+ss("42") 
+ss(42) //ERROR
 
-
-
-def r : A = p
-
-def s : A = object {
-    method x { }
-    method y { }
-    method z { } 
-}
-
-
-type B = interface {
-  x -> String 
-}
-
-def w : B = object {
-  method x -> String { "x" }
-}
-
-def x : B = object {  //ERROR
-  method x -> Number { 1 }
-}
+def w1 : Number = a.apply //ERROR
 

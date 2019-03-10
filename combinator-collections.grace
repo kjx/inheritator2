@@ -421,7 +421,7 @@ trait indexableTrait[[T]] {
             i := i + 1
         }
     }
-    method first { at(1) }
+    method first { self.at(1) }//kernan??
     method second { at(2) }
     method third { at(3) }
     method fourth { at(4) }
