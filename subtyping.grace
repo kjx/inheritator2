@@ -29,17 +29,26 @@ method check (left) isTypeEquals (right) {
 }
 
 
+def cache = dictionary
+
 method makeObjectType(obj) {
-  //print "MAKEOBJYEPE:{obj}"
+  print "MAKEOBJYEPE: {cache.size} {obj}"
   //print "{obj.kind}"
-  match (obj.kind)
-    case { "ngDone" -> doneObjectType } 
-    case { "ngUnknown" -> unknownObjectType } 
-    case { "ngImplicitUnknown" -> unknownObjectType }
-    case { "ngTypeType" -> obj.value }
-    case { "objectContext" -> objectConstructorType(obj,obj.body,obj.evilCtxt) }
-    case { "fakeObject" ->    objectConstructorType(obj,obj.body,obj.evilCtxt) }
-    case { "ngInterface" -> objectType(obj) } //ONLY BY EVAL not TYPE??
+
+  cache.at(obj) ifAbsent{ 
+
+    def ot = match (obj.kind)
+      case { "ngDone" -> doneObjectType } 
+      case { "ngUnknown" -> unknownObjectType } 
+      case { "ngImplicitUnknown" -> unknownObjectType }
+      case { "ngTypeType" -> obj.value }
+      case { "objectContext" -> objectConstructorType(obj,obj.body,obj.evilCtxt) }
+      case { "fakeObject" ->    objectConstructorType(obj.fakeID,obj.body,obj.evilCtxt) }
+      case { "ngInterface" -> objectType(obj) } //ONLY BY EVAL not TYPE??
+    print "ATS"
+    cache.at(obj) put(ot)
+    print "ATY"
+    return ot}
 }
 
 
@@ -281,14 +290,14 @@ class objectConstructorType( value', body, ctxt' ) {
          def MightBeMethodNode = interface {
             signature -> Signature
          }
-         print "DJT START {body}"
+         //print "DJT START {body}"
          match (node)
            case { m : MightBeMethodNode ->
-                    print "DJT got method {m}"
+                    //print "DJT got method {m}"
                     methods.add( methodType( m.signature, ctxt ) ) }
-           case { _ ->  error "DJT got {m}???"}
+           case { _ ->  error "DJT got {m}???" }
 
-         print "DJT DONE {body}"
+         //print "DJT DONE {body}"
          //TODO other kinds of attributes in methods
    }
 
@@ -498,7 +507,7 @@ class methodType ( signatureNode, ctxt ) {
    method parametersObjectTypes {
      for (signatureNode.parameters) 
        map { p -> makeObjectType (p.typeAnnotation.eval(ctxt.withoutCreatio)) } }
-   method asString { "method {name}  [[{typeParameters.size}]] ({parametersObjectTypes.size}) {returnObjectType}" }
+   method asString { "method {name}  [[{signatureNode.typeParameters.size}]] ({signatureNode.parameters.size}) returnObjectType" }
 
 }
 
