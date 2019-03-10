@@ -14,8 +14,10 @@ use utility.exports
 method check (left) isSubtypeOf (right) {
   def leftObjectType = makeObjectType(left)
   def rightObjectType = makeObjectType(right)
-  //print "checking: {left} isSubtypeOf {right}"
-  leftObjectType.isSubtypeOf(rightObjectType)
+  print "checking: {leftObjectType} isSubtypeOf {rightObjectType}"
+  def rv = leftObjectType.isSubtypeOf(rightObjectType)
+  print "rettning: {leftObjectType} isSubtypeOf {rightObjectType} = {rv}"
+  rv
 }
 
 method check (left) isTypeEquals (right) {
@@ -35,8 +37,9 @@ method makeObjectType(obj) {
     case { "ngUnknown" -> unknownObjectType } 
     case { "ngImplicitUnknown" -> unknownObjectType }
     case { "ngTypeType" -> obj.value }
-    case { "ngInterface" -> objectType(obj) }
     case { "objectContext" -> objectConstructorType(obj,obj.body,obj.evilCtxt) }
+    case { "fakeObject" ->    objectConstructorType(obj,obj.body,obj.evilCtxt) }
+    case { "ngInterface" -> objectType(obj) } //ONLY BY EVAL not TYPE??
 }
 
 
@@ -54,6 +57,7 @@ type ObjectType = interface {
     reverseSubtypeOf(other : ObjectType) -> Boolean
     // b.reverseNotSubtypeOf(a) IMPLIES NOT b.issubtypeOf(a)
     reverseNotSubtypeOf(other : ObjectType) -> Boolean
+    // so you can make 'em both return false and should be OK!
     |(other : ObjectType) -> ObjectType
     &(other : ObjectType) -> ObjectType
 }
@@ -237,13 +241,14 @@ class objectType( ngInterface ) {
 }
 
 
-class objectConstructorType( ngObjectContext, body', ctxt' ) {
+class objectConstructorType( value', body, ctxt' ) {
    inherit abstractObjectType
 
    //VERY VERY BROKEN. DOESN"T DEAL WITH INHERITANCE!!
 
-   method reverseSubtypeOf(_) {print "FUCKWITT"}
-   method reverseNotSubtypeOf(_) {print "FUCKWITT TOO"}
+   //punting, basically...
+   method reverseSubtypeOf(_) {false}
+   method reverseNotSubtypeOf(_) {false}
 
    method equalsOther(other) { 
      //print "ot=OTHER"
@@ -256,7 +261,7 @@ class objectConstructorType( ngObjectContext, body', ctxt' ) {
      //def rv = (ctxt == other.ctxt) && (value == other.value)    
      //def rv = (value == other.value)  
 
-     assert { (value.nodeID == other.value.nodeID) == (value == other.value) }
+     //assert { (value.nodeID == other.value.nodeID) == (value == other.value) }
 
      def rv = (value == other.value)    
      //print "ot.eSOT rv = {rv}"
@@ -265,24 +270,25 @@ class objectConstructorType( ngObjectContext, body', ctxt' ) {
 
 
    def ctxt is public = ctxt'
-   def value is public = body'
+   def value is public = value'
 
    def methods is public = list //TODO rename as methodTypes sometime?
      //the most broken of the broken shit...
      //for now: just dumps in  all methods /  no fields!!!
 
-   for (value) do { node ->
+   for (body) do { node ->
 
          def MightBeMethodNode = interface {
             signature -> Signature
          }
-
+         print "DJT START {body}"
          match (node)
            case { m : MightBeMethodNode ->
-                    // print "DJT got method {m}"
+                    print "DJT got method {m}"
                     methods.add( methodType( m.signature, ctxt ) ) }
-           case { _ -> }
+           case { _ ->  error "DJT got {m}???"}
 
+         print "DJT DONE {body}"
          //TODO other kinds of attributes in methods
    }
 
@@ -306,7 +312,7 @@ class objectConstructorType( ngObjectContext, body', ctxt' ) {
 class blockType( ngBlock, parameters, inferredReturnObjectType, ctxt' ) {
    inherit abstractObjectType
 
-   //VERY VERY BROKEN. DOESN"T DEAL WITH INHERITANCE!!
+   //VERY VERY BROKE. COPY AND PASTE
 
    method reverseSubtypeOf(_) {print "FUCKWITT"}
    method reverseNotSubtypeOf(_) {print "FUCKWITT TOO"}

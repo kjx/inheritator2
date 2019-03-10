@@ -53,5 +53,8 @@ method ss( in : String ) -> String { "42" }
 ss("42") 
 ss(42) //ERROR
 
+def l1 : Number = 3
+def l2 : Number = 3 + 4 
+
 def w1 : Number = a.apply //ERROR
 

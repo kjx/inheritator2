@@ -8,7 +8,7 @@ use utility.exports
 trait abstractAttributes {
   method attributeDef(origin) asType(typeAnnotation) properties(properties) inContext(ctxt) is abstract { }
   method attributeVar(origin) asType(typeAnnotation) properties(properties) inContext(ctxt)  is abstract { } 
-  method attributeMethod(methodNode) properties(properties) inContext(ctxt) is abstract { } 
+  method attributeMethod(methodNode) properties(properties) inContext(ctxt) is abstract { }
   method attributeBlockMatchMethod(blockNode) inContext(ctxt) is abstract { } 
   method attributeBlockApplyMethod(blockNode) inContext(ctxt) is abstract { } 
   method attributeValue(value') inContext(ctxt) is abstract { } 
@@ -143,6 +143,9 @@ class attributesFamily {
      method context { ctxt } 
      method asString {"attributeMethod: {methodNode.signature.name} #{ctxt.dbg}"}
   }
+
+
+
 
   class attributeBlockMatchMethod(blockNode) inContext(ctxt) {
      use utility.publicAnnotations

@@ -91,9 +91,38 @@ class jcheckFamily {
       inherit eInterfaceNode(signatures') at( source )
 
       //method eval(ctxt ) { ng.ngTypeType( subtyping.objectType( ng.ngInterface( self, ctxt ) ) ) }
-      method eval(ctxt ) {  ng.ngInterface( self, ctxt ) }
+      //method eval(ctxt ) {  ng.ngInterface( self, ctxt ) }
 
-  }
+      method eval(ctxt) {
+           //print "FAKE FAKE"
+
+           def fakeBody = list
+           
+           def fakeObject = object {
+             inherit ng.objectContext(empty, ctxt)
+             method kind {"fakeObject"}
+             method body {fakeBody}
+             
+             method staticTypeCheck( other ) {
+               print "FAKE STC\nSELF:{self}\nOTHER:{other}"
+               def rv = subtyping.check(other) isSubtypeOf(self)
+               print "FAKE STC RETURNS {rv}"
+               rv}
+           }
+             
+           for (signatures) do { sig ->
+             fakeObject.declareName(sig.name)
+                 attribute (ng.attributeSignature(sig)
+                              properties(utility.publicAnnotations)
+                              inContext(ctxt) )
+             fakeBody.add(
+                methodNode(sig,empty,empty,"method") at(source)  )
+           }
+           
+           //print "FAKE MAKE {fakeObject}"
+           fakeObject
+      }
+ }
 
   class blockNode(
       parameters' : Sequence[[Parameter]],
@@ -113,6 +142,7 @@ class jcheckFamily {
          prognBody.build(subtxt)
          def returnType = prognBody.eval(subtxt) //I think this is right
 
+         print "not sure block type is right"
          def ret = ng.ngType(
                  subtyping.blockType(
                         ng.ngBlock(self,ctxt),
@@ -143,7 +173,7 @@ class jcheckFamily {
           print "eval def {name}"
           def tat = typeAnnotation.eval(ctxt)
           def vt  = value.eval(ctxt)
-          //print "CHECKDF:{tat}\nAGAINST:{vt}"
+          print "CHECKDF:{tat}\nAGAINST:{vt}"
           if ((vt == ng.ngUninitialised))
              then {error "value cant be uninit"}
              elseif {!tat.staticTypeCheck(vt)} then {
@@ -245,6 +275,7 @@ class jcheckFamily {
          assert {rcvr.isWhole}
          def mySelf = ctxt.getInternal("self").value
          def isSpecialRequest = mySelf.isInside(rcvr)
+             //how the hell does this know statically???
 
          if (! (methodBody.isPublic || isSpecialRequest)  )
            then {error "External request for confidential attribute {name}"}
