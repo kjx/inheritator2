@@ -93,6 +93,8 @@ class jcheckFamily {
       //method eval(ctxt ) { ng.ngTypeType( subtyping.objectType( ng.ngInterface( self, ctxt ) ) ) }
       //method eval(ctxt ) {  ng.ngInterface( self, ctxt ) }
 
+      def underlyingInterfaceNode = self
+
       method eval(ctxt) {
            //print "FAKE FAKE"
 
@@ -102,7 +104,7 @@ class jcheckFamily {
              inherit ng.objectContext(empty, ctxt)
              method kind {"fakeObject"}
              method body {fakeBody}
-             method fakeID {self} //evil and wrong
+             method fakeID {underlyingInterfaceNode} //evil and wrong
              
              method staticTypeCheck( other ) {
                print "FAKE STC\nSELF:{self}\nOTHER:{other}"
