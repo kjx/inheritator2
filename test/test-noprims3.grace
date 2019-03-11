@@ -53,6 +53,14 @@ method ss( in : String ) -> String { "42" }
 ss("42") 
 ss(42) //ERROR
 
+(object { method apply -> String { "hello" } }).apply
+
+(object { method apply -> String { "hello" } }).apply
+
+def sq : String = (object { method apply -> String { "hello" } }).apply
+
+def sq2 : String = (object { method apply -> String { "hello" } }) //ERROR
+
 def l1 : Number = 3
 def l2 : Number = 3 + 4 
 
