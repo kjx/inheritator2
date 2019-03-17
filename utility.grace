@@ -58,6 +58,7 @@ class exports {
   def CREATIO = "_creatio"
   def RETURNBLOCK = "_returnBlock"
   def RETURNCREATIO = "_returnCreatio"
+  def RETURNTYPE = "_returnType"
   def ASSIGNMENT_TAIL = "():=(_)"
   def PARENT = "_parent"
   def INTRINSICMODULE = "inheritator2/intrinsics"

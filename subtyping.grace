@@ -417,7 +417,7 @@ def unknownObjectType is public = object {
 //I'm not sure why Tim started with them
 //and then I kept on - kjx
 
-def doneType is public = object { 
+def doneObjectType is public = object { 
   inherit singletonObjectType
   
   def methods is public = empty

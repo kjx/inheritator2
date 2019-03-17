@@ -122,8 +122,6 @@ class attributesFamily {
           else {error "generic arg mismatch"}
 
 
-       def returnType = methodNode.signature.returnType
-
        def subtxt = typetxt.subcontextNamed(methodNode.signature.name)
 
        def params = methodNode.signature.parameters.asList
@@ -139,16 +137,18 @@ class attributesFamily {
            subtxt.declareName(par.name) value(pta.eval(typetxt))
        }
 
+       def returnTypeAnnotation = methodNode.signature.returnType
+
        subtxt.addLocal(CREATIO) value(creatio) 
        subtxt.addLocal(RETURNBLOCK) //invoke return block to check type of "return"
           slot (attributeLambda {rv, _ ->
-                  check(rv) isType(returnType) inContext(typetxt)
-                  return returnType.eval(subtxt)} inContext(subtxt))
+                  check(rv) isType(returnTypeAnnotation) inContext(typetxt)
+                  return returnTypeAnnotation.eval(subtxt)} inContext(subtxt))
        subtxt.addLocal(RETURNCREATIO) value (creatio) 
 
        //don't run the method: just return the return type
        //return type may mention type params (and apparently params)
-       returnType.eval(subtxt)
+       returnTypeAnnotation.eval(subtxt)  //or typetxt?
      }
      method context { ctxt } 
      method asString {"attributeMethod: {methodNode.signature.name} #{ctxt.dbg}"}
@@ -333,7 +333,7 @@ class attributesFamily {
        def typeObject = typeExpression.eval(ctxt.withoutCreatio)
        //if (!typeObject.match(obj))
        //    then { error "type check failed: {obj} isnt {typeObject} from {typeExpression}" }
-
+       print "TY {typeObject}"
        typeObject.staticTypeCheck(obj)
        
        //def argCtxt = ctxt.withoutCreatio

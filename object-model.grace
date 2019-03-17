@@ -87,6 +87,10 @@ class objectModelTrait {
     def dbg is readable = contextCounter
     contextCounter:= contextCounter + 1
 
+    method hash {dbg} //particularly evil.
+    
+
+
     def locals :  Dictionary[[String,Attribute]] 
         = dictionary[[String,Attribute]]
 
@@ -452,8 +456,6 @@ class objectModelTrait {
 
     def annotations is public = list    //kind of evil.
 
-    method hash {dbg} //particularly evil. needed for brands
-    
     method asString { "{kind}#{dbg}:({status})  {locals.keys}\n!!{ctxt.asString}" }
   }
 

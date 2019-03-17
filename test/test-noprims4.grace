@@ -16,6 +16,7 @@ def stringLiteral : String = object {
   method asString -> String { "stringLiteral" }
 }
 
+
 def numberLiteral : Number = object {
   method + (_:Number) -> Number { numberLiteral }
   method - (_:Number) -> Number { numberLiteral }
@@ -23,8 +24,14 @@ def numberLiteral : Number = object {
 }
 
 
+type List[[T]] = interface {
+  car -> T
+  cdr -> List[[T]]
+}
 
-method foo -> String { 4 }   //SHOULD ERROR DOESN'T
-method bar -> String { return 4 }
-//foo //DYNAMIC ERROR
+def l : List[[String]] = object {
+  method car -> String { "42" }
+  method cdr -> List[[String]] {self}
+}
+
 

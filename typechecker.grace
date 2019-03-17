@@ -137,7 +137,7 @@ class jcheckFamily {
          //seems to come from block attributes??
          //oops. somehow have to 
          def params = parameters.asList
-         def prognBody = ng.progn(body)
+         def prognBody = runtime.singleton.progn(body)
          def subtxt = ctxt.subcontext
 
          //TODO - haven't built any parameters!!!!
@@ -242,8 +242,50 @@ class jcheckFamily {
           ng.ngDone
       }      
       method eval(ctxt) {
-             print "EVAL {kind} METHOD {signature.name}"
-             ng.ngDone }
+          print "EVAL {kind} METHOD {signature.name}"
+
+          if ("type" == kind) then {
+             print "special casing type"
+             return ng.ngDone}
+
+          def methodNode = self  //to avoid editing cut & pasted code below
+          
+
+          //declare all type parameters as unknown
+          def typetxt = ctxt.subcontextNamed(methodNode.signature.name ++ "(types)")
+                                //should this not have a creation??
+          def typeParams = methodNode.signature.typeParameters.asList
+          for (typeParams.indices) do { i ->   //cut & paste, could use do I guess
+             typetxt.declareName(typeParams.at(i).name) value(ngImplicitUnknown) }
+             
+
+          //declare all formal parameters as their types
+          def subtxt = typetxt.subcontextNamed(methodNode.signature.name)
+
+          def params = methodNode.signature.parameters.asList
+          for (params.indices) do { i ->
+              def par = params.at(i)
+              def pta = par.typeAnnotation
+              subtxt.declareName(par.name) value(pta.eval(typetxt))
+          }
+          
+          def returnTypeAnnotation = methodNode.signature.returnType
+          def returnType = returnTypeAnnotation.eval(typetxt)
+
+          print "EVALM {returnTypeAnnotation} {returnType}"
+
+          //subtxt.addLocal(CREATIO) value(creatio) 
+          subtxt.addLocal(RETURNTYPE) value(returnType) 
+          //subtxt.addLocal(RETURNCREATIO) value (creatio) 
+
+          def prognBody = runtime.singleton.progn(methodNode.body)
+          prognBody.build(subtxt)
+          def rv = prognBody.eval(subtxt)
+
+          runtime.singleton.check(rv) isType(returnTypeAnnotation) inContext(typetxt) //hnmm
+             //or should it be returnTypeAnnotation.staticTypeCheck()?
+          returnType
+        }
   }
   
   class explicitRequestNode(
@@ -321,12 +363,14 @@ class jcheckFamily {
       inherit eReturnNode( value' ) at( source )
       
       method eval(ctxt) {
-          def returnCreatio = ctxt.getInternal(RETURNCREATIO).value
-          def returnBlock = ctxt.getInternal(RETURNBLOCK)
-          returnBlock.invoke(ctxt)
-                          args(list( value.eval(ctxt) ))
-                          types(empty)                  
-                          creatio(returnCreatio)
+          def declaredReturnType = ctxt.getInternal(RETURNTYPE).value
+          def inferredReturnType = value.eval(ctxt)
+          if (!declaredReturnType.staticTypeCheck(inferredReturnType))
+            then {
+                 print "return type check failed:{inferredReturnType}"
+                 print "does not have type {declaredReturnType}"
+                 }
+          ng.ngUnknown  //I presume. or ng.ngDeadCode
       }
  }
 

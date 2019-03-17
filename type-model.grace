@@ -23,6 +23,7 @@ class exports {
   
 
 class typeModelTrait {
+  //inherit primitives.primitivesFamily
   use primitives.abstractPrimitives
   use attributes.abstractAttributes
 
@@ -35,13 +36,11 @@ class typeModelTrait {
   class ngPrimitive {
      inherit oldPrimitive
 
-     method staticTypeCheckXXX( other ) {
-            print "TOPSTC\nSELF:{self}\nOTHER:{other}"
-
-            //(other.value).isSubtypeOf(value) // new dispensation
+     method staticTypeCheck( other ) {
+            //print "xxxSTC\nSELF:{self}\nOTHER:{other}"
             subtyping.check(other) isSubtypeOf(self)
-     }
 
+     }
   }
 
 
@@ -72,15 +71,6 @@ class typeModelTrait {
      declareName "match(_)" lambda2 { other, creatio, ctxt ->
                     ngBoolean(staticTypeCheck(other))
                      } 
-
-
-     method staticTypeCheck( other ) {
-            print "xxxSTC\nSELF:{self}\nOTHER:{other}"
-            //print "STCself  {self} {value}"
-            //print "STCother {other} {other.value}"
-            //(other.value).isSubtypeOf(value) // new dispensation
-            subtyping.check(other) isSubtypeOf(self.value)
-     }
   }
 
 
@@ -98,11 +88,11 @@ class typeModelTrait {
     //im.declareName("Boolean") value(ngTypeType(subtyping.stringType))
 
     //this is EVIL. there must be a better option
-    im.removeLocal("implicitUnknown") 
-    im.removeLocal("Unknown")
+    //im.removeLocal("implicitUnknown") 
+    //im.removeLocal("Unknown")
 
-    im.declareName("implicitUnknown") value(ngTypeType(subtyping.unknownObjectType))
-    im.declareName("Unknown") value(ngTypeType(subtyping.unknownObjectType))
+    //im.declareName("implicitUnknown") value(ngTypeType(subtyping.unknownObjectType))
+    //im.declareName("Unknown") value(ngTypeType(subtyping.unknownObjectType))
 
 
     // print (im)

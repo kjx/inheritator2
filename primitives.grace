@@ -38,9 +38,17 @@ class primitivesFamily {
 
     method asString { "ngPrimitive (should be abstract)"}
 
+    //hmm. IO I guess
     declareName "asString" lambda { creatio ->
                     def rv = ngString(asString)
                     rv }
+
+    method staticTypeCheck( other ) {
+            //print "xxxSTC\nSELF:{self}\nOTHER:{other}"
+            subtyping.check(other) isSubtypeOf(self)
+    }
+
+
   }
   
   class ngNumber( value' ) {
@@ -149,7 +157,6 @@ class primitivesFamily {
      declareName "asString" lambda { creatio ->
                     def rv = ngString(asString)
                     rv }
-
   }
 
   /////////////////////////////////////////////////////////////
@@ -184,17 +191,23 @@ class primitivesFamily {
   }
 
   def ngUnknown is public = object {
-     inherit ngInterface(ngUninitialised,context)
+     inherit ngPrimitive 
      method kind {"ngUnknown"}
      method asString { "ngUnknown" }
      method match(other) {true}
+
+     declareName "match(_)" lambda { other, creatio -> ngBoolean(true) }
+     declareName "<:(_)" lambda { other, creatio -> ngBoolean(true) }
   }
 
   def ngImplicitUnknown is public = object {
-     inherit ngInterface(ngUninitialised,context)
-     method match(other) {true}
+     inherit ngPrimitive 
      method kind {"ngImplicitUnknown"}
-     method asString { "ngImplicitUnknown" } 
+     method asString { "ngImplicitUnknown" }
+     method match(other) {true}
+
+     declareName "match(_)" lambda { other, creatio -> ngBoolean(true) }
+     declareName "<:(_)" lambda { other, creatio -> ngBoolean(true) }
   }
 
   def ngNotCreatio is public = object {

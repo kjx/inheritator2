@@ -16,6 +16,7 @@ def stringLiteral : String = object {
   method asString -> String { "stringLiteral" }
 }
 
+
 def numberLiteral : Number = object {
   method + (_:Number) -> Number { numberLiteral }
   method - (_:Number) -> Number { numberLiteral }
@@ -23,8 +24,24 @@ def numberLiteral : Number = object {
 }
 
 
+def s : String = 42             //ERROR
+def n : Number = "42"           //ERROR
 
-method foo -> String { 4 }   //SHOULD ERROR DOESN'T
-method bar -> String { return 4 }
-//foo //DYNAMIC ERROR
+def a : String = "a"
+def b : Number = 42
+
+def c : String = "a" ++ "a"
+def d : Number = 42 + 42
+
+
+method foo {
+  def s : String = 42   //ERROR
+  def n : Number = "42" //ERRORx
+
+  def a : String = "a"
+  def b : Number = 42
+
+  def c : String = "a" ++ "a"
+  def d : Number = 42 + 42
+}
 
