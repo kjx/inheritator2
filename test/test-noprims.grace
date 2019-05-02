@@ -20,7 +20,7 @@ def stringLiteral : String = object {
 }
 
 
-def numberLiteral : String = object {
+def numberLiteral : Number  = object {
   method + (_:Number) -> Number { numberLiteral }
   method - (_:Number) -> Number { numberLiteral }
   method asString -> String { "numberLiteral" }

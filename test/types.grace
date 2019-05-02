@@ -190,6 +190,16 @@ type GList[[T]] = interface {
 assert(GList[[List]]) isSubtypeOf(List1)
 assert(List1) isSubtypeOf(GList[[List]]) 
 
+print "FUNKY CHICKEN"
+
+type Q = GLIST[[Q]]
+
+//assert(Q) isSubtypeOf(Q)
+//assert(List) isSubtypeOf(Q)
+//assert(Q) isSubtypeOf(List)
+
+
+
 
 //type GListA = GList[[GList[[GList[[Glist[[GListA]] ]] ]] ]]
 type GListA = GList[[GListA]]
