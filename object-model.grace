@@ -535,6 +535,9 @@ class objectModelTrait {
     im.declareName("primitiveBrandMatch(_,_)") lambda { b, o, _ -> 
          ng.ngBoolean(! o.lookupExternal(b).isMissing) }
 
+    //more evil proxy support
+    im.declareName("proxy(_)") lambda { o, _ -> proxyContext(o) }
+    im.declareName("send(_)") lambda { o, _ -> o.alive := false }
     //???
     //im.declareName("magicTypeMemoiser(_)") lambda { b, o, _ -> 
     //    ng.ngBoolean(! o.lookupExternal(b).isMissing) }
@@ -543,4 +546,19 @@ class objectModelTrait {
     return im
   }
 
+}
+
+class proxyContext(target) {
+ print "making proxy for {target}"
+ var alive is public := true
+ method isWhole {true} //target.isWhole
+ method whole {self} //target.whole
+ method lookupExternal(name) {
+        print "PROXY LOOKUP {name}"
+        if (alive)
+           then {target.lookupExternal(name)}
+           else {print "OOPS DEAD OBJECT"
+                 target.lookupExternal("skip")}}
+
+ method dbg {666666}       
 }
