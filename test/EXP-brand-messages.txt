@@ -7,20 +7,20 @@ ngString: listener accepts I am a SECURE message
 ngString: (I am a SECURE message is actually secure)
 ngString: listener securely accepts I am a SECURE message
 Uncaught exception:
-interpreterError: type check failed: objectContext#35:(cooked)  ⟨self, outer, asString⟩ !!lexicalContext:message#34 ⟨_creatio, _returnCreatio, _returnBlock⟩ !!lexicalContext:message(types)#33 ⟨⟩ !!moduleObject#19 ⟨m, secureMessage, Message, Secure, l, message, brandType(_), listener, s, outer, secure, self, match(_)case(_)case(_), AndPattern(_,_), brand⟩ !!moduleObject#10 ⟨confidential, readable, implicitUninitialised, assert(_)notSubtypeOf(_), Unknown, public, assert(_)isSubtypeOf(_), abstract, writable, primitiveBrandMatch(_,_), print(_), implicitDone, error(_), implicitUnknown, self, override, assert(_)notEqualsType(_), assert(_)isEqualsType(_)⟩ !!context#9 ⟨trump⟩ isnt objectContext#284:(cooked)  ⟨self, match(_), outer, asString⟩ !!lexicalContext:AndPattern(_,_)#281 ⟨r, l, _creatio, _returnCreatio, _returnBlock⟩ !!lexicalContext:AndPattern(_,_)(types)#280 ⟨⟩ !!moduleObject#19 ⟨m, secureMessage, Message, Secure, l, message, brandType(_), listener, s, outer, secure, self, match(_)case(_)case(_), AndPattern(_,_), brand⟩ !!moduleObject#10 ⟨confidential, readable, implicitUninitialised, assert(_)notSubtypeOf(_), Unknown, public, assert(_)isSubtypeOf(_), abstract, writable, primitiveBrandMatch(_,_), print(_), implicitDone, error(_), implicitUnknown, self, override, assert(_)notEqualsType(_), assert(_)isEqualsType(_)⟩ !!context#9 ⟨trump⟩ from jeval.explicitRequestNode &(_)...
+interpreterError: type check failed: abstractObjectContext#33:(cooked)  ⟨self, outer, asString⟩ !!lexicalContext:message#32 ⟨_creatio, _returnCreatio, _returnBlock⟩ !!lexicalContext:message(types)#31 ⟨⟩ !!moduleObject#17 ⟨m, secureMessage, Message, Secure, l, message, brandType(_), listener, s, outer, secure, self, match(_)case(_)case(_), AndPattern(_,_), brand⟩ !!moduleObject#8 ⟨confidential, send(_), readable, implicitUninitialised, assert(_)notSubtypeOf(_), Unknown, public, assert(_)isSubtypeOf(_), proxy(_), abstract, writable, primitiveBrandMatch(_,_), print(_), implicitDone, error(_), implicitUnknown, self, override, assert(_)notEqualsType(_), assert(_)isEqualsType(_)⟩ !!context#7 ⟨trump⟩ isnt abstractObjectContext#282:(cooked)  ⟨self, match(_), outer, asString⟩ !!lexicalContext:AndPattern(_,_)#279 ⟨r, l, _creatio, _returnCreatio, _returnBlock⟩ !!lexicalContext:AndPattern(_,_)(types)#278 ⟨⟩ !!moduleObject#17 ⟨m, secureMessage, Message, Secure, l, message, brandType(_), listener, s, outer, secure, self, match(_)case(_)case(_), AndPattern(_,_), brand⟩ !!moduleObject#8 ⟨confidential, send(_), readable, implicitUninitialised, assert(_)notSubtypeOf(_), Unknown, public, assert(_)isSubtypeOf(_), proxy(_), abstract, writable, primitiveBrandMatch(_,_), print(_), implicitDone, error(_), implicitUnknown, self, override, assert(_)notEqualsType(_), assert(_)isEqualsType(_)⟩ !!context#7 ⟨trump⟩ from jeval.explicitRequestNode &(_)...
     from «raise(_)», at line 8 of errors
-    from «error(_)», at line 280 of attributes
-    from «check(_) isType(_) inContext(_)», at line 105 of attributes
+    from «error(_)», at line 303 of attributes
+    from «check(_) isType(_) inContext(_)», at line 125 of attributes
     from «apply(_)», at line 1545 of combinator-collections
     from «_base_while_do(_,_)», at line 99 of prelude
     from «while(_) do(_)», at line 1544 of combinator-collections
     from «invoke(_) args(_) types(_) creatio(_)», at line 242 of evaluator
-    from «eval(_)», at line 325 of object-model
+    from «eval(_)», at line 350 of object-model
     from «apply(_)», at line 808 of combinator-collections
     from «_base_while_do(_,_)», at line 99 of prelude
     from «while(_) do(_)», at line 807 of combinator-collections
-    from «initialize», at line 311 of object-model
-    from «moduleObject(_,_)», at line 324 of evaluator
+    from «initialize», at line 336 of object-model
+    from «moduleObject(_,_)», at line 332 of evaluator
     from «eval(_)», at line 21 of loader
     from «apply», at line 1205 of combinator-collections
     from «at(_) ifAbsent(_)», at line 17 of loader

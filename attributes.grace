@@ -97,7 +97,7 @@ class attributesFamily {
      use utility.annotationsTrait(properties)
      use changePrivacyAnnotations
      method invoke(this) args(args) types(typeArgs) creatio(creatio) {
-       print "invoke {methodNode.signature.name} on #{this.dbg} creatio:{creatio.isCreatio}"
+       //print "invoke {methodNode.signature.name} on #{this.dbg} creatio:{creatio.isCreatio}"
        //should this not have a creation??
        def typetxt = ctxt.subcontextNamed(methodNode.signature.name ++ "(types)")
 

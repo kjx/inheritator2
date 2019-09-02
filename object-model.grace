@@ -173,9 +173,16 @@ class objectModelTrait {
       rv
       }
     method lookupInternal(name) {
+      //first find the name looking up the lexical scope
       def attribute = lookupDeclaration(name)
-      if (attribute.context.isWhole)   //just an optimisatiton?
-          then {return attribute}
+
+      //if a subclass of the defining class has overridden
+      //the lexically bound definition, we need to use to
+      //overridden version.  This is important to make
+      //class family polymorphism work
+
+      if (attribute.context.isWhole)   //optimisatiton - we're already
+          then {return attribute}      //in the whole (leaf) object
       def whole = attribute.context.whole
       whole.lookupInheritance(name) 
       }
@@ -221,7 +228,7 @@ class objectModelTrait {
     //misc
     method asString {"context#{dbg}\n{locals.keys}"}
 
-    method isCreatio { true } 
+    method isCreatio { true }  //KJX I have forgotted why this must be true
   }
 
 
@@ -271,61 +278,37 @@ class objectModelTrait {
   // only objectContexts that represent "whole" objects 
   // should ever be accessible to the interpreted programs.
   //
-  class objectContext(body',ctxt) {
+  class abstractObjectContext(body',ctxt) {
     inherit lexicalContext(ctxt)
-    method kind{"objectContext"}
+    method kind{"abstractObjectContext"}
     method body{ body' }
     method evilCtxt {ctxt}
 
-    var status is readable := "embryo"
+    var status is readable := "abstract"
 
-    def isPart is public = creatio.isCreatio
-    def isWhole is public = (!isPart)
-    def whole is public = (if (isWhole) then {self} else {creatio})
+    //PROXY HACKS
+    method isPart {abstract}
+    method isWhole {abstract}
+    method whole {abstract}
+    method whole:=(x) {abstract}
 
-    //bind "self" and "outer"
-    def mySelf = lookupLexical("self")
-    if (!mySelf.isMissing) then { addLocal "outer" slot(mySelf.value) }
-    addLocal "self"  value(whole) 
+    var alive is public := true
+
+
+    //def isPart is public = creatio.isCreatio  //PROPXY HACK
+    //def isWhole is public = (!isPart) //PROXY HACK
+    //var whole is public := (if (isWhole) then {self} else {creatio}) //PROXY HACK
+
+
+
 
     //list of AST nodes for inherit and request clauses
     //note these are AST nodes, not parental part objects
-    def inheritParentNodes :  Sequence[[Node]] = list 
+    def inheritParentNodes :  Sequence[[Node]] = list    
     def useParentNodes :  Sequence[[Node]] = list 
 
-    //setup the context for the parental requests
-    //by binding the creatio dynamic argument
-    var parentRequestContext := ctxt 
-    if (isWhole) then { 
-         parentRequestContext := ctxt.subcontext
-         parentRequestContext.addLocal(CREATIO) value(self)  
-    }
+    method parentRequestContext {error "callewd abstraft method"}  //PROXY HACK
 
-    //build the individual declarations into this object    
-    //by going through the body of the object constructor in the AST
-    //this is will set up declarations by double-dispatch requests back 
-    //to "declareName (var, def, invokaeanle, etc)"   for vars and methods
-    //and "addParent" for inheritance and use
-    //build() doesn't do anyting for inline code or initialisation
-    for (body') do { e -> e.build(self) }
-
-    status := "built"
-
-    //if I'm NOT Bottommost then I must be a parental part object
-    //my structure is now completly built() so I stop here
-    //I cannot be initialised until the entire "whole" object is built
-    if (isPart) then { 
-       status := "part" 
-       return self 
-    }
-
-    initialize
-
-    status := "cooked" //i.e. OK to go! 
-
-    ////////////////////////////////////////////////////////////
-    // "constructor" code ends here
-    ////////////////////////////////////////////////////////////
 
     // initilise by callling eval.
     // this needs to be a method (unlike build()) which is inline
@@ -374,6 +357,7 @@ class objectModelTrait {
     // used for external requets (including "self" and "outer" requests)
     // because this is the definition for lookupExternal
     method lookupInheritance(name) {
+      if (!alive) then {error "DEAD PROXY #{dbg} method {name}"}
       def localDefn = lookupLocal(name)  
       def useCandidates = findCandidates(name) parents(useParentNodes)
       def inheritCandidates = findCandidates(name) parents(inheritParentNodes)
@@ -407,13 +391,19 @@ class objectModelTrait {
 
     method processCandidate(name,parentNode,candidates) {
       var parentName := name
+
+      //make parentName the name of the attribute expected in parentNode (or ancestors)
+      //undoing alises, checking excludes
       if (parentNode.aliases.containsKey(name)) 
         then { parentName := parentNode.aliases.at(name) }
         elseif { parentNode.excludes.contains(name) }
         then { return 0 }
 
-      def parentPartObject = getLocal(parentNode.parentID) 
+      def parentPartObject = getLocal(parentNode.parentID)
+
+      //find the definition of the attribute in the parental part object
       def parentDefn = parentPartObject.lookupInheritance(parentName)
+      
       //line below is the WRONG THING I think.
       //multiple abstract-> abstract (but not ambiguous) etc
       if ((!parentDefn.isMissing) && (!parentDefn.isAbstract)) 
@@ -439,6 +429,7 @@ class objectModelTrait {
     // used for internal requets 
     // because this is the ultimate definition for lookupInternal
     method lookupDeclaration(name) {
+       if (!alive) then {error "DEAD PROXY #{dbg} method {name}"}
        if (hasLocal(name)) then {return getLocal(name)}
 
        def inheritanceResult = lookupInheritance(name)
@@ -457,6 +448,78 @@ class objectModelTrait {
     def annotations is public = list    //kind of evil.
 
     method asString { "{kind}#{dbg}:({status})  {locals.keys}\n!!{ctxt.asString}" }
+
+    method setWholeForProxy(proxy) {    // PROXY HACK
+      whole := proxy
+      for (useParentNodes ++ inheritParentNodes)
+        do { parent -> getLocal(parent.parentID).setWholeForProxy(proxy) }
+     
+    }
+
+    method proxy {
+        print "PROXYFOR #{dbg}"
+        def prxy = proxyContext(locals,ctxt,useParentNodes,inheritParentNodes)
+        print "PROXYIS #{prxy.dbg}"
+        setWholeForProxy(prxy)
+        alive := false
+        prxy
+        }
+
+  }
+  
+
+  class objectContext(body',ctxt) {
+    inherit abstractObjectContext(body',ctxt)
+    method kind{"objectContext"}
+    
+    def isPart is public = creatio.isCreatio  //PROPXY HACK
+    def isWhole is public = (!isPart) //PROXY HACK
+    var whole is public := (if (isWhole) then {self} else {creatio}) //PROXY HACK
+
+    status := "embryo"
+
+
+    //bind "self" and "outer"
+    def mySelf = lookupLexical("self")
+    if (!mySelf.isMissing) then { addLocal "outer" slot(mySelf.value) }
+    addLocal "self"  value(whole) 
+
+    //setup the context for the parental requests
+    //by binding the creatio dynamic argument
+    var parentRequestContext := ctxt 
+    if (isWhole) then { 
+         parentRequestContext := ctxt.subcontext
+         parentRequestContext.addLocal(CREATIO) value(self)  
+    }
+
+    //build the individual declarations into this object    
+    //by going through the body of the object constructor in the AST
+    //this is will set up declarations by double-dispatch requests back 
+    //to "declareName (var, def, invokaeanle, etc)"   for vars and methods
+    //and "addParent" for inheritance and use
+    //build() doesn't do anyting for inline code or initialisation
+    for (body') do { e -> e.build(self) }
+
+    status := "built"
+
+    //if I'm NOT Bottommost then I must be a parental part object
+    //my structure is now completly built() so I stop here
+    //I cannot be initialised until the entire "whole" object is built
+    if (isPart) then { 
+       status := "part" 
+       return self 
+    }
+
+    initialize
+
+    status := "cooked" //i.e. OK to go! 
+
+    ////////////////////////////////////////////////////////////
+    // "constructor" code ends here
+    ////////////////////////////////////////////////////////////
+
+    //entire bnody code moved into abstractObjectContet
+
   }
 
   // represents a module 
@@ -536,7 +599,7 @@ class objectModelTrait {
          ng.ngBoolean(! o.lookupExternal(b).isMissing) }
 
     //more evil proxy support
-    im.declareName("proxy(_)") lambda { o, _ -> proxyContext(o) }
+    im.declareName("proxy(_)") lambda { o, _ -> o.proxy }
     im.declareName("send(_)") lambda { o, _ -> o.alive := false }
     //???
     //im.declareName("magicTypeMemoiser(_)") lambda { b, o, _ -> 
@@ -546,9 +609,25 @@ class objectModelTrait {
     return im
   }
 
+
+  //KJX PROXY HACK 
+  class proxyContext(locals',enclosing',useParents',inheritParents') {
+    inherit abstractObjectContext(empty, enclosing')
+    method kind{"proxyContext"}
+    status := "proxy-embyro"
+    def locals = locals'
+    def useParentNodes = useParents'
+    def inheritParentNodes = inheritParents'
+        
+    def isPart is public = creatio.isCreatio  //PROPXY HACK
+    def isWhole is public = (!isPart) //PROXY HACK
+    var whole is public := (if (isWhole) then {self} else {creatio}) //PROXY HACK
+    def status = "proxy"
+    print "made proxy #{dbg} isPart:{isPart} isWhole:{isWhole} whole:{whole}"
+  }
 }
 
-class proxyContext(target) {
+class oldForwardingproxycontext(target) {
  print "making proxy for {target}"
  var alive is public := true
  method isWhole {true} //target.isWhole
