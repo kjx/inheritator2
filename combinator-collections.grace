@@ -471,7 +471,8 @@ def emptySequence is confidential = object {
     method values { self }
     method keysAndValuesDo(block2) { done }
     method reversed { self }
-    method ++(other: Iterable) { sequence.withAll(other) }
+    method ++(other: Iterable) { //KJX FIX
+                                 sequence.withAll [other] }
     method asString { "⟨⟩" }
     method contains(element) { false }
     method do(block1) { done }
@@ -791,12 +792,12 @@ class list[[T]] {
                 l.addAll(o)
             }
             method asString {
-                var s := "["
+                var s := "list("
                 for (0 .. (size - 1)) do {i->
                     s := s ++ inner.at(i).asString
                     if (i < (size - 1)) then { s := s ++ ", " }
                 }
-                s ++ "]"
+                s ++ ")"
             }
             method contains(element) {
                 do { each -> if (each == element) then { return true } }
@@ -1684,11 +1685,15 @@ class range {
 }
 
 //probably should all be confidential! 
-class abbreviations { 
+class abbreviations {
    method list { outer.list.empty } 
    method list(a) { outer.list.withAll [a] }
    method list(a,b) { outer.list.withAll [a,b] }
    method list(a,b,c) { outer.list.withAll [a,b,c] }
+   method seq { outer.list.empty } 
+   method seq(a) { outer.list.withAll [a] }
+   method seq(a,b) { outer.list.withAll [a,b] }
+   method seq(a,b,c) { outer.list.withAll [a,b,c] }
    method list(a) repeated(n) {
           def rv = outer.list.empty
           for (1 .. n) do { _ ->
