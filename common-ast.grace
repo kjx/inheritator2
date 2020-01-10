@@ -77,7 +77,7 @@ class jastFamily {
         visitor.visitSignature(self) }
     }
     
-    
+
     class parameterNode(name' : String,
       typeAnnotation' : Expression,
       isVariadic' : Boolean)
@@ -319,6 +319,18 @@ class jastFamily {
         visitor.visitImplicitRequest(self) }
 
       method implicitRequestNodeBrand { error "called brand" }
+
+      method evilMakeBind(rval) -> ImplicitRequestNode {
+         print "ARGS {arguments'}"
+         print "RVAL {rval}"
+         print "SEQ {seq(rval)}"
+         implicitRequestNode(name' ++ ":=(_)",
+            typeArguments',
+            arguments' ++ seq(rval))
+            at(source)
+      }
+
+
     }
     
     
@@ -337,6 +349,17 @@ class jastFamily {
     
       method accept[[T]](visitor : Visitor[[T]]) -> T {
         visitor.visitExplicitReceiverRequest(self) }
+
+
+      method evilMakeBind(rval) -> ImplicitRequestNode {
+         explicitRequestNode(receiver',
+            name' ++ ":=(_)",
+            typeArguments',
+            arguments' ++ seq(rval))
+            at(source)
+      }
+
+
     }
     
     
@@ -345,7 +368,7 @@ class jastFamily {
           at ( source ) -> Parameter {
       inherit nodeAt( source ) 
     
-      method asString { "Number: {value}" }
+      method asStringBody { "Number: {value}" }
     
       def value : Number is public = value'
 
@@ -360,7 +383,7 @@ class jastFamily {
     
       def value : String is public = value'
 
-      method asString { "String: {value}" }
+      method asStringBody { "String:<{value}>" }
 
       method accept[[T]](visitor : Visitor[[T]]) -> T {
         visitor.visitStringLiteral(self) }
