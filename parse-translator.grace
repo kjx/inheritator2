@@ -26,11 +26,11 @@ eval.ng := runtime.singleton
 def objectModel = runtime.singleton
 
 
-type ASTNode = interface { } 
+type ASTNode = interface { }
 
 def modules = dictionary[[String, ASTNode]]
 
-def moduleIsBeingLoaded = object { method isLoaded { false } } 
+def moduleIsBeingLoaded = object { method isLoaded { false } }
 
 def indent = ""
 def breakLines = true
@@ -114,7 +114,7 @@ def pnTypeStatement = parseNodes.TypeStatement
 
 for (kc.args) do { fileName ->
     def nameSize = fileName.size
-    def baseName = 
+    def baseName =
       if ((fileName.substringFrom(nameSize - 5) to(nameSize)) == ".grace")
         then { fileName.substringFrom(1)to(nameSize - 6) }
         else { fileName }
@@ -122,7 +122,7 @@ for (kc.args) do { fileName ->
 }
 
 
-method loadModule(name : String) { 
+method loadModule(name : String) {
   def mod = modules.at(name) ifAbsent {
       modules.at(name) put(moduleIsBeingLoaded)
       def newModuleParseTree = kc.parseFile(name ++ ".grace")
@@ -134,7 +134,6 @@ method loadModule(name : String) {
   }
 
   if (!mod.isLoaded) then {error "Module {name} is Loading - circular import" }
-  
   return mod
 }
 
@@ -225,7 +224,7 @@ method translateNumber(n) {
                 }
             }
             def val = integral + fractional
-        
+
             jast.numberLiteralNode(val) at(source(n))
 }
 
@@ -247,7 +246,6 @@ method translateStringLiteral(s) {
 method translateInterpolatedString(s) {
     def rcvr = jast.stringLiteralNode( "" ) at (source(s))
 
-    
     def parts = s.get_Parts
     def partCount = parts.get_Count
     def args = list
@@ -267,14 +265,13 @@ method translateInterpolatedString(s) {
     var first := true
     var rv := jast.stringLiteralNode("") at(source(s))
 
-    for (args) do { a -> 
+    for (args) do { a ->
         if (first) then {
              first := false
              rv := a }
           else {
              rv :=
-                 jast.explicitRequestNode(a, "++(_)", empty, list(rv)) at (source(s))    
-        }
+                 jast.explicitRequestNode(a, "++(_)", empty, list(rv)) at (source(s))           }
     }
 
     rv
@@ -293,7 +290,8 @@ method translateOperator(o) {
               at(o)
 }
 
-method helper_Generics(g) {
+
+method helper_Generics(g) {  //TODO
     def gCount = g.get_Count
     if (gCount == 0) then {
         return ""
@@ -305,10 +303,10 @@ method helper_Generics(g) {
         }
         ret := ret ++ translate(g.at(i))
     }
-    "{ret}]]"  //TODO
+    "{ret}]]"
 }
 
-method translateClassDeclaration(m) {
+method translateClassDeclaration(m) {  //TODO
     var ret := "class "
     ret := ret ++ translate(m.get_Signature)
     ret := ret ++ " \{\n"
@@ -318,10 +316,9 @@ method translateClassDeclaration(m) {
         def node = body.at(i)
         ret := ret ++ translateStatement(node)
     }
-    "{ret}{indent}\}"  //TODO
-}
+    "{ret}{indent}\}"}
 
-method translateTraitDeclaration(m) {
+method translateTraitDeclaration(m) {   //TODO
     var ret := "trait "
     ret := ret ++ translate(m.get_Signature)
     ret := ret ++ " \{\n"
@@ -331,10 +328,11 @@ method translateTraitDeclaration(m) {
         def node = body.at(i)
         ret := ret ++ translateStatement(node)
     }
-    "{ret}{indent}\}"   //TODO
-}
+    "{ret}{indent}\}"}
 
-method translateMethodDeclaration(m) {
+method translateMethodDeclaration(m) {  //TODO
+    //jast.methodNode( translateSignature( m.get_Signature ),
+    //                 translateAll  HEREH
     var ret := "method "
     ret := ret ++ translate(m.get_Signature)
     ret := ret ++ " \{\n"
@@ -344,8 +342,7 @@ method translateMethodDeclaration(m) {
         def node = body.at(i)
         ret := ret ++ translateStatement(node)
     }
-    "{ret}{indent}\}"   //TODO
-}
+    "{ret}{indent}\}" }
 
 method translateSignaturePart(p) {
     def name = p.get_Name
@@ -430,10 +427,9 @@ method translateImplicitReceiverRequest(r) {
     def size = nameParts.get_Count
 
     //handle each part
-    for (0 .. (size - 1)) do { i ->  
-        def partName = nameParts.at(i).get_Name 
+    for (0 .. (size - 1)) do { i ->
+        def partName = nameParts.at(i).get_Name
         name := name ++ splunge(partName)
-
         def args = argLists.at(i)
         def argCount = args.get_Count
 
@@ -450,16 +446,14 @@ method translateImplicitReceiverRequest(r) {
 }
 
 method translateExplicitReceiverRequest(r) {
+    def irr = translateImplicitReceiverRequest(r)   //EVIL
     def receiver = r.get_Receiver
-    def nameParts = r.get_NameParts
-    def argLists = r.get_Arguments
-    def size = nameParts.get_Count
-    var ret := "{translate(receiver)}."
-    ret ++ translateImplicitReceiverRequest(r)   //TODO
+    jast.explicitRequestNode( translate(receiver),
+        irr.name, irr.typeArguments, irr.arguments) at(irr.source)
 }
 
-method translateTypedParameter(p) {
-    "{translate(p.get_Name)} : {translate(p.get_Type)}"   //TODO
+method translateTypedParameter(p) { //TODO
+    "{translate(p.get_Name)} : {translate(p.get_Type)}"
 }
 
 method translateBlock(b) {
@@ -492,9 +486,9 @@ method translateDefDeclaration(v) {
     ret   //TODO
 }
 
-method translateParenthesised(p) {
+method translateParenthesised(p) {  //TODO
     def newIndent = indent ++ "    "
-    "({translate(p.get_Expression, newIndent)})"   //TODO
+    "({translate(p.get_Expression, newIndent)})"
 }
 
 method translateComment(c) {   //TODO
@@ -580,7 +574,7 @@ method translateDialect(d, ind) {   //TODO
     "dialect \"{d.get_Path.get_Raw}\""
 }
 
-method translateImport(d) { 
+method translateImport(d) {
     jast.importNode(d.get_Path.get_Raw, d.get_Name, d.get_Type)
                at(source(d))
 
@@ -639,13 +633,10 @@ method translateTypeStatement(t) {    //TODO
 //return a string of arguments in canonical names
 method munge( spart, left, mid, sep, right ) {
         if (spart.get_Count == 0) then { return left ++ right }
-        
         var result := left
-
         for (1 .. (spart.get_Count - 1)) do { p ->
-          result := result ++ mid ++ sep 
-        }
-        
+          result := result ++ mid ++ sep
+          }
         result ++ mid ++ right
 }
 
@@ -654,7 +645,7 @@ method splunge( namewithparens ) {
        var idx := 0
        for ( namewithparens ) do { c ->
            if (c == "(")
-              then { return namewithparens.substringFrom(1)to(idx) }  
+              then { return namewithparens.substringFrom(1)to(idx) }
            idx := idx + 1
        }
        namewithparens
