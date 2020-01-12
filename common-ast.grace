@@ -44,10 +44,11 @@ class jastFamily {
     //method debug(b) {b.apply}
     method debug(b) { } 
     
-    class nodeAt( source ) -> Unknown { 
+    class nodeAt( source' ) -> Unknown { 
        method asString { asStringPrefix ++ asStringBody }
        method asStringBody { "Node" }
        method accept[[T]](visitor : Visitor[[T]]) -> T { }
+       method source { source' }
     }
 
     //quetion about this one - it flattens params, relies on name to disambiguate?
