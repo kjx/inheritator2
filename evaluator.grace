@@ -151,12 +151,12 @@ class jevalFamily {
           at( source )
 
       method build(ctxt) {
-          def annots = safeFuckingMap { a -> a.eval(ctxt) } over(annotations)
+          def annots = safeFuckingMap { a -> a.eval(ctxt.withoutCreatio) } over(annotations)
           def properties = utility.processAnnotations(annots,false)
           ctxt.declareDef(name) asType(typeAnnotation) properties(properties)
           }
       method eval(ctxt) { 
-          ctxt.getLocal(name).initialValue:= value.eval(ctxt)
+          ctxt.getLocal(name).initialValue:= value.eval(ctxt.withoutCreatio)
           ng.ngDone          
       }
   }
@@ -171,7 +171,7 @@ class jevalFamily {
           at( source )
 
       method build(ctxt) {
-          def annots = safeFuckingMap { a -> a.eval(ctxt) } over(annotations)
+          def annots = safeFuckingMap { a -> a.eval(ctxt.withoutCreatio) } over(annotations)
           def properties = utility.processVarAnnotations(annots)
           ctxt.declareVar(name) asType(typeAnnotation) properties(properties)
           }
@@ -188,7 +188,7 @@ class jevalFamily {
 
       method build(ctxt) { 
           //doesn't work with brands
-          // def annots = safeFuckingMap { a -> a.eval(ctxt) } over(annotations)
+          // def annots = safeFuckingMap { a -> a.eval(ctxt.withoutCreatio) } over(annotations)
           def annots = list
           def properties = utility.processAnnotations(annots,true)
           ctxt.declareName(signature.name)
