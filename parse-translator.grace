@@ -12,6 +12,8 @@ import "platform/KernanCompiler" as kc
 def pn = kc.parseNodes
 def parseNodes = pn
 
+import "errors" as errors
+inherit errors.exports
 
 var jast is public //evil evil dependency inversion
 
@@ -60,9 +62,10 @@ print(trn01.eval(objectModel.intrinsicModuleObject))
 
 
 method mapCommon(c) { map { each -> common(each) } over(c) }
-method common(j) { translate(j) }
 
-method mapArray(arr) {
+method translateArray(arr) {
+    print "TA {arr}"
+    if (arr.isNull) then {return empty}
     def ret = list
     def size = arr.get_Count
     for (0 .. (size - 1)) do { i ->
@@ -71,8 +74,24 @@ method mapArray(arr) {
     ret
 }
 
+method nonNullArray(arr) {
+   if (arr.isNull) then {empty} else {arr}
+}
+
+method toArray(arr) {
+    if (arr.isNull) then {return empty}
+    def ret = list
+    def size = arr.get_Count
+    for (0 .. (size - 1)) do { i ->
+        ret.add(arr.at(i))
+    }
+    ret
+}
+
+
 //method source(n) { "{n.get_Column} @ {n.get_Line}" }
 method source(n) { n.get_Token }
+
 
 
 def pnObject = parseNodes.Object
@@ -127,7 +146,7 @@ method loadModule(name : String) {
       modules.at(name) put(moduleIsBeingLoaded)
       def newModuleParseTree = kc.parseFile(name ++ ".grace")
       def newModuleCommonTree = translate(newModuleParseTree)
-      print "translated: {newModuleCommonTree}"
+      print "translated: {name} {newModuleCommonTree}"
       def newModule = newModuleCommonTree.eval(objectModel.intrinsicModuleObject)
       modules.at(name) put(newModule)
       return newModule
@@ -190,7 +209,7 @@ method translate(obj) {
         case { b : pn.Interface -> translateInterface(b) }
         case { b : pn.TypeStatement -> translateTypeStatement(b) }
         case { _ ->
-                print "Printer does not support node type {obj}"
+                error "Printer does not support node type {obj}"
                 "<<Untranslated: {obj}>>"
             }
 }
@@ -198,7 +217,8 @@ method translate(obj) {
 method translateStatement(o) {
     //mwh's pp had this  - not sure we need it but keeping it for now
     //this is NOT a leg of  translate(_) above!
-    //TODO decide about comments - make a jast.comment decorator?
+    //seems to be about comments mostly
+    //TODO //COMMENT need to decide about comments - make a jast.comment decorator?
     translate(o)
 }
 
@@ -282,6 +302,7 @@ method translateIdentifier(i) {
 }
 
 method translateOperator(o) {
+     //COMMENT - michales prettyprinter handled comments
      jast.explicitRequestNode(
         translate(o.get_Left), // receiver
         o.get_Name ++ "(_)", // name
@@ -291,20 +312,6 @@ method translateOperator(o) {
 }
 
 
-method helper_Generics(g) {  //TODO
-    def gCount = g.get_Count
-    if (gCount == 0) then {
-        return ""
-    }
-    var ret := "[["
-    for (0 .. (gCount - 1)) do { i ->
-        if (i > 0) then {
-            ret := ret ++ ", "
-        }
-        ret := ret ++ translate(g.at(i))
-    }
-    "{ret}]]"
-}
 
 method translateClassDeclaration(m) {  //TODO
     var ret := "class "
@@ -330,85 +337,72 @@ method translateTraitDeclaration(m) {   //TODO
     }
     "{ret}{indent}\}"}
 
-method translateMethodDeclaration(m) {  //TODO
-    //jast.methodNode( translateSignature( m.get_Signature ),
-    //                 translateAll  HEREH
-    var ret := "method "
-    ret := ret ++ translate(m.get_Signature)
-    ret := ret ++ " \{\n"
-    def body = m.get_Body
-    def count = body.get_Count
-    for (0 .. (count - 1)) do {i->
-        def node = body.at(i)
-        ret := ret ++ translateStatement(node)
+method translateMethodDeclaration(m) {
+    print "TRMETHOD"
+    print "SIG {m.get_Signature}"
+    print "ANN {m.get_Signature.get_Annotations}"
+    def sig = translateSignature( m.get_Signature )
+    jast.methodNode( sig,
+                     translateArray( m.get_Body ),
+                     translateAnnotations( m.get_Signature.get_Annotations ),
+                     "method") at(source(m))
     }
-    "{ret}{indent}\}" }
 
-method translateSignaturePart(p) {
-    def name = p.get_Name
-    def params = p.get_Parameters
-    def genericParameters = p.get_GenericParameters
-    var ret := "{name}"
-    if (genericParameters.get_Count > 0) then {
-        ret := ret ++ "[["
-        for (0 .. (genericParameters.get_Count - 1)) do { i ->
-            if (i > 0) then {
-                ret := ret ++ ","
-            }
-            ret := ret ++ translate(genericParameters.at(i))
-        }
-        ret := ret ++ "]]"
-    }
-    if (params.get_Count > 0) then {
-        ret := ret ++ "("
-        for (0 .. (params.get_Count - 1)) do { i ->
-            if (i > 0) then {
-                ret := ret ++ ","
-            }
-            ret := ret ++ translate(params.at(i))
-        }
-        ret := ret ++ ")"
-    }
-    ret   //TODO
-}
 
 method translateSignature(s) {
-    def parts = s.get_Parts
-    def returnType = s.get_ReturnType
-    def size = parts.get_Count
-    var ret := ""
-    for (0 .. (size - 1)) do { i ->
-        ret := ret ++ translate(parts.at(i))
+    def parts = toArray(s.get_Parts)
+    def rawReturnType = s.get_ReturnType
+    def returnType = if (!rawReturnType.isNull)
+      then {translate(rawReturnType)}
+      else {jast.implicitRequestNode("implicitUnknown", empty, empty) at(source(s))}
+    var name := ""
+    var typeParameters := list
+    var parameters := list
+
+    for (parts) do { part -> 
+            name := name ++ splunge(part.get_Name)
+            def partParams =
+               for (toArray(part.get_Parameters))
+                 map { p ->
+                   //print "TPPZOOB{p}"
+                   translateTypedParameter(p)
+                 }
+            def partTypeParams = translateArray(part.get_GenericParameters)
+            // if (c.sizeOfVariadicList(part.typeParameters) > 0) then {
+            //   name := name ++
+            //      munge(part.typeParameters, "[", "_", ",", "]") }
+            if ((parts.size > 1) || (partParams.size > 0)) then {
+               name := name ++ munge(partParams, "(", "_", ",", ")") }
+            typeParameters := typeParameters ++ partTypeParams
+            parameters := parameters ++ partParams
+            }
+    print "&&&&BONZO{parameters}"
+    jast.signatureNode(name, typeParameters, parameters, returnType, translateAnnotations(s.get_Annotations)) at(0)
     }
-    if (!returnType.isNull) then {
-        ret := ret ++ " -> " ++ translate(returnType)
-    }
-    if (!s.get_Annotations.isNull) then {
-        ret := ret ++ translate(s.get_Annotations)
-    }
-    ret   //TODO
-}
+
+
+
 
 
 method translateObjectBody(body) {
     def ret = list
     def count = body.get_Count
 
-    print "translateObejctBody size={count} body={body}"
+    //print "translateObejctBody size={count} body={body}"
     for (0 .. (count - 1)) do {i->
         def node = body.at(i)
         print "  node{i}={node}"
         ret.add(translate(node))
-        print "  ret{i}={ret.size}"
-        print "  ret{i}={ret}"
+        //print "  ret{i}={ret.size}"
+        //print "  ret{i}={ret}"
     }
 
-    print "translatdObjectObject={ret}"
+    //print "translatdObjectObject={ret}"
     ret
 }
 
 method translateObject(o) {
-    def comment = o.get_Comment //ignoring comments
+    def comment = o.get_Comment //ignoring COMMENT
     def origin = "missing" ///to do with brands/annotations, see evaluator
     def source = source(o)
     jast.objectConstructorNode(translateObjectBody(o.get_Body),origin) at(source)
@@ -430,16 +424,16 @@ method translateImplicitReceiverRequest(r) {
     for (0 .. (size - 1)) do { i ->
         def partName = nameParts.at(i).get_Name
         name := name ++ splunge(partName)
-        def args = argLists.at(i)
-        def argCount = args.get_Count
+        def args = translateArray(argLists.at(i))
+        def argCount = args.size
 
         //Generic args aren't part of request names apparently...
 
         if ((size > 1) || (argCount > 0)) then {
            name := name ++ munge(args, "(", "_", ",", ")") }
 
-        typeArguments := typeArguments ++ mapArray(genArgLists.at(i))
-        arguments := arguments ++ mapArray(args)
+        typeArguments := typeArguments ++ translateArray(genArgLists.at(i))
+        arguments := arguments ++ args
     }
 
     jast.implicitRequestNode(name, typeArguments, arguments) at(source(r))
@@ -452,8 +446,27 @@ method translateExplicitReceiverRequest(r) {
         irr.name, irr.typeArguments, irr.arguments) at(irr.source)
 }
 
-method translateTypedParameter(p) { //TODO
-    "{translate(p.get_Name)} : {translate(p.get_Type)}"
+method translateTypedParameter(p) {
+    var name
+    var typeAnn := jast.implicitRequestNode("implicitUnknown", empty, empty) at(source(p))
+    var variadic := false
+
+    //look art line 116 of ExecutionTree.cs
+    match (p)
+       case { ptp : pnTypedParameter ->
+            //print "--TPP TYPED"
+            name := p.get_Name.get_Name
+            typeAnn := translateIdentifier(p.get_Type)
+            }
+       case { pid : pnIdentifier ->
+            //print "--TPP ID"
+            name := p.get_Name
+            }
+       case { _ -> print "WHAT THE FUCK translateTypedParameter{name}"
+                   print "needs another acse for variadic perhaps?"
+                   error}
+    //print "XXTPP{name}:{p}:{typeAnn}"
+    jast.parameterNode(name,typeAnn,variadic) at(source(p))
 }
 
 method translateBlock(b) {
@@ -486,12 +499,17 @@ method translateDefDeclaration(v) {
     ret   //TODO
 }
 
-method translateParenthesised(p) {  //TODO
-    def newIndent = indent ++ "    "
-    "({translate(p.get_Expression, newIndent)})"
+method translateParenthesised(p) {
+    translate(p.get_Expression)
 }
 
-method translateComment(c) {   //TODO
+method translateComment(c) {  //COMMENT
+    //have to decide what to do about comments
+    //quite like the idea of a comment decorator
+      //has a value that's the thing decorated
+      //or just foo
+    //or just steal parse tree design
+    print "COMMENT {c} comment{c.get_Comment} value{c.get_Value}"
     def comment = c.get_Comment
     if (!comment.isNull) then {
         "//{c.get_Value}\n{indent}{translate(comment)}"
@@ -571,7 +589,8 @@ method translateBind(o) {
 }
 
 method translateDialect(d, ind) {   //TODO
-    "dialect \"{d.get_Path.get_Raw}\""
+    crash "dialect \"{d.get_Path.get_Raw}\""
+    
 }
 
 method translateImport(d) {
@@ -581,29 +600,23 @@ method translateImport(d) {
     //"import \"{d.get_Path.get_Raw}\" as {translate(d.get_Name, ind)}"
 }
 
-method translateVarArgsParameter(v, ind) {   //TODO
-    "*{translate(v.get_Name, ind)}"
+method translateVarArgsParameter(v) { 
+    jast.parameterNode(p.get_Name,translate(p.get_Type),true)
+        at(source)
 }
 
 method translatePrefixOperator(o, ind) {    //TODO
     "{o.get_Name}{translate(o.get_Receiver, ind)}"
 }
 
-method translateAnnotations(o, ind) {   //TODO
-    var ret := " is "
+method translateAnnotations(o) {  
     def anns = o.get_Annotations
-    def annCount = o.get_Annotations.get_Count
-    for (0 .. (annCount - 1)) do { i ->
-        def a = anns.at(i)
-        if (i > 0) then {
-            ret := ret ++ ", "
-        }
-        ret := ret ++ translate(a, ind)
-    }
-    ret
+    translateArray(anns)
 }
 
-method translateExplicitBracketRequest(b) {    //TODO
+method translateExplicitBracketRequest(b) { //TODO
+    crash "for a[x] indexing. no longer supported"
+       
     var ret := "{translate(b.get_Receiver)}{b.get_Token.get_Name}"
     def args = b.get_Arguments
     def argc = args.get_Count
@@ -616,25 +629,31 @@ method translateExplicitBracketRequest(b) {    //TODO
     "{ret}{b.get_Token.get_Other}"
 }
 
-method translateInterface(o) {   //TODO
-    var ret := "interface \{\n"
-    ret := ret ++ translateObjectBody(o.get_Body)
-    "{ret}{indent}\}"
+method translateInterface(o) {
+    jast.interfaceNode(translateArray(o.get_Body)) at(source(o))
 }
 
-method translateTypeStatement(t) {    //TODO
-    "type {translate(t.get_BaseName)}{helper_Generics(t.get_GenericParameters)} = " ++
-        translate(t.get_Body)
+method translateTypeStatement(t) {
+    jast.methodNode(
+       jast.signatureNode(t.get_BaseName.get_Name,
+                          translateArray(t.get_GenericParameters),
+                          empty,
+                          jast.implicitRequestNode("implicitUnknown", empty, empty) at(source(t)),
+                          empty) at(source(t)),
+       seq( translateInterface( t.get_Body )),  //should be progn
+       empty,
+       "type") at(source(t))
 }
+
 
 
 
 
 //return a string of arguments in canonical names
 method munge( spart, left, mid, sep, right ) {
-        if (spart.get_Count == 0) then { return left ++ right }
+        if (spart.size == 0) then { return left ++ right }
         var result := left
-        for (1 .. (spart.get_Count - 1)) do { p ->
+        for (1 .. (spart.size - 1)) do { p ->
           result := result ++ mid ++ sep
           }
         result ++ mid ++ right
