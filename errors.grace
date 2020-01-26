@@ -4,7 +4,11 @@ def errors = self
 
 class exports {
 
-  method error (str) { 
+  method error (str) {  //signal error in target program
+      interpreterError.raise(str)
+  }
+
+  method crash (str) {  //signal error in 
       interpreterError.raise(str)
   }
 
