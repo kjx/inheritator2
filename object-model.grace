@@ -554,6 +554,10 @@ class objectModelTrait {
     im.declareName("implicitDone") value(ng.ngImplicitDone)
     im.declareName("Unknown") value(ng.ngUnknown)
 
+    im.declareName("true") value(ng.ngBoolean(true))
+    im.declareName("false") value(ng.ngBoolean(false))
+
+
     //privacy annotations
     im.declareName("confidential") value(ng.ngBuiltinAnnotation("confidential"))
     im.declareName("public") value(ng.ngBuiltinAnnotation("public"))
