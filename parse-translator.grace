@@ -15,7 +15,7 @@ def parseNodes = pn
 import "errors" as errors
 inherit errors.exports
 
-var jast is public //evil evil dependency inversion
+var ast is public //evil evil dependency inversion
 
 
 
@@ -23,7 +23,7 @@ import "loader" as loader
 import "evaluator" as eval
 import "object-model" as runtime
 
-jast := eval.singleton
+ast := eval.singleton
 eval.ng := runtime.singleton
 def objectModel = runtime.singleton
 
@@ -37,34 +37,13 @@ def moduleIsBeingLoaded = object { method isLoaded { false } }
 def indent = ""
 def breakLines = true
 
-
-print "tests"
-
-def hw =  "print \"Hello World\""
-print "hw=**{hw}**"
-def ast01 = kc.parse(hw)
-print (ast01)
-print (ast01.get_Body.at(0))
-def trn01 = translate(ast01)
-print (trn01)
-print (trn01.body)
-
-print "loading intrinsic"
-
 loader.installIntrinsicModule( objectModel.intrinsicModuleObject )
-
-
-print "run"
-
-
-print(trn01.eval(objectModel.intrinsicModuleObject))
-
 
 
 method mapCommon(c) { map { each -> common(each) } over(c) }
 
 method translateArray(arr) {
-    print "TA {arr}"
+    //print "TA {arr}"
     if (arr.isNull) then {return empty}
     def ret = list
     def size = arr.get_Count
@@ -88,10 +67,22 @@ method toArray(arr) {
     ret
 }
 
+method translateType(typeProxy) {
+   //print "translateType:{typeProxy}"
+   //print "translateType:{typeProxy.isNull}"
+   if (!typeProxy.isNull)
+      then {translate(typeProxy)}
+      else {ast.implicitRequestNode("implicitUnknown", empty, empty) at("nosource")}
+}
+
+method translateValue(valueProxy) { 
+   if (!valueProxy.isNull)
+      then {translate(valueProxy)}
+      else {ast.implicitRequestNode("implicitUninitialised", empty, empty) at("nosource")}
+}
 
 //method source(n) { "{n.get_Column} @ {n.get_Line}" }
 method source(n) { n.get_Token }
-
 
 
 def pnObject = parseNodes.Object
@@ -146,7 +137,7 @@ method loadModule(name : String) {
       modules.at(name) put(moduleIsBeingLoaded)
       def newModuleParseTree = kc.parseFile(name ++ ".grace")
       def newModuleCommonTree = translate(newModuleParseTree)
-      print "translated: {name} {newModuleCommonTree}"
+      //print "translated: {name} {newModuleCommonTree}"
       def newModule = newModuleCommonTree.eval(objectModel.intrinsicModuleObject)
       modules.at(name) put(newModule)
       return newModule
@@ -165,7 +156,7 @@ method loadModule(name : String) {
 // below addresses one kind of node and converts it into a string,
 // concatenating its child nodes in as required.
 method translate(obj) {
-    print "translate: {obj}"
+    //print "translate: {obj}"
     match (obj)
         case { n : pn.Number -> translateNumber(n) }
         case { n : pn.StringLiteral -> translateStringLiteral(n) }
@@ -218,7 +209,7 @@ method translateStatement(o) {
     //mwh's pp had this  - not sure we need it but keeping it for now
     //this is NOT a leg of  translate(_) above!
     //seems to be about comments mostly
-    //TODO //COMMENT need to decide about comments - make a jast.comment decorator?
+    //TODO //COMMENT need to decide about comments - make a ast.comment decorator?
     translate(o)
 }
 
@@ -245,7 +236,7 @@ method translateNumber(n) {
             }
             def val = integral + fractional
 
-            jast.numberLiteralNode(val) at(source(n))
+            ast.numberLiteralNode(val) at(source(n))
 }
 
 method ord(c) { c.codepoints.at(1).codepoint }
@@ -260,11 +251,11 @@ method digit(c) {
 }
 
 method translateStringLiteral(s) {
-    jast.stringLiteralNode(s.get_Raw) at(source(s))
+    ast.stringLiteralNode(s.get_Raw) at(source(s))
 }
 
 method translateInterpolatedString(s) {
-    def rcvr = jast.stringLiteralNode( "" ) at (source(s))
+    def rcvr = ast.stringLiteralNode( "" ) at (source(s))
 
     def parts = s.get_Parts
     def partCount = parts.get_Count
@@ -275,15 +266,15 @@ method translateInterpolatedString(s) {
     // as the host is, and do not yet support iteration.
     for (0 .. (partCount - 1)) do { i ->
         def part = parts.at(i)
-        print "part {i}={part}"
+        //print "part {i}={part}"
         args.add ( match(part)
-            case { _ : pn.StringLiteral -> jast.stringLiteralNode(part.get_Raw)  at (source(s)) }
-            case { _ -> jast.explicitRequestNode(translate(part), "asString", empty, empty) at (source(s)) } )
+            case { _ : pn.StringLiteral -> ast.stringLiteralNode(part.get_Raw)  at (source(s)) }
+            case { _ -> ast.explicitRequestNode(translate(part), "asString", empty, empty) at (source(s)) } )
     }
 
     args.reverse
     var first := true
-    var rv := jast.stringLiteralNode("") at(source(s))
+    var rv := ast.stringLiteralNode("") at(source(s))
 
     for (args) do { a ->
         if (first) then {
@@ -291,19 +282,19 @@ method translateInterpolatedString(s) {
              rv := a }
           else {
              rv :=
-                 jast.explicitRequestNode(a, "++(_)", empty, list(rv)) at (source(s))           }
+                 ast.explicitRequestNode(a, "++(_)", empty, list(rv)) at (source(s))           }
     }
 
     rv
 }
 
 method translateIdentifier(i) {
-    jast.implicitRequestNode(i.get_Name, empty, empty) at (i)
+    ast.implicitRequestNode(i.get_Name, empty, empty) at (i)
 }
 
 method translateOperator(o) {
      //COMMENT - michales prettyprinter handled comments
-     jast.explicitRequestNode(
+     ast.explicitRequestNode(
         translate(o.get_Left), // receiver
         o.get_Name ++ "(_)", // name
         empty, //type arguments
@@ -313,40 +304,33 @@ method translateOperator(o) {
 
 
 
-method translateClassDeclaration(m) {  //TODO
-    var ret := "class "
-    ret := ret ++ translate(m.get_Signature)
-    ret := ret ++ " \{\n"
-    def body = m.get_Body
-    def count = body.get_Count
-    for (0 .. (count - 1)) do {i->
-        def node = body.at(i)
-        ret := ret ++ translateStatement(node)
-    }
-    "{ret}{indent}\}"}
+method translateClassDeclaration(m) {  //COMMON object needs annotations; feed down from class...
+    def sig = translateSignature( m.get_Signature )
+    def body = 
+        ast.objectConstructorNode(translateObjectBody(m.get_Body),"missing") at(source(m))
+    ast.methodNode( sig,
+                     translateArray( m.get_Body ),
+                     translateAnnotations( m.get_Signature ),
+                     "class") at(source(m))
+}
 
-method translateTraitDeclaration(m) {   //TODO
-    var ret := "trait "
-    ret := ret ++ translate(m.get_Signature)
-    ret := ret ++ " \{\n"
-    def body = m.get_Body
-    def count = body.get_Count
-    for (0 .. (count - 1)) do {i->
-        def node = body.at(i)
-        ret := ret ++ translateStatement(node)
-    }
-    "{ret}{indent}\}"}
+method translateTraitDeclaration(m) {   //COMMON object needs annotations; feed down from class...
+    def sig = translateSignature( m.get_Signature )
+    def body = 
+        ast.objectConstructorNode(translateObjectBody(m.get_Body),"missing") at(source(m))
+    ast.methodNode( sig,
+                     translateArray( m.get_Body ),
+                     translateAnnotations( m.get_Signature ),
+                     "trait") at(source(m))
+}
 
 method translateMethodDeclaration(m) {
-    print "TRMETHOD"
-    print "SIG {m.get_Signature}"
-    print "ANN {m.get_Signature.get_Annotations}"
     def sig = translateSignature( m.get_Signature )
-    jast.methodNode( sig,
+    ast.methodNode( sig,
                      translateArray( m.get_Body ),
-                     translateAnnotations( m.get_Signature.get_Annotations ),
+                     translateAnnotations( m.get_Signature ),
                      "method") at(source(m))
-    }
+}
 
 
 method translateSignature(s) {
@@ -354,7 +338,7 @@ method translateSignature(s) {
     def rawReturnType = s.get_ReturnType
     def returnType = if (!rawReturnType.isNull)
       then {translate(rawReturnType)}
-      else {jast.implicitRequestNode("implicitUnknown", empty, empty) at(source(s))}
+      else {ast.implicitRequestNode("implicitUnknown", empty, empty) at(source(s))}
     var name := ""
     var typeParameters := list
     var parameters := list
@@ -376,8 +360,8 @@ method translateSignature(s) {
             typeParameters := typeParameters ++ partTypeParams
             parameters := parameters ++ partParams
             }
-    print "&&&&BONZO{parameters}"
-    jast.signatureNode(name, typeParameters, parameters, returnType, translateAnnotations(s.get_Annotations)) at(0)
+    //print "&&&&BONZO{parameters}"
+    ast.signatureNode(name, typeParameters, parameters, returnType, empty) at(0) //TODO - hmm
     }
 
 
@@ -391,7 +375,7 @@ method translateObjectBody(body) {
     //print "translateObejctBody size={count} body={body}"
     for (0 .. (count - 1)) do {i->
         def node = body.at(i)
-        print "  node{i}={node}"
+        //print "  node{i}={node}"
         ret.add(translate(node))
         //print "  ret{i}={ret.size}"
         //print "  ret{i}={ret}"
@@ -405,7 +389,7 @@ method translateObject(o) {
     def comment = o.get_Comment //ignoring COMMENT
     def origin = "missing" ///to do with brands/annotations, see evaluator
     def source = source(o)
-    jast.objectConstructorNode(translateObjectBody(o.get_Body),origin) at(source)
+    ast.objectConstructorNode(translateObjectBody(o.get_Body),origin) at(source)
 }
 
 method translateImplicitReceiverRequest(r) {
@@ -436,19 +420,19 @@ method translateImplicitReceiverRequest(r) {
         arguments := arguments ++ args
     }
 
-    jast.implicitRequestNode(name, typeArguments, arguments) at(source(r))
+    ast.implicitRequestNode(name, typeArguments, arguments) at(source(r))
 }
 
 method translateExplicitReceiverRequest(r) {
     def irr = translateImplicitReceiverRequest(r)   //EVIL
     def receiver = r.get_Receiver
-    jast.explicitRequestNode( translate(receiver),
+    ast.explicitRequestNode( translate(receiver),
         irr.name, irr.typeArguments, irr.arguments) at(irr.source)
 }
 
 method translateTypedParameter(p) {
     var name
-    var typeAnn := jast.implicitRequestNode("implicitUnknown", empty, empty) at(source(p))
+    var typeAnn := ast.implicitRequestNode("implicitUnknown", empty, empty) at(source(p))
     var variadic := false
 
     //look art line 116 of ExecutionTree.cs
@@ -462,69 +446,57 @@ method translateTypedParameter(p) {
             //print "--TPP ID"
             name := p.get_Name
             }
-       case { _ -> print "WHAT THE FUCK translateTypedParameter{name}"
-                   print "needs another acse for variadic perhaps?"
+       case { _ -> crash "WHAT THE FUCK translateTypedParameter{name} needs another case for variadic perhaps?"
                    error}
     //print "XXTPP{name}:{p}:{typeAnn}"
-    jast.parameterNode(name,typeAnn,variadic) at(source(p))
+    ast.parameterNode(name,typeAnn,variadic) at(source(p))
 }
 
 method translateBlock(b) {
-    jast.blockNode(
+    ast.blockNode(
         translate(b.get_Parameters),
         translate(b.get_Body)) at (b)
 }
 
 method translateVarDeclaration(v) {
-    var ret := "var "
-    ret := ret ++ translate(v.get_Name)
-    if (!v.get_Annotations.isNull) then {
-        ret := ret ++ translate(v.get_Annotations)
-    }
-    if (!v.get_Value.isNull) then {
-        ret := ret ++ " := "
-        ret := ret ++ translate(v.get_Value)
-    }
-    ret   //TODO
+    def name = v.get_Name.get_Name
+    def typeAnnotation = translateType( v.get_Type )
+    def annotations = translateAnnotations( v )
+    def value = translateValue ( v.get_Value )    
+
+    ast.varDeclarationNode(name, typeAnnotation, annotations, value) at(source(v))
 }
 
 method translateDefDeclaration(v) {
-    var ret := "def "
-    ret := ret ++ translate(v.get_Name)
-    if (!v.get_Annotations.isNull) then {
-        ret := ret ++ translate(v.get_Annotations)
-    }
-    ret := ret ++ " = "
-    ret := ret ++ translate(v.get_Value)
-    ret   //TODO
+    def name = v.get_Name.get_Name
+    def typeAnnotation = translateType( v.get_Type )
+    def annotations = translateAnnotations( v )
+    def value = translateValue ( v.get_Value )    
+    ast.defDeclarationNode(name, typeAnnotation, annotations, value) at(source(v))
 }
 
 method translateParenthesised(p) {
     translate(p.get_Expression)
 }
 
-method translateComment(c) {  //COMMENT
+method translateComment(c) {  //COMMENT //COMMON
     //have to decide what to do about comments
     //quite like the idea of a comment decorator
       //has a value that's the thing decorated
       //or just foo
     //or just steal parse tree design
-    print "COMMENT {c} comment{c.get_Comment} value{c.get_Value}"
-    def comment = c.get_Comment
-    if (!comment.isNull) then {
-        "//{c.get_Value}\n{indent}{translate(comment)}"
-    } else {
-        "//{c.get_Value}"
-    }
+    //print "COMMENT {c} comment{c.get_Comment} value{c.get_Value}"
+
+    ast.implicitRequestNode("implicitDone", empty, empty) at(source(p))
 }
 
 
-method translateReturn(p) {   //TODO
-    if (p.get_ReturnValue.isNull) then {
-        return "return"
-    }
-    def newIndent = indent ++ "    "
-    "return {translate(p.get_ReturnValue, newIndent)}"
+method translateReturn(p) { 
+    def rawReturn = p.get_ReturnValue
+    if (!rawReturn.isNull)
+      then { ast.returnNode(translate(rawReturn)) at(source(p))}
+      else { ast.returnNode(
+                ast.implicitRequestNode("implicitDone", empty, empty) at(source(p))) at(source(p))}
 }
 
 method translateInherits(p) {   //TODO
@@ -582,36 +554,40 @@ method translateExcludes(excludes) {   //TODO
 }
 
 method translateBind(o) {
-    print "translateBind"
-    print "translateBind from {o.get_Left}"
-    print "translateBind to {translate(o.get_Left)}"
     translate(o.get_Left).evilMakeBind(translate(o.get_Right))
 }
 
-method translateDialect(d, ind) {   //TODO
+method translateDialect(d, ind) {   //currently handled specially
     crash "dialect \"{d.get_Path.get_Raw}\""
     
 }
 
 method translateImport(d) {
-    jast.importNode(d.get_Path.get_Raw, d.get_Name, d.get_Type)
+    ast.importNode(d.get_Path.get_Raw, d.get_Name, d.get_Type)
                at(source(d))
 
     //"import \"{d.get_Path.get_Raw}\" as {translate(d.get_Name, ind)}"
 }
 
 method translateVarArgsParameter(v) { 
-    jast.parameterNode(p.get_Name,translate(p.get_Type),true)
+    ast.parameterNode(p.get_Name,translate(p.get_Type),true)
         at(source)
 }
 
-method translatePrefixOperator(o, ind) {    //TODO
-    "{o.get_Name}{translate(o.get_Receiver, ind)}"
+method translatePrefixOperator(o) {   
+     ast.explicitRequestNode(
+        translate(o.get_Receiver), // receiver
+        "prefix" ++ o.get_Name, // name
+        empty, //type arguments
+        empty) //arguments
+              at(o)
 }
 
-method translateAnnotations(o) {  
-    def anns = o.get_Annotations
-    translateArray(anns)
+method translateAnnotations(o) {
+    def annNode = o.get_Annotations
+    if (annNode.isNull) then {return empty}
+    def axs = annNode.get_Annotations
+    translateArray(axs)
 }
 
 method translateExplicitBracketRequest(b) { //TODO
@@ -630,17 +606,17 @@ method translateExplicitBracketRequest(b) { //TODO
 }
 
 method translateInterface(o) {
-    jast.interfaceNode(translateArray(o.get_Body)) at(source(o))
+    ast.interfaceNode(translateArray(o.get_Body)) at(source(o))
 }
 
 method translateTypeStatement(t) {
-    jast.methodNode(
-       jast.signatureNode(t.get_BaseName.get_Name,
+    ast.methodNode(
+       ast.signatureNode(t.get_BaseName.get_Name,
                           translateArray(t.get_GenericParameters),
                           empty,
-                          jast.implicitRequestNode("implicitUnknown", empty, empty) at(source(t)),
+                          ast.implicitRequestNode("implicitUnknown", empty, empty) at(source(t)),
                           empty) at(source(t)),
-       seq( translateInterface( t.get_Body )),  //should be progn
+       seq( translateInterface( t.get_Body )),  
        empty,
        "type") at(source(t))
 }
