@@ -60,6 +60,10 @@ class primitivesFamily {
 
      declareName "+(_)" lambda { other, creatio ->  
                     def rv = ngNumber(value' + other.value)
+                    rv }
+
+     declareName "prefix-" lambda { _ ->
+                    def rv = ngNumber(- value')
                     rv } 
   }
 
