@@ -196,6 +196,11 @@ def visitor = object {  //be careful here. someimes need to refer to visitor
         
         result ++ mid ++ right
     }
+    //in Kernan exec tree,
+    //assignments have empty name part 1, name part 2 is ":="
+    //that's why ASSIGNMENT_TAIL is "():="
+    //if you want ASSIGNMENT_TAIL to be ":=" (which would be better)
+    //then need to think about how that works with varargs
 
     //return only the name part of a name with parenthesis
     method splunge( namewithparens ) {
