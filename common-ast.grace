@@ -325,7 +325,7 @@ class jastFamily {
          print "ARGS {arguments'}"
          print "RVAL {rval}"
          print "SEQ {seq(rval)}"
-         implicitRequestNode(name' ++ ":=(_)",
+         implicitRequestNode(name' ++ ASSIGNMENT_TAIL,
             typeArguments',
             arguments' ++ seq(rval))
             at(source)
@@ -354,7 +354,7 @@ class jastFamily {
 
       method evilMakeBind(rval) -> ImplicitRequestNode {
          explicitRequestNode(receiver',
-            name' ++ ":=(_)",
+            name' ++ ASSIGNMENT_TAIL,
             typeArguments',
             arguments' ++ seq(rval))
             at(source)
@@ -362,8 +362,7 @@ class jastFamily {
 
 
     }
-    
-    
+
     class numberLiteralNode(
       value' : Number)
           at ( source ) -> Parameter {
