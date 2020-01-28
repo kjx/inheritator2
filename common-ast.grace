@@ -322,9 +322,6 @@ class jastFamily {
       method implicitRequestNodeBrand { error "called brand" }
 
       method evilMakeBind(rval) -> ImplicitRequestNode {
-         print "ARGS {arguments'}"
-         print "RVAL {rval}"
-         print "SEQ {seq(rval)}"
          implicitRequestNode(name' ++ ASSIGNMENT_TAIL,
             typeArguments',
             arguments' ++ seq(rval))
