@@ -1,6 +1,8 @@
 //common definitions
 //ya'll know how this'll go down.
 
+import "errors" as errors
+use errors.exports
 
 class exports {
 
@@ -59,7 +61,7 @@ class exports {
   def RETURNBLOCK = "_returnBlock"
   def RETURNCREATIO = "_returnCreatio"
   def RETURNTYPE = "_returnType"
-  def ASSIGNMENT_TAIL = "():=(_)"
+  def ASSIGNMENT_TAIL = "():=(_)"  //":=(_)" wouldn't support varargs 
   def PARENT = "_parent"
   def INTRINSICMODULE = "inheritator2/intrinsics"
   def STANDARDDIALECT = INTRINSICMODULE
@@ -91,13 +93,13 @@ method processAnnotations(annots,publicByDefault) {
    def encapsulation = default(publicByDefault) named "encapsulation" 
    def over = default(false) named "override"
    def abst = default(false) named "abstract"
-   for (annots) do { ann -> 
+   for (annots) do { ann ->
       match (ann.description) 
          case { "confidential" -> encapsulation <- false } 
          case { "public" -> encapsulation <- true } 
          case { "override" -> over <- true } 
          case { "abstract" -> abst <- true } 
-         case { d -> error "unknown method annotation {d}" }
+         case { d -> warning "unknown method annotation {d}" }
    }
    object { 
      def isPublic is public = ^ encapsulation
@@ -112,7 +114,7 @@ method processVarAnnotations(annots) { //COPY and PASTE
    def over = default(false) named "override"   
    def abst = default(false) named "abstract"
 
-   for (annots) do { ann ->    
+   for (annots) do { ann ->
       match (ann.description) 
          case { "confidential" -> 
               read <- false 
@@ -124,7 +126,7 @@ method processVarAnnotations(annots) { //COPY and PASTE
          case { "writable" -> writ <- true } 
          case { "override" -> over <- true } 
          case { "abstract" -> abst <- true } 
-         case { d -> error "unknown method annotation {d}" }
+         case { d -> warning "unknown method annotation {d}" }
    }
    return object { 
      def getter is public = object { 
