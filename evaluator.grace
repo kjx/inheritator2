@@ -187,9 +187,8 @@ class jevalFamily {
       inherit jMethodNode(signature', body', annotations', kind') at(source)
 
       method build(ctxt) { 
-          //doesn't work with brands
-          // def annots = safeFuckingMap { a -> a.eval(ctxt.withoutCreatio) } over(annotations)
-          def annots = list
+          //TODO doesn't work with brands
+          def annots = safeFuckingMap { a -> a.eval(ctxt.withoutCreatio) } over(annotations)
           def properties = utility.processAnnotations(annots,true)
           ctxt.declareName(signature.name)
                  attribute (ng.attributeMethod(self) properties(properties) inContext(ctxt) )
@@ -364,10 +363,12 @@ class jevalFamily {
       inherit jImportNode(path',name',typeAnnotation') at ( source )
 
       method build(ctxt) {
+          print "BUILD IMPORT {name}"
           ctxt.declareDef(name) asType(typeAnnotation) properties(utility.confidentialAnnotations)
           }
 
-      method eval(ctxt) { 
+      method eval(ctxt) {
+          print "BIND  IMPORT {name}"
           def importedModule = loader.loadModule(path)
           ctxt.getLocal(name).initialValue:=importedModule
           ng.ngDone          
