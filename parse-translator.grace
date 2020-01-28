@@ -208,8 +208,8 @@ method translate(obj) {
 method translateStatement(o) {
     //mwh's pp had this  - not sure we need it but keeping it for now
     //this is NOT a leg of  translate(_) above!
-    //seems to be about comments mostly
-    //TODO //COMMENT need to decide about comments - make a ast.comment decorator?
+    //seems to be about comments mostly, attaching them to the right **statement**
+    //COMMENT need to decide about comments - make a ast.comment decorator?
     translate(o)
 }
 
@@ -339,6 +339,7 @@ method translateSignature(s) {
     def returnType = if (!rawReturnType.isNull)
       then {translate(rawReturnType)}
       else {ast.implicitRequestNode("implicitUnknown", empty, empty) at(source(s))}
+    def anns = translateAnnotations(s)
     var name := ""
     var typeParameters := list
     var parameters := list
@@ -360,8 +361,7 @@ method translateSignature(s) {
             typeParameters := typeParameters ++ partTypeParams
             parameters := parameters ++ partParams
             }
-    //print "&&&&BONZO{parameters}"
-    ast.signatureNode(name, typeParameters, parameters, returnType, empty) at(0) //TODO - hmm
+    ast.signatureNode(name, typeParameters, parameters, returnType, anns) at(0)
     }
 
 
@@ -499,7 +499,7 @@ method translateReturn(p) {
                 ast.implicitRequestNode("implicitDone", empty, empty) at(source(p))) at(source(p))}
 }
 
-method translateInherits(p) {   //TODO
+method translateInherits(p) {     //TODO
     def newIndent = indent ++ "    "
     def aliases = p.get_Aliases
     def excludes = p.get_Excludes
@@ -590,7 +590,7 @@ method translateAnnotations(o) {
     translateArray(axs)
 }
 
-method translateExplicitBracketRequest(b) { //TODO
+method translateExplicitBracketRequest(b) { //COMMON
     crash "for a[x] indexing. no longer supported"
        
     var ret := "{translate(b.get_Receiver)}{b.get_Token.get_Name}"
