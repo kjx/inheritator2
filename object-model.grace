@@ -602,6 +602,11 @@ class objectModelTrait {
     im.declareName("primitiveBrandMatch(_,_)") lambda { b, o, _ -> 
          ng.ngBoolean(! o.lookupExternal(b).isMissing) }
 
+
+    //evil annotation support
+    im.declareName("annotation(_)") lambda { str, _ ->
+                                    ngBuiltinAnnotation(str) }
+
     //more evil proxy support
     im.declareName("proxy(_)") lambda { o, _ -> o.proxy }
     im.declareName("send(_)") lambda { o, _ -> o.alive := false }
