@@ -5,6 +5,29 @@ import "combinator-collections" as c
 inherit c.abbreviations
 
 
+
+method here {
+   //HERE
+   // Everythinf is done except inherits/uses/
+
+    //HERE HERE HERE HERE HERE
+    //wihout a no-op node, could I guess just return string literal "no-op"
+    //rather e.g. than filtering these nodesw out properly.
+
+    //todo - generator or DSL to generate code to "lift" all kernan & extension operations into the interp
+
+    //there is also the import/inherit bug to do
+
+    //common ASt renaming; comments, progn
+
+    //THEN need to sort out tests
+    // (move to old-tests directoy, collage tests w/ output, automate with both parsers?)
+    "here"
+
+    //HERE HEREH HEH
+}
+
+
 import "utility" as utility
 inherit utility.exports
 
@@ -52,6 +75,17 @@ method translateArray(arr) {
     }
     ret
 }
+
+method forArray(arr)do(blk) {
+    //print "fA {arr}"
+    if (arr.isNull) then {return done}
+    def size = arr.get_Count
+    for (0 .. (size - 1)) do { i ->
+        blk.apply((arr.at(i)))
+    }
+    done
+}
+
 
 method nonNullArray(arr) {
    if (arr.isNull) then {empty} else {arr}
@@ -339,7 +373,7 @@ method translateSignature(s) {
     def returnType = if (!rawReturnType.isNull)
       then {translate(rawReturnType)}
       else {ast.implicitRequestNode("implicitUnknown", empty, empty) at(source(s))}
-    def anns = translateAnnotations(s)
+    def anns = translateAnnotations(s)      
     var name := ""
     var typeParameters := list
     var parameters := list
@@ -484,10 +518,10 @@ method translateComment(c) {  //COMMENT //COMMON
     //quite like the idea of a comment decorator
       //has a value that's the thing decorated
       //or just foo
-    //or just steal parse tree design
+    //or just steal parse tree design(
     //print "COMMENT {c} comment{c.get_Comment} value{c.get_Value}"
 
-    ast.implicitRequestNode("implicitDone", empty, empty) at(source(p))
+    ast.implicitRequestNode("implicitDone", empty, empty) at(source(c))
 }
 
 
@@ -496,62 +530,33 @@ method translateReturn(p) {
     if (!rawReturn.isNull)
       then { ast.returnNode(translate(rawReturn)) at(source(p))}
       else { ast.returnNode(
-                ast.implicitRequestNode("implicitDone", empty, empty) at(source(p))) at(source(p))}
+                ast.implicitRequestNode("implicitDone", empty, empty) at(source(p))) at(source(c))}
 }
 
-method translateInherits(p) {     //TODO
-    def newIndent = indent ++ "    "
-    def aliases = p.get_Aliases
-    def excludes = p.get_Excludes
-    var ret := "inherit {translate(p.get_From, newIndent)}"
-    if (aliases.get_Count > 0) then {
-        ret := ret ++ translateAliases(aliases, newIndent)
-    }
-    if (excludes.get_Count > 0) then {
-        ret := ret ++ translateExcludes(excludes, newIndent)
-    }
-    ret
+method translateParent(p, kind) {  // kind is "inherit" or "use"
+
+    def excludes = list[[String]]
+    forArray (p.get_Excludes)
+      do { e -> excludes.add(e.get_Name) }
+
+    //def aliases = dictionary[[String,String]]
+    //forArray (p.get_Aliases)
+    //  do { a -> aliases.at(translateSignature(a.get_OldName).name) put(translateSignature(a.get_NewName).name)}
+
+    def aliases = list[[list]] //list of lists of length 2!! x
+    forArray (p.get_Aliases)
+      do { a -> aliases.add( list(translateSignature(a.get_OldName).name, translateSignature(a.get_NewName).name))}
+
+    print "PPP {p.get_From}"
+    print "PPt {translate(p.get_From)}"
+    ast.inheritNode(kind, translate(p.get_From), excludes, aliases) at(source(p))
+    
+    //COMMON consider renaming inheritNode as parentNode
 }
 
-method translateUses(p) {   //TODO
-    def newIndent = indent ++ "    "
-    def aliases = p.get_Aliases
-    def excludes = p.get_Excludes
-    var ret := "use {translate(p.get_From, newIndent)}"
-    if (aliases.get_Count > 0) then {
-        ret := ret ++ translateAliases(aliases, newIndent)
-    }
-    if (excludes.get_Count > 0) then {
-        ret := ret ++ translateExcludes(excludes, newIndent)
-    }
-    ret
-}
+method translateInherits(p) {translateParent(p, "inherit")}
+method translateUses(p)    {translateParent(p, "use")}
 
-method translateAliases(aliases) {   //TODO
-    def ac = aliases.get_Count
-    var ret := ""
-    def newIndent = indent ++ "    "
-    for (0 .. (ac - 1)) do { i ->
-        def a = aliases.at(i)
-        ret := ret ++ "\n" ++ indent ++ "alias "
-            ++ translate(a.get_NewName, newIndent)
-            ++ " = "
-            ++ translate(a.get_OldName, newIndent)
-    }
-    ret
-}
-
-method translateExcludes(excludes) {   //TODO
-    def ac = excludes.get_Count
-    var ret := ""
-    def newIndent = indent ++ "    "
-    for (0 .. (ac - 1)) do { i ->
-        def a = excludes.at(i)
-        ret := ret ++ "\n" ++ indent ++ "exclude "
-            ++ translate(a.get_Name, newIndent)
-    }
-    ret
-}
 
 method translateBind(o) {
     translate(o.get_Left).evilMakeBind(translate(o.get_Right))
@@ -590,7 +595,7 @@ method translateAnnotations(o) {
     translateArray(axs)
 }
 
-method translateExplicitBracketRequest(b) { //COMMON
+method XXtranslateExplicitBracketRequest(b) { //COMMON
     crash "for a[x] indexing. no longer supported"
        
     var ret := "{translate(b.get_Receiver)}{b.get_Token.get_Name}"
@@ -645,4 +650,3 @@ method splunge( namewithparens ) {
        }
        namewithparens
 }
-
