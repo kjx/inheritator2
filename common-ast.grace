@@ -118,31 +118,6 @@ class jastFamily {
       method accept[[T]](visitor : Visitor[[T]]) -> T {
         visitor.visitMethod(self) }
     }
-
-
-    class inheritNode(
-      kind' : String,
-      request' : Request,
-      excludes' : List[[String]],
-      aliases' : Dictionary[[String,String]])
-          at ( source ) -> Parameter {
-      inherit nodeAt( source ) 
-    
-      def kind : String is public = kind'
-      def request : Request is public = request'
-      def excludes : List[[String]] is public = excludes'
-      def aliases : Dictionary[[String,String]] is public = dictionary
-      
-      for (aliases') do { a -> 
-         aliases.at(a.at(1)) put(a.at(2)) 
-         //note ignoring annotations
-      }
-
-      method asStringBody { "inheritNode {kind} {request.name} ..." } 
-              
-      method accept[[T]](visitor : Visitor[[T]]) -> T {
-        visitor.visitInherit(self) }
-    }
     
 
     class inheritNode(
