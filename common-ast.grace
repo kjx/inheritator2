@@ -135,8 +135,8 @@ class jastFamily {
              signature.dump(os)
              os.printList(body)
              os.printList(annotations)
-             os.print(kind)
-             os.print ") //method{signature.name}"
+             os.print "\"{kind}\","
+             os.print ") //method {signature.name}"
       }
 
 
@@ -166,8 +166,8 @@ class jastFamily {
       method dump(os) {
              os.print "_parent(\"{kind}\",\"{request.name}\","
              request.dump(os)
-             os.print( excludes.asString )
-             os.print( aliases.asString )
+             os.print "\"{excludes.asString}\"" //TODO should literalise as list of strings
+             os.print "\"{aliases.asString}\""  //TODO shoudl litearlise as list of strings
              os.print ") //parent {request.name}"
       }
 
@@ -558,24 +558,34 @@ class jastFamily {
 }    
 
 import "combinator-collections" as ccc //GRRR
-
+import "utility" as uuu //GRRR
+inherit uuu.exports
 
 class ostream {
   def lines = ccc.abbreviations.list
   method print(str) {
-         actualprint "{str}"
-         //lines.add(str)
+         //actualprint "{str}"
+         lines.add(str)
   }
-  method printList(l) {
+  method printList(l) { //TODO //COMMON this shows the need for a progn aka body!!!
+                      //being a list that can be dunmped, evalled, built etc
     print "list("
-    for (l) do { e -> e.dump(self) }  //TODO fuck commas //TODO also dependency loop
+    for (l) doWithLast { e, last ->
+                           e.dump(self) //TODO also dependency loop
+                           //if (!last) then {actualprint ","}
+                           if (!last) then {endLineWithComma}
+                           }
     print ")//list"
   }
   method printout {
-         actualprint "PRINTED WHILE RUNNING"
-         //actualprint "PRINTOUT {lines.size} {self}"
-         //for (lines) do { l -> actualprint(l) }
-         //actualprint "PRINTOUT DONE"
+         //actualprint "PRINTED WHILE RUNNING"
+         actualprint "PRINTOUT {lines.size} {self}"
+         for (lines) do { l -> actualprint(l) }
+         actualprint "PRINTOUT DONE"
+  }
+  method endLineWithComma {
+     def lastLine = lines.removeLast
+     lines.add(lastLine ++ ",")
   }
 }
 
