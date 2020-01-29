@@ -581,7 +581,7 @@ class sequence[[T]] {
                 def freshArray = mem.allocate(size)
                 var ix := size - 1
                 do { each ->
-                    freshArray.at (ix) put(each)
+                    freshArray.at(ix) put(each)
                     ix := ix - 1
                 }
                 outer.fromPrimitiveArray(freshArray, size)
