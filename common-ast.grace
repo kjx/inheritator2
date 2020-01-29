@@ -49,6 +49,14 @@ class jastFamily {
        method asStringBody { "Node" }
        method accept[[T]](visitor : Visitor[[T]]) -> T { }
        method source { source' }
+
+       method dump {
+              print "DUMPING"
+              def os = ostream
+              dump(os)
+              os.printout
+       }
+       method dump(os) { os.print "_node()" }
     }
 
     //quetion about this one - it flattens params, relies on name to disambiguate?
@@ -60,7 +68,15 @@ class jastFamily {
                         annotations' : Sequence[[Expression]])
           at ( source ) -> Signature {
       inherit nodeAt( source ) 
-     
+
+      method dump(os) {
+             os.print "_signature(\"{name}\","
+             os.printList(typeParameters)
+             os.printList(parameters)
+             returnType.dump(os)
+             os.printList(annotations)
+             os.print ") //signature {name}"
+      }
       
       // this is kind of ugly
       // should replace ALL these defs with methods - shorter
@@ -84,7 +100,15 @@ class jastFamily {
       isVariadic' : Boolean)
           at ( source ) -> Parameter {
       inherit nodeAt( source ) 
-    
+
+      method dump(os) {
+             os.print "_parameter(\"{name}\","
+             typeAnnotation.dump(os)
+             os.print "{isVariadic}"
+             os.print ") //parameter {name}"
+      }
+
+
       def name : String is public = name'
       def typeAnnotation : Expression is public = typeAnnotation'
       def isVariadic : Boolean is public = isVariadic'
@@ -105,7 +129,17 @@ class jastFamily {
       kind' : String)
           at( source )  -> Method { 
       inherit nodeAt( source ) 
-    
+
+      method dump(os) {
+             os.print "_method(\"{signature.name}\","
+             signature.dump(os)
+             os.printList(body)
+             os.printList(annotations)
+             os.print(kind)
+             os.print ") //method{signature.name}"
+      }
+
+
       def signature : Signature is public = signature'
       def body : Sequence[[Statement]] is public = body'
       def annotations : Sequence[[Expression]] is public = annotations'
@@ -120,14 +154,24 @@ class jastFamily {
     }
     
 
-    class inheritNode(
+    class inheritNode( //TODO rename as parent
       kind' : String,
       request' : Request,
       excludes' : List[[String]],
       aliases' : Dictionary[[String,String]])
           at ( source ) -> Parameter {
       inherit nodeAt( source ) 
-    
+
+
+      method dump(os) {
+             os.print "_parent(\"{kind}\",\"{request.name}\","
+             request.dump(os)
+             os.print( excludes.asString )
+             os.print( aliases.asString )
+             os.print ") //parent {request.name}"
+      }
+
+
       def kind : String is public = kind'
       def request : Request is public = request'
       def excludes : List[[String]] is public = excludes'
@@ -150,8 +194,15 @@ class jastFamily {
       name' : String,
       typeAnnotation' : Expression)
           at ( source ) -> Node {
-      inherit nodeAt( source ) 
-    
+      inherit nodeAt( source )
+
+      method dump(os) {
+             os.print "_import(\"{path}\",\"{name}\","
+             //typeAnnotation.dump(os)
+             os.print "typeANNOTATION not dumped, causes crash"
+             os.print ") //import {name}"
+      }
+
       def path : String is public = path'
       def name : String is public = name'
       def typeAnnotation : Expression is public = typeAnnotation'
@@ -170,7 +221,9 @@ class jastFamily {
       value' : Expression)
           at ( source ) -> Parameter {
       inherit nodeAt( source ) 
-    
+
+      method dump { crash "sholdnt call" }
+
       def name : String is public = name'
       def typeAnnotation : Expression is public = typeAnnotation'
       def annotations : Sequence[[Expression]] is public = annotations'
@@ -192,6 +245,16 @@ class jastFamily {
           at ( source ) -> Parameter {
       inherit declarationNode(name', typeAnnotation', annotations', value') 
            at( source ) 
+
+      method dump(os) {
+             os.print "_def(\"{name}\","
+             typeAnnotation.dump(os)
+             os.printList(annotations)
+             value.dump(os)
+             os.print ") //def {name}"
+      }
+
+
       debug { print "DEF: {name} type {typeAnnotation} is {annotations} = {value}"}
 
       method asStringBody { "defDeclartionNode {name}..." } 
@@ -210,6 +273,15 @@ class jastFamily {
           at( source ) 
       debug { print "VAR: {name} type {typeAnnotation} is {annotations} = {value}"}
 
+      method dump(os) {
+             os.print "_var(\"{name}\","
+             typeAnnotation.dump(os)
+             os.printList(annotations)
+             value.dump(os)
+             os.print ") //var {name}"
+      }
+
+
       method asStringBody { "varDeclarationNode {name}..." } 
 
       method accept[[T]](visitor : Visitor[[T]]) -> T {
@@ -222,7 +294,13 @@ class jastFamily {
       value' : Expression)
           at ( source )  {
       inherit nodeAt( source ) 
-    
+
+      method dump(os) {
+             os.print "return"
+             value.dump(os)
+             os.print ") //return"
+      }
+
       def value : Expression is public = value'
 
       method asStringBody { "returnNode ..." } 
@@ -231,12 +309,18 @@ class jastFamily {
         visitor.visitReturn(self) }
     }
     
-    //partial. needs more to handle inheritance. tomorrow.
     class objectConstructorNode(
       body' : Sequence[[ObjectStatement]],
       origin' : Unknown)
           at ( source ) -> Parameter {
       inherit nodeAt( source ) 
+
+      method dump(os) {
+             os.print "_object("
+             os.printList(body)
+             os.print ") //object"
+      }
+
 
       def body : Sequence[[ObjectStatement]]   is public = body'
       method origin { origin' }
@@ -256,7 +340,14 @@ class jastFamily {
     
       def moduleDialect : String   is public = moduleDialect'
       def body is public = body'
-      
+
+      method dump(os) {
+             os.print "_module(\"{moduleDialect}\","
+             os.printList(body)
+             os.print ") //module"
+      }
+
+
       method asStringBody { "moduleNode ..." } 
         
       method accept[[T]](visitor : Visitor[[T]]) -> T {
@@ -270,7 +361,12 @@ class jastFamily {
       arguments' : Sequence[[Expression]])
           at ( source ) -> Parameter {
       inherit nodeAt( source ) 
-    
+
+
+      method dump(os) {
+         crash "should not call dump requestNode"
+      }
+
       def name : String is public = name'
       def typeArguments : Sequence[[Expression]] is public = typeArguments'
       def arguments : Sequence[[Expression]] is public = arguments'
@@ -288,6 +384,14 @@ class jastFamily {
           at ( source ) -> Parameter {
       inherit requestNode(name', typeArguments', arguments')
           at( source ) 
+
+      method dump(os) {
+             os.print "_implicit(\"{name}\","
+             os.printList(typeArguments)
+             os.printList(arguments)
+             os.print ") //implicit {name}"
+      }
+
 
       method asStringBody { "implicitRequestNode {name}..." } 
     
@@ -315,7 +419,17 @@ class jastFamily {
           at ( source ) -> Parameter {
       inherit requestNode(name', typeArguments', arguments')
           at( source ) 
-    
+
+
+      method dump(os) {
+             os.print "_explicit(\"{name}\","
+             receiver.dump(os)
+             os.printList(typeArguments)
+             os.printList(arguments)
+             os.print ") //explicit {name}"
+      }
+
+
       def receiver : Expression is public = receiver'
 
       method asStringBody { "explicitRequestNode {name}..." } 
@@ -335,11 +449,13 @@ class jastFamily {
 
     }
 
-    class numberLiteralNode(
+    class numberLiteralNode(  //what to do about radix? - keep it? keep the origianl string
       value' : Number)
           at ( source ) -> Parameter {
       inherit nodeAt( source ) 
-    
+
+      method dump(os) { os.print "{value}" }
+
       method asStringBody { "Number: {value}" }
     
       def value : Number is public = value'
@@ -352,7 +468,9 @@ class jastFamily {
       value' : String)
           at ( source ) -> Parameter {
       inherit nodeAt( source ) 
-    
+
+      method dump(os) { os.print "\"{value}\"" }
+
       def value : String is public = value'
 
       method asStringBody { "String:<{value}>" }
@@ -367,7 +485,14 @@ class jastFamily {
       body' : Sequence[[Statement]])
           at ( source ) -> Parameter {
       inherit nodeAt( source ) 
-    
+
+      method dump(os) {
+             os.print "_block("
+             os.printList(parameters)
+             os.printList(body)
+             os.print ") //block"
+      }
+
       def parameters : Sequence[[Parameter]] is public = parameters'
       def body : Sequence[[Statement]] is public = body'
 
@@ -381,7 +506,13 @@ class jastFamily {
         signatures' : Sequence[[Signature]])
           at ( source ) -> Parameter {
       inherit nodeAt( source ) 
-    
+
+      method dump(os) {
+             os.print "_interface("
+             os.printList(signatures)
+             os.print ") //interface"
+      }
+
       def signatures : Sequence[[Signature]] is public = signatures'
     
       method asStringBody {"interface: {signatures} size: {signatures.size}"}
@@ -425,4 +556,27 @@ class jastFamily {
     }
     
 }    
-    
+
+import "combinator-collections" as ccc //GRRR
+
+
+class ostream {
+  def lines = ccc.abbreviations.list
+  method print(str) {
+         actualprint "{str}"
+         //lines.add(str)
+  }
+  method printList(l) {
+    print "list("
+    for (l) do { e -> e.dump(self) }  //TODO fuck commas //TODO also dependency loop
+    print ")//list"
+  }
+  method printout {
+         actualprint "PRINTED WHILE RUNNING"
+         //actualprint "PRINTOUT {lines.size} {self}"
+         //for (lines) do { l -> actualprint(l) }
+         //actualprint "PRINTOUT DONE"
+  }
+}
+
+method actualprint(s) {print(s)} //OOPS
