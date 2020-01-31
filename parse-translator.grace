@@ -63,21 +63,8 @@ def breakLines = true
 loader.installIntrinsicModule( objectModel.intrinsicModuleObject )
 
 
-method mapCommon(c) { map { each -> common(each) } over(c) }
-
-method translateArray(arr) {
-    //print "TA {arr}"
-    if (arr.isNull) then {return empty}
-    def ret = list
-    def size = arr.get_Count
-    for (0 .. (size - 1)) do { i ->
-        ret.add(translate(arr.at(i)))
-    }
-    ret
-}
 
 method forArray(arr)do(blk) {
-    //print "fA {arr}"
     if (arr.isNull) then {return done}
     def size = arr.get_Count
     for (0 .. (size - 1)) do { i ->
@@ -86,18 +73,24 @@ method forArray(arr)do(blk) {
     done
 }
 
-
-method nonNullArray(arr) {
-   if (arr.isNull) then {empty} else {arr}
+method translateArray(arr) {
+    def ret = list
+    forArray (arr) do { e -> ret.add(translate(e)) }
+    ret
 }
 
-method toArray(arr) {
-    if (arr.isNull) then {return empty}
+method translateArrayWithoutComments(arr) {
     def ret = list
-    def size = arr.get_Count
-    for (0 .. (size - 1)) do { i ->
-        ret.add(arr.at(i))
+    forArray (arr) do { e ->
+      if (! (pn.Comment.match(e).succeeded)) then {ret.add(translate(e))}
     }
+    ret
+}
+
+
+method listFromArray(arr) {
+    def ret = list
+    forArray (arr) do { e -> ret.add(e) }
     ret
 }
 
@@ -154,9 +147,26 @@ def pnInterface = parseNodes.Interface
 def pnTypeStatement = parseNodes.TypeStatement
 
 
+var optionNoRun := false
+var optionDump := false
 
+loadModulesFromArguments
 
-for (kc.args) do { fileName ->
+method loadModulesFromArguments {
+  for (kc.args) do { arg ->
+    match (arg)
+      case { "--no-run" -> optionNoRun := true}
+      case { "--dump" -> optionDump := true}
+      case { "--about" ->
+           print "inheritator2 (c) James Noble"
+           print "bits stolen from Michael Homer, Andrew Black, Kim Bruce, Tim Jones, Isaac Oscar Gariano" }
+      case { _ -> loadFilename(arg) }
+  }
+}
+
+//want for() case() case() case()  along with method() case() case() case
+
+method loadFilename(fileName) {
     def nameSize = fileName.size
     def baseName =
       if ((fileName.substringFrom(nameSize - 5) to(nameSize)) == ".grace")
@@ -170,8 +180,9 @@ method loadModule(name : String) {
   def mod = modules.at(name) ifAbsent {
       modules.at(name) put(moduleIsBeingLoaded)
       def newModuleParseTree = kc.parseFile(name ++ ".grace")
-      def newModuleCommonTree = translate(newModuleParseTree)
-      //print "translated: {name} {newModuleCommonTree}"
+      def newModuleCommonTree = translateModule(newModuleParseTree)
+      if (optionDump) then {newModuleCommonTree.dump}
+      if (optionNoRun) then {return done} //dunno what else to return!
       def newModule = newModuleCommonTree.eval(objectModel.intrinsicModuleObject)
       modules.at(name) put(newModule)
       return newModule
@@ -234,7 +245,7 @@ method translate(obj) {
         case { b : pn.Interface -> translateInterface(b) }
         case { b : pn.TypeStatement -> translateTypeStatement(b) }
         case { _ ->
-                error "Printer does not support node type {obj}"
+                error "parse-translator does not support node type {obj}"
                 "<<Untranslated: {obj}>>"
             }
 }
@@ -288,46 +299,30 @@ method translateStringLiteral(s) {
     ast.stringLiteralNode(s.get_Raw) at(source(s))
 }
 
-method translateInterpolatedString(s) {
-    def rcvr = ast.stringLiteralNode( "" ) at (source(s))
-
-    def parts = s.get_Parts
-    def partCount = parts.get_Count
-    def args = list
-
-    // Native lists are available as objects with a Count property
-    // that can be indexed using .at. These lists are zero-indexed
-    // as the host is, and do not yet support iteration.
-    for (0 .. (partCount - 1)) do { i ->
-        def part = parts.at(i)
-        //print "part {i}={part}"
-        args.add ( match(part)
-            case { _ : pn.StringLiteral -> ast.stringLiteralNode(part.get_Raw)  at (source(s)) }
-            case { _ -> ast.explicitRequestNode(translate(part), "asString", empty, empty) at (source(s)) } )
-    }
-
-    args.reverse
-    var first := true
-    var rv := ast.stringLiteralNode("") at(source(s))
-
-    for (args) do { a ->
-        if (first) then {
-             first := false
-             rv := a }
-          else {
-             rv :=
-                 ast.explicitRequestNode(a, "++(_)", empty, list(rv)) at (source(s))           }
-    }
-
-    rv
+method translateInterpolatedString(s) { //TODO //HERE
+  //cribbed from Kernan's ExecutionTree.cs
+  var ret := false
+  forArray(s.get_Parts) do { part ->
+     if (false == ret)
+       then { ret := translate(part) }
+       else {
+          var arg 
+          if (pn.StringLiteral.match(part))
+             then { arg :=  translate(part) }
+             else { arg := ast.explicitRequestNode(translate(part), "asString", empty, empty) at(source(s)) }
+          ret := ast.explicitRequestNode(ret, "++(_)", empty, list(arg)) at (source(s))
+       }
+  }
+  ret
 }
+
 
 method translateIdentifier(i) {
     ast.implicitRequestNode(i.get_Name, empty, empty) at (i)
 }
 
 method translateOperator(o) {
-     //COMMENT - michales prettyprinter handled comments
+     //COMMENT - michales prettyprinter handled comment
      ast.explicitRequestNode(
         translate(o.get_Left), // receiver
         o.get_Name ++ "(_)", // name
@@ -343,7 +338,7 @@ method translateClassDeclaration(m) {  //COMMON object needs annotations; feed d
     def body = 
         ast.objectConstructorNode(translateObjectBody(m.get_Body),"missing") at(source(m))
     ast.methodNode( sig,
-                     translateArray( m.get_Body ),
+                     list(body), //COMMON progn?
                      translateAnnotations( m.get_Signature ),
                      "class") at(source(m))
 }
@@ -353,7 +348,7 @@ method translateTraitDeclaration(m) {   //COMMON object needs annotations; feed 
     def body = 
         ast.objectConstructorNode(translateObjectBody(m.get_Body),"missing") at(source(m))
     ast.methodNode( sig,
-                     translateArray( m.get_Body ),
+                     list(body), //COMMON progn?
                      translateAnnotations( m.get_Signature ),
                      "trait") at(source(m))
 }
@@ -361,14 +356,14 @@ method translateTraitDeclaration(m) {   //COMMON object needs annotations; feed 
 method translateMethodDeclaration(m) {
     def sig = translateSignature( m.get_Signature )
     ast.methodNode( sig,
-                     translateArray( m.get_Body ),
+                     translateArrayWithoutComments( m.get_Body ),
                      translateAnnotations( m.get_Signature ),
                      "method") at(source(m))
 }
 
 
 method translateSignature(s) {
-    def parts = toArray(s.get_Parts)
+    def parts = listFromArray(s.get_Parts)
     def rawReturnType = s.get_ReturnType
     def returnType = if (!rawReturnType.isNull)
       then {translate(rawReturnType)}
@@ -380,12 +375,7 @@ method translateSignature(s) {
 
     for (parts) do { part -> 
             name := name ++ splunge(part.get_Name)
-            def partParams =
-               for (toArray(part.get_Parameters))
-                 map { p ->
-                   //print "TPPZOOB{p}"
-                   translateTypedParameter(p)
-                 }
+            def partParams = translateTypedParameterList(part.get_Parameters)
             def partTypeParams = translateArray(part.get_GenericParameters)
             // if (c.sizeOfVariadicList(part.typeParameters) > 0) then {
             //   name := name ++
@@ -400,24 +390,15 @@ method translateSignature(s) {
 
 
 
-
-
-method translateObjectBody(body) {
-    def ret = list
-    def count = body.get_Count
-
-    //print "translateObejctBody size={count} body={body}"
-    for (0 .. (count - 1)) do {i->
-        def node = body.at(i)
-        //print "  node{i}={node}"
-        ret.add(translate(node))
-        //print "  ret{i}={ret.size}"
-        //print "  ret{i}={ret}"
-    }
-
-    //print "translatdObjectObject={ret}"
-    ret
+method translateTypedParameterList(l) {
+            for (listFromArray(l))
+                 map { p ->
+                   //print "TPPZOOB{p}"
+                   translateTypedParameter(p)
+                 }
 }
+
+method translateObjectBody(body) { translateArrayWithoutComments(body) }
 
 method translateObject(o) {
     def comment = o.get_Comment //ignoring COMMENT
@@ -425,6 +406,31 @@ method translateObject(o) {
     def source = source(o)
     ast.objectConstructorNode(translateObjectBody(o.get_Body),origin) at(source)
 }
+
+
+method translateModule(mod) {
+    var moduleDialectName := ""
+    def commonModuleBody = list
+    forArray (mod.get_Body) do { e ->
+      match(e)         
+        case { dia : pn.Dialect -> 
+           if (moduleDialectName == "")
+             then { moduleDialectName := dia.get_Path }
+             else { error "TOO MANY DIALECTS" } }
+        case { _ : pn.Comment -> }
+        case { _ -> 
+           commonModuleBody.add( translate(e) ) }
+    }
+    
+    print "MODULE DIALECT: {moduleDialectName}"
+    print "MODULE SIZE   : {commonModuleBody.size}"
+
+    if (moduleDialectName == "") 
+       then { moduleDialectName := STANDARDDIALECT }
+
+    ast.moduleNode(moduleDialectName, commonModuleBody) at(0) 
+}
+
 
 method translateImplicitReceiverRequest(r) {
     //cut and pasted from visitSignature
@@ -474,7 +480,7 @@ method translateTypedParameter(p) {
        case { ptp : pnTypedParameter ->
             //print "--TPP TYPED"
             name := p.get_Name.get_Name
-            typeAnn := translateIdentifier(p.get_Type)
+            typeAnn := translate(p.get_Type)
             }
        case { pid : pnIdentifier ->
             //print "--TPP ID"
@@ -487,9 +493,11 @@ method translateTypedParameter(p) {
 }
 
 method translateBlock(b) {
+    def blockParams = translateTypedParameterList(b.get_Parameters)
+
     ast.blockNode(
-        translate(b.get_Parameters),
-        translate(b.get_Body)) at (b)
+        blockParams,
+        translateArrayWithoutComments(b.get_Body)) at (b) //TODO progn?
 }
 
 method translateVarDeclaration(v) {
@@ -521,7 +529,9 @@ method translateComment(c) {  //COMMENT //COMMON
     //or just steal parse tree design(
     //print "COMMENT {c} comment{c.get_Comment} value{c.get_Value}"
 
-    ast.implicitRequestNode("implicitDone", empty, empty) at(source(c))
+    //ast.stringLiteralNode(c.get_Comment) at(source(c))
+
+    crash "trnslateComment shoudlb'e be called"
 }
 
 
@@ -537,7 +547,7 @@ method translateParent(p, kind) {  // kind is "inherit" or "use"
 
     def excludes = list[[String]]
     forArray (p.get_Excludes)
-      do { e -> excludes.add(e.get_Name) }
+      do { e -> excludes.add(translateSignature(e.get_Name).name) }
 
     //def aliases = dictionary[[String,String]]
     //forArray (p.get_Aliases)
@@ -545,10 +555,8 @@ method translateParent(p, kind) {  // kind is "inherit" or "use"
 
     def aliases = list[[list]] //list of lists of length 2!! x
     forArray (p.get_Aliases)
-      do { a -> aliases.add( list(translateSignature(a.get_OldName).name, translateSignature(a.get_NewName).name))}
+      do { a -> aliases.add( list(translateSignature(a.get_NewName).name, translateSignature(a.get_OldName).name))}
 
-    print "PPP {p.get_From}"
-    print "PPt {translate(p.get_From)}"
     ast.inheritNode(kind, translate(p.get_From), excludes, aliases) at(source(p))
     
     //COMMON consider renaming inheritNode as parentNode
@@ -650,3 +658,4 @@ method splunge( namewithparens ) {
        }
        namewithparens
 }
+

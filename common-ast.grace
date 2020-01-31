@@ -564,8 +564,8 @@ inherit uuu.exports
 class ostream {
   def lines = ccc.abbreviations.list
   method print(str) {
-         //actualprint "{str}"
-         lines.add(str)
+         actualprint "{str}"
+         //lines.add(str)
   }
   method printList(l) { //TODO //COMMON this shows the need for a progn aka body!!!
                       //being a list that can be dunmped, evalled, built etc
@@ -573,7 +573,7 @@ class ostream {
     for (l) doWithLast { e, last ->
                            e.dump(self) //TODO also dependency loop
                            //if (!last) then {actualprint ","}
-                           if (!last) then {endLineWithComma}
+                           //if (!last) then {endLineWithComma}
                            }
     print ")//list"
   }
