@@ -99,7 +99,7 @@ class objectModelTrait {
 
     method declareName(name) attribute ( attribute ) { 
       if ( hasLocal(name) )
-        then { error "trying to declare {name} more than once" }
+        then { error "trying to declare {name} more than once in {self}" }
         elseif { checkForShadowing(name) }
         then { error "{name} shadows lexical definition" }
         else { addLocal(name) slot(attribute) }
@@ -481,7 +481,9 @@ class objectModelTrait {
 
     //bind "self" and "outer"
     def mySelf = lookupLexical("self")
-    if (!mySelf.isMissing) then { addLocal "outer" slot(mySelf.value) }
+    if (!mySelf.isMissing) then { addLocal "outer" value(mySelf.value) }
+    if (!mySelf.isMissing) then { addLocal "debugouter" value(mySelf.value) }
+       //debugouter because Kernan has "super" style "outer"
     addLocal "self"  value(whole) 
 
     //setup the context for the parental requests
@@ -606,6 +608,11 @@ class objectModelTrait {
     //evil annotation support
     im.declareName("annotation(_)") lambda { str, _ ->
                                     ngBuiltinAnnotation(str) }
+
+    //evil debugging support
+    im.declareName("debug(_,_)") lambda { str, obj, _ -> print "DEBUG: {str} {obj}"}
+    im.declareName("debug") lambda { _ -> print "DEBUG CALLED" }
+
 
     //more evil proxy support
     im.declareName("proxy(_)") lambda { o, _ -> o.proxy }
