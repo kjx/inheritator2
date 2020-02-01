@@ -1,4 +1,5 @@
 
+
 def secure = brand
 
 type Secure = secure.Type
@@ -7,28 +8,30 @@ type Message = interface {
     asString    
 }
 
-class message {
-    method asString { "I am a message" }   
-}
-
-class secureMessage is secure {
-    method asString { "I am a SECURE message" }   
-}
-
-class listener {
-    method accept (m : Message) {
-         print "listener accepts {m}" 
-         match (m) 
-           case { sm : Secure -> print "({sm} is actually secure)" }
-           case { _ -> print "({m} really isn't secure)" }
-      }
-    method secure (m : Secure & Message) {print "listener securely accepts {m}" }
+def inner = object {
+    class message {
+        method asString { "I am a message" }   
+    }
     
+    class secureMessage is secure {
+        method asString { "I am a SECURE message" }   
+    }
+    
+    class listener {
+        method accept (m : Message) {
+             print "listener accepts {m}" 
+             match (m) 
+               case { sm : Secure -> print "({sm} is actually secure)" }
+               case { _ -> print "({m} really isn't secure)" }
+          }
+        method secure (m : Secure & Message) {print "listener securely accepts {m}" }
+    
+    }
 }
 
-def l = listener
-def m = message
-def s = secureMessage
+def l = inner.listener
+def m = inner.message
+def s = inner.secureMessage
 
 l.accept(m)
 l.accept(s)
