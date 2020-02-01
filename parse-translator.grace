@@ -109,7 +109,8 @@ method translateValue(valueProxy) {
 }
 
 //method source(n) { "{n.get_Column} @ {n.get_Line}" }
-method source(n) { n.get_Token }
+method source(n) {n.get_Token.asString}
+
 
 
 def pnObject = parseNodes.Object
@@ -318,7 +319,7 @@ method translateInterpolatedString(s) { //TODO //HERE
 
 
 method translateIdentifier(i) {
-    ast.implicitRequestNode(i.get_Name, empty, empty) at (i)
+    ast.implicitRequestNode(i.get_Name, empty, empty) at (source(i))
 }
 
 method translateOperator(o) {
@@ -413,12 +414,14 @@ method translateModule(mod) {
     def commonModuleBody = list
     forArray (mod.get_Body) do { e ->
       match(e)         
-        case { dia : pn.Dialect -> 
+        case { dia : pn.Dialect ->
+           print "DOING DIALECT {dia}"
            if (moduleDialectName == "")
-             then { moduleDialectName := dia.get_Path }
+             then { moduleDialectName := dia.get_Path.get_Value }
              else { error "TOO MANY DIALECTS" } }
         case { _ : pn.Comment -> }
-        case { _ -> 
+        case { _ ->
+           print "translating {e.get_Token}"
            commonModuleBody.add( translate(e) ) }
     }
     
@@ -629,7 +632,7 @@ method translateTypeStatement(t) {
                           empty,
                           ast.implicitRequestNode("implicitUnknown", empty, empty) at(source(t)),
                           empty) at(source(t)),
-       seq( translateInterface( t.get_Body )),  
+       seq( translate( t.get_Body )),
        empty,
        "type") at(source(t))
 }
