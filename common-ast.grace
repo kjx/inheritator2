@@ -386,7 +386,7 @@ class jastFamily {
           at( source ) 
 
       method dump(os) {
-             os.print "_implicit(\"{name}\","
+             os.print "_implicit(\"{name}\", //{source}"
              os.printList(typeArguments)
              os.printList(arguments)
              os.print ") //implicit {name}"
