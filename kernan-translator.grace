@@ -1,6 +1,6 @@
 import "combinator-collections" as c
 inherit c.abbreviations
-
+import "platform/KernanCompiler" as kc
 import "utility" as utility
 inherit utility.exports
 
@@ -372,8 +372,7 @@ method defaultVisitor {
     }
 }
 
-
-
+HERE
 
 method translate(kernanParseTree) {
     var moduleDialectName := ""

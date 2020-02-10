@@ -4,7 +4,9 @@
 import "combinator-collections" as c
 inherit c.abbreviations
 
+import "platform/KernanCompiler" as kc
 
+HERE
 
 method here {
    //HERE

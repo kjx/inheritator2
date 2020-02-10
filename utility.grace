@@ -140,7 +140,7 @@ method processVarAnnotations(annots) { //COPY and PASTE
        def isPublic is public = ^ writ
      }
    }
-}
+
 
 
 
@@ -156,4 +156,6 @@ class default(initialValue) named (name) {
       value := newValue
       alreadyAssigned := true
    }
+}
+
 }
