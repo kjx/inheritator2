@@ -65,7 +65,27 @@ class exports {
   def PARENT = "_parent"
   def INTRINSICMODULE = "inheritator2/intrinsics"
   def STANDARDDIALECT = INTRINSICMODULE
-}
+
+
+
+  //probably need a better name for these
+  method default (initialValue) { default(initialValue) name ""}
+
+  class default(initialValue) named (name) {
+     var value is readable := initialValue
+     var alreadyAssigned := false
+     method prefix ^ { value }
+     method <-(newValue) {
+        if (alreadyAssigned) then { error "{name} already assigned" }
+        value := newValue
+        alreadyAssigned := true
+     }
+  }
+
+} //end exports
+
+
+
 
 trait annotationsTrait(properties) { 
      method isPublic { properties.isPublic }
@@ -141,21 +161,9 @@ method processVarAnnotations(annots) { //COPY and PASTE
      }
    }
 
-
-
-
-//probably need a better name for these
-method default (initialValue) { default(initialValue) name ""}
-
-class default(initialValue) named (name) {
-   var value is readable := initialValue
-   var alreadyAssigned := false
-   method prefix ^ { value }
-   method <-(newValue) {
-      if (alreadyAssigned) then { error "{name} already assigned" }
-      value := newValue
-      alreadyAssigned := true
-   }
 }
 
-}
+
+
+
+
