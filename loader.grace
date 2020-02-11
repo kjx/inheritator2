@@ -2,9 +2,23 @@
 import "combinator-collections" as c
 inherit c.abbreviations
 import "utility" as utility
-use utility.exports
+inherit utility.exports
 import "kernan-translator" as execTranslator
 import "parse-translator" as parseTranslator
+import "platform/KernanCompiler" as kc
+
+import "evaluator" as eval
+eval.loader := self  //EVIL
+
+import "object-model" as runtime
+
+var ast is public //evil evil dependency inversion
+
+ast := eval.singleton
+eval.ng := runtime.singleton
+def objectModel = runtime.singleton
+
+
 
 
 var objectModel is public //evil dependency injection
@@ -20,11 +34,12 @@ method loadModule(name : String) {
   def mod = modules.at(name) ifAbsent {
       modules.at(name) put(moduleIsBeingLoaded)
 
-      def newModuleKernanTree = kc.translateFile(name ++ ".grace")
-      def newModuleCommonTree = translator.translate(newModuleKernanTree)
+      
+      def newModuleCommonTree =
+              optionTranslator.value.translateFile(name)
+      if (optionDump.value) then {newModuleCommonTree.dump}
+      if (optionNoRun.value) then {return done} //dunno what else to return!
 
-      if (optionDump) then {newModuleCommonTree.dump}
-      if (optionNoRun) then {return done} //dunno what else to return!
       def newModule = newModuleCommonTree.eval(objectModel.context)
       modules.at(name) put(newModule)
       return newModule
@@ -34,6 +49,7 @@ method loadModule(name : String) {
   
   return mod
 }
+
 
 def optionNoRun = default(false) named "no run"
 def optionDump = default(false) named "dump"
@@ -48,12 +64,12 @@ method loadModulesFromArguments {
       case { "--about" ->
            print "inheritator2 (c) James Noble"
            print "bits stolen from Michael Homer, Andrew Black, Kim Bruce, Tim Jones, Isaac Oscar Gariano" }
-      case { "--exec"
+      case { "--exec" -> 
              if (somethingLoaded) then {crash "can't change parser after loading" }
-             optionParser <- execTranslation }
+             optionTranslator <- execTranslator } 
       case { _ ->
              loadFilename(arg)
-             somethingLoaded := true}
+             somethingLoaded := true} 
   }
 }
 

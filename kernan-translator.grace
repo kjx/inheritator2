@@ -372,7 +372,13 @@ method defaultVisitor {
     }
 }
 
-HERE
+
+method translateFile(name) {
+      def newModuleKernanTree = kc.translateFile(name ++ ".grace")
+      def newModuleCommonTree = translate(newModuleKernanTree)
+      return newModuleCommonTree
+}
+
 
 method translate(kernanParseTree) {
     var moduleDialectName := ""

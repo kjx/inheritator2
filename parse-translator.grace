@@ -6,11 +6,11 @@ inherit c.abbreviations
 
 import "platform/KernanCompiler" as kc
 
-HERE
 
 method here {
    //HERE
-   // Everythinf is done except inherits/uses/
+
+    //there is also the import/inherit bug to do
 
     //HERE HERE HERE HERE HERE
     //wihout a no-op node, could I guess just return string literal "no-op"
@@ -18,7 +18,6 @@ method here {
 
     //todo - generator or DSL to generate code to "lift" all kernan & extension operations into the interp
 
-    //there is also the import/inherit bug to do
 
     //common ASt renaming; comments, progn
 
@@ -40,17 +39,8 @@ def parseNodes = pn
 import "errors" as errors
 inherit errors.exports
 
-var ast is public //evil evil dependency inversion
 
 
-
-import "loader" as loader
-import "evaluator" as eval
-import "object-model" as runtime
-
-ast := eval.singleton
-eval.ng := runtime.singleton
-def objectModel = runtime.singleton
 
 
 type ASTNode = interface { }
@@ -62,7 +52,7 @@ def moduleIsBeingLoaded = object { method isLoaded { false } }
 def indent = ""
 def breakLines = true
 
-loader.installIntrinsicModule( objectModel.intrinsicModuleObject )
+
 
 
 
@@ -150,26 +140,10 @@ def pnInterface = parseNodes.Interface
 def pnTypeStatement = parseNodes.TypeStatement
 
 
-var optionNoRun := false
-var optionDump := false
-
-loadModulesFromArguments
-
-method loadModulesFromArguments {
-  for (kc.args) do { arg ->
-    match (arg)
-      case { "--no-run" -> optionNoRun := true}
-      case { "--dump" -> optionDump := true}
-      case { "--about" ->
-           print "inheritator2 (c) James Noble"
-           print "bits stolen from Michael Homer, Andrew Black, Kim Bruce, Tim Jones, Isaac Oscar Gariano" }
-      case { _ -> loadFilename(arg) }
-  }
-}
 
 //want for() case() case() case()  along with method() case() case() case
 
-method loadFilename(fileName) {
+method translateFilename(fileName) {
     def nameSize = fileName.size
     def baseName =
       if ((fileName.substringFrom(nameSize - 5) to(nameSize)) == ".grace")
@@ -179,22 +153,11 @@ method loadFilename(fileName) {
 }
 
 
-method loadModule(name : String) {
-  def mod = modules.at(name) ifAbsent {
-      modules.at(name) put(moduleIsBeingLoaded)
-      def newModuleParseTree = kc.parseFile(name ++ ".grace")
-      def newModuleCommonTree = translateModule(newModuleParseTree)
-      if (optionDump) then {newModuleCommonTree.dump}
-      if (optionNoRun) then {return done} //dunno what else to return!
-      def newModule = newModuleCommonTree.eval(objectModel.intrinsicModuleObject)
-      modules.at(name) put(newModule)
-      return newModule
-  }
-
-  if (!mod.isLoaded) then {error "Module {name} is Loading - circular import" }
-  return mod
+method translateFile(name) {
+      def newModuleKernanTree = kc.parseFile(name ++ ".grace")
+      def newModuleCommonTree = translateModule(newModuleKernanTree)
+      return newModuleCommonTree
 }
-
 
 
 

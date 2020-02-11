@@ -5,9 +5,11 @@ import "errors" as errors
 use errors.exports
 import "utility" as utility 
 use utility.exports
-import "loader" as loader
+
+var loader is public  //EVIL
 
 var ng is public //evil evil dependency inversion
+
 
 
 
