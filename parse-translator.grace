@@ -508,7 +508,7 @@ method translateReturn(p) {
     if (!rawReturn.isNull)
       then { ast.returnNode(translate(rawReturn)) at(source(p))}
       else { ast.returnNode(
-                ast.implicitRequestNode("implicitDone", empty, empty) at(source(p))) at(source(c))}
+                ast.implicitRequestNode("implicitDone", empty, empty) at(source(p))) at(source(p))}
 }
 
 method translateParent(p, kind) {  // kind is "inherit" or "use"
