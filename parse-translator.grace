@@ -442,8 +442,7 @@ method translateTypedParameter(p) {
     var name
     var typeAnn := ast.implicitRequestNode("implicitUnknown", empty, empty) at(source(p))
     var variadic := false
-
-    //look art line 116 of ExecutionTree.cs
+    print "TTP{p}"
     match (p)
        case { ptp : pnTypedParameter ->
             //print "--TPP TYPED"
@@ -454,9 +453,14 @@ method translateTypedParameter(p) {
             //print "--TPP ID"
             name := p.get_Name
             }
-       case { _ -> crash "WHAT THE FUCK translateTypedParameter{name} needs another case for variadic perhaps?"
-                   error}
-    //print "XXTPP{name}:{p}:{typeAnn}"
+       case { _ ->
+            // what I really want to do:
+            // crash "WHAT THE FUCK translateTypedParameter{p} needs another case for variadic perhaps?"
+            // but this presumably is a matching expression...
+            name := "_"  
+            typeAnn := translate(p)
+            }
+
     ast.parameterNode(name,typeAnn,variadic) at(source(p))
 }
 
