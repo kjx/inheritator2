@@ -441,7 +441,7 @@ class objectModelTrait {
          then {lexicalResult}
          elseif {isMissing(lexicalResult) || (inheritanceResult == lexicalResult)}
          then {inheritanceResult}
-         else {attributeAmbiguous(name) inContext(self)}
+         else {attributeAmbiguous(name) between(seq(inheritanceResult,lexicalResult)) inContext(self)}
     }
 
 
