@@ -36,6 +36,7 @@ class attributesFamily {
       isAbstract -> Boolean
       isOverride -> Boolean
       isMissing -> Boolean //usually false. TRUE if lookup failed!!
+      isAmgiguous -> Boolean //true if isMissing
       asPublic(Boolean) -> Attribute
       context -> Context
   }
@@ -219,7 +220,8 @@ class attributesFamily {
 
   //what lookup retuns when it's abiguous
   class attributeAmbiguous(name) between(possibilities) inContext(ctxt) {
-     inherit attributeMissing(name) inContext(ctxt) 
+     inherit attributeMissing(name) inContext(ctxt)
+     method isAmbiguous { true }
      method invoke(this) args(args) types(typeArgs) creatio(creatio) {  
         error "{name} is ambiguous at {ctxt} between {possibilities}"
      }

@@ -92,6 +92,7 @@ trait annotationsTrait(properties) {
      method isOverride { properties.isOverride }
      method isAbstract { properties.isAbstract }
      method isMissing { false }
+     method isAmbiguous { false }
 }
 
 trait confidentialAnnotations {
@@ -99,6 +100,7 @@ trait confidentialAnnotations {
      method isOverride { false }
      method isAbstract { false }
      method isMissing { false }
+     method isAmbiguous { false }
 }
 
 
@@ -107,6 +109,7 @@ trait publicAnnotations {
      method isOverride { false }
      method isAbstract { false }
      method isMissing { false }
+     method isAmbiguous { false }
 }
 
 method processAnnotations(annots,publicByDefault) { 

@@ -436,7 +436,13 @@ class objectModelTrait {
        def lexicalResult = lookupEnclosingDeclaration(name)
 
        if (isMissing(lexicalResult) && isMissing(inheritanceResult))
-         then {attributeMissing(name) inContext(self)}
+         then {
+            if (lexicalResult.isAmbiguous)
+              then {lexicalResult}
+              elseif {inheritanceResult.isAmbiguous}
+              then {inheritanceResult}
+              else {attributeMissing(name) inContext(self)}
+           }
          elseif {isMissing(inheritanceResult)}
          then {lexicalResult}
          elseif {isMissing(lexicalResult) || (inheritanceResult == lexicalResult)}
